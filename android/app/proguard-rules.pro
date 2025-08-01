@@ -1,0 +1,6 @@
+-keep class com.github.jaiimageio.** { *; }
+-keep class javax.imageio.** { *; }
+-keep class com.sun.media.imageio.** { *; }
+-dontwarn javax.imageio.**
+-dontwarn com.github.jaiimageio.**
+-dontwarn com.sun.media.imageio.**
