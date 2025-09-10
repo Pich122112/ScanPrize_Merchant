@@ -2,7 +2,7 @@ import 'dart:async';
 import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:flutter_fortune_wheel/flutter_fortune_wheel.dart';
-import 'package:scanprize_frontend/utils/constants.dart';
+import 'package:gb_merchant/utils/constants.dart';
 import 'package:confetti/confetti.dart';
 
 class Spinwheelpage extends StatefulWidget {

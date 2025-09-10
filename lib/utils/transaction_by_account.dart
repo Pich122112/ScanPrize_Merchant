@@ -1,10 +1,12 @@
-// Change _futureTransactions type, and use the correct FutureBuilder and UI group logic
-
+import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
+import 'package:connectivity_plus/connectivity_plus.dart';
+import 'package:gb_merchant/widgets/bottomsheet_transaction.dart';
 import '../services/user_transaction_service.dart';
+import 'dart:async';
 
 class TransactionByAccount extends StatefulWidget {
-  final String account; // 'ganzberg', 'idol', 'boostrong', 'money'
+  final String account; // 'GB', 'BS', 'ID', 'DM'
   final String logoPath;
   final int balance;
   const TransactionByAccount({
@@ -20,17 +22,66 @@ class TransactionByAccount extends StatefulWidget {
 
 class _TransactionByAccountState extends State<TransactionByAccount> {
   late Future<List<Map<String, dynamic>>> _futureTransactions;
+  bool _noInternet = false;
+  StreamSubscription<List<ConnectivityResult>>? _connectivitySubscription;
 
   @override
   void initState() {
     super.initState();
+    _checkConnection();
+    _connectivitySubscription = Connectivity().onConnectivityChanged.listen((
+      results,
+    ) {
+      bool nowOffline =
+          results.isEmpty || results.every((r) => r == ConnectivityResult.none);
+      setState(() {
+        _noInternet = nowOffline;
+      });
+      // Optionally: refetch transactions when back online
+      if (!nowOffline) {
+        setState(() {
+          _futureTransactions = UserTransactionService.fetchUserTransactions(
+            widget.account,
+          );
+        });
+      }
+    });
     _futureTransactions = UserTransactionService.fetchUserTransactions(
       widget.account,
     );
   }
 
   @override
+  void dispose() {
+    _connectivitySubscription?.cancel();
+    super.dispose();
+  }
+
+  Future<void> _checkConnection() async {
+    var results = await Connectivity().checkConnectivity();
+    setState(() {
+      _noInternet =
+          results.isEmpty || results.every((r) => r == ConnectivityResult.none);
+    });
+  }
+
+  // Add this helper method to _TransactionByAccountState
+  String _getWalletUnit(String accountCode) {
+    switch (accountCode.toUpperCase()) {
+      case 'DM':
+        return 'Diamond';
+      case 'GB':
+      case 'BS':
+      case 'ID':
+      default:
+        return 'score'.tr();
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
+    final localeCode = context.locale.languageCode; // 'km' or 'en'
+
     return Dialog(
       backgroundColor: Colors.transparent,
       insetPadding: EdgeInsets.zero,
@@ -43,13 +94,14 @@ class _TransactionByAccountState extends State<TransactionByAccount> {
         ),
         child: Column(
           children: [
+            // --- Header and account info ---
             Container(
               alignment: Alignment.topLeft,
               decoration: const BoxDecoration(color: Color(0xFFFF6600)),
               padding: const EdgeInsets.only(
                 left: 20,
                 right: 20,
-                top: 40,
+                top: 60,
                 bottom: 40,
               ),
               child: Column(
@@ -58,19 +110,21 @@ class _TransactionByAccountState extends State<TransactionByAccount> {
                   Row(
                     children: [
                       IconButton(
+                        padding: EdgeInsets.zero,
                         icon: const Icon(Icons.arrow_back, color: Colors.white),
                         onPressed: () {
                           Navigator.pop(context);
                         },
                       ),
-                      const SizedBox(width: 18),
-                      const Expanded(
+                      const SizedBox(width: 18, height: 40),
+                      Expanded(
                         child: Text(
-                          'មើលប្រវត្តិ',
+                          'history'.tr(),
                           style: TextStyle(
                             fontSize: 22,
                             fontWeight: FontWeight.bold,
                             color: Colors.white,
+                            fontFamily: localeCode == 'km' ? 'KhmerFont' : null,
                           ),
                         ),
                       ),
@@ -106,17 +160,23 @@ class _TransactionByAccountState extends State<TransactionByAccount> {
                       Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          const Text(
-                            'សមតុល្យ',
-                            style: TextStyle(color: Colors.white, fontSize: 16),
+                          Text(
+                            'balance'.tr(),
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontSize: 18,
+                              fontFamily:
+                                  localeCode == 'km' ? 'KhmerFont' : null,
+                            ),
                           ),
                           const SizedBox(height: 4),
                           Text(
-                            '${widget.balance} ${widget.account == 'money' ? 'Diamond' : 'ពិន្ទុ'}',
+                            '${widget.balance} ${_getWalletUnit(widget.account)}',
                             style: const TextStyle(
                               color: Colors.white,
                               fontSize: 26,
                               fontWeight: FontWeight.bold,
+                              fontFamily: 'KhmerFont',
                             ),
                           ),
                         ],
@@ -126,57 +186,134 @@ class _TransactionByAccountState extends State<TransactionByAccount> {
                 ],
               ),
             ),
-            // Transaction list
+            // --- Transaction History ---
             Expanded(
-              child: FutureBuilder<List<Map<String, dynamic>>>(
-                future: _futureTransactions,
-                builder: (context, snapshot) {
-                  if (snapshot.connectionState == ConnectionState.waiting) {
-                    return const Center(child: CircularProgressIndicator());
-                  }
-                  if (!snapshot.hasData || snapshot.hasError) {
-                    return Center(child: Text('No data or error occurred'));
-                  }
-                  final groupedByDate = snapshot.data!;
-
-                  return ListView.builder(
-                    padding: const EdgeInsets.all(16),
-                    itemCount: groupedByDate.length,
-                    itemBuilder: (context, index) {
-                      final group = groupedByDate[index];
-                      final dateLabel = group['date'];
-                      final transferIn = group['transfer_in'] as List;
-                      final transferOut = group['transfer_out'] as List;
-
-                      return Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          sectionTitle(dateLabel),
-                          ...transferIn.map(
-                            (item) => transactionSummaryTile(
-                              name: item['FromUserName'] ?? '',
-                              phone: item['FromPhone'] ?? '',
-                              points: item['Amount'],
-                              isIn: true,
-                              account: widget.account, // <-- Add this
+              child:
+                  _noInternet
+                      ? Center(
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(Icons.wifi_off, color: Colors.red, size: 60),
+                            const SizedBox(height: 16),
+                            const Text(
+                              'មិនមានការតភ្ជាប់អ៊ីនធឺណិត',
+                              style: TextStyle(
+                                fontSize: 18,
+                                color: Colors.red,
+                                fontWeight: FontWeight.w500,
+                                fontFamily: 'KhmerFont',
+                              ),
                             ),
-                          ),
-                          ...transferOut.map(
-                            (item) => transactionSummaryTile(
-                              name: item['ToUserName'] ?? '',
-                              phone: item['ToPhone'] ?? '',
-                              points: item['Amount'],
-                              isIn: false,
-                              account: widget.account,
+                            const SizedBox(height: 16),
+                            Text(
+                              'សូមភ្ជាប់អ៊ីនធឺណិត ដើម្បីមើលប្រវត្តិប្រតិបត្តិការ',
+                              textAlign: TextAlign.center,
+                              style: TextStyle(
+                                fontSize: 16,
+                                color: Colors.red[300],
+                                fontFamily: 'KhmerFont',
+                              ),
                             ),
-                          ),
-                          const SizedBox(height: 16),
-                        ],
-                      );
-                    },
-                  );
-                },
-              ),
+                          ],
+                        ),
+                      )
+                      : FutureBuilder<List<Map<String, dynamic>>>(
+                        future: _futureTransactions,
+                        builder: (context, snapshot) {
+                          if (snapshot.connectionState ==
+                              ConnectionState.waiting) {
+                            return const Center(
+                              child: CircularProgressIndicator(),
+                            );
+                          }
+                          if (snapshot.hasError) {
+                            return Center(
+                              child: Text('Error: ${snapshot.error}'),
+                            );
+                          }
+                          if (!snapshot.hasData || snapshot.data!.isEmpty) {
+                            return Center(
+                              child: Column(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  Icon(
+                                    Icons.receipt_long,
+                                    size: 60,
+                                    color: Colors.grey.withOpacity(0.5),
+                                  ),
+                                  const SizedBox(height: 16),
+                                  const Text(
+                                    'អ្នកនៅមិនទាន់មានប្រតិបត្តិការណ៍ទេ!',
+                                    style: TextStyle(
+                                      fontSize: 18,
+                                      color: Colors.grey,
+                                      fontWeight: FontWeight.w500,
+                                      fontFamily: 'KhmerFont',
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            );
+                          }
+
+                          final groupedByDate = snapshot.data!;
+
+                          return ListView.builder(
+                            padding: const EdgeInsets.all(16),
+                            itemCount: groupedByDate.length,
+
+                            // In the FutureBuilder section, replace the itemBuilder with this:
+                            itemBuilder: (context, index) {
+                              final group = groupedByDate[index];
+                              final dateLabel = group['date'];
+                              final allTransactions =
+                                  group['transactions']
+                                      as List<Map<String, dynamic>>;
+
+                              // Filter out transfers to/from self
+                              final filteredTransactions =
+                                  allTransactions.where((item) {
+                                    final fromPhone =
+                                        item['FromPhoneNumber'] ?? '';
+                                    final toPhone = item['ToPhoneNumber'] ?? '';
+                                    return fromPhone !=
+                                        toPhone; // Exclude transfers from self to self
+                                  }).toList();
+
+                              return Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  sectionTitle(dateLabel),
+                                  // Show ALL transactions in chronological order (newest first)
+                                  ...filteredTransactions.map(
+                                    (item) => transactionSummaryTile(
+                                      name:
+                                          item['is_credit'] == true
+                                              ? item['FromUserName'] ?? 'N/A'
+                                              : item['ToUserName'] ?? 'N/A',
+                                      phone:
+                                          item['is_credit'] == true
+                                              ? item['FromPhoneNumber'] ?? ''
+                                              : item['ToPhoneNumber'] ?? '',
+                                      points: item['Amount'],
+                                      isIn: item['is_credit'] == true,
+                                      account:
+                                          item['wallet_type'] ??
+                                          widget
+                                              .account, // ← USE THE ACTUAL WALLET TYPE
+                                      transactionType: item['Type'],
+                                      transactionData: item,
+                                      context: context,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 16),
+                                ],
+                              );
+                            },
+                          );
+                        },
+                      ),
             ),
           ],
         ),
@@ -204,57 +341,189 @@ class _TransactionByAccountState extends State<TransactionByAccount> {
     required num points,
     required bool isIn,
     required String account,
+    required String transactionType,
+    required Map<String, dynamic> transactionData,
+    required BuildContext context,
   }) {
-    // 2. Set the unit label based on the account:
-    final String unit = account == 'money' ? 'D' : 'ពិន្ទុ';
+    final String unit = _getWalletUnitStatic(account);
+    final int qty = transactionData['qty'] ?? 1;
+    final localeCode = Localizations.localeOf(context).languageCode;
 
-    return Card(
-      color: Colors.white,
-      elevation: 1,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      margin: const EdgeInsets.symmetric(vertical: 6),
-      child: ListTile(
-        leading: Container(
-          width: 48,
-          height: 48,
-          decoration: BoxDecoration(
-            color: isIn ? Colors.green : Colors.red,
-            shape: BoxShape.circle,
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withOpacity(0.1),
-                blurRadius: 4,
-                offset: const Offset(0, 2),
-              ),
-            ],
-          ),
-          child: Center(
-            child: Transform.rotate(
-              angle: isIn ? 4.0 : 0.8,
-              child: const Icon(
-                Icons.arrow_upward,
-                color: Colors.white,
-                size: 24,
+    String formatPhoneNumber(String raw) {
+      String digits = raw.replaceAll(RegExp(r'\D'), '');
+      if (digits.startsWith('855')) {
+        digits = digits.substring(3);
+      }
+      if (!digits.startsWith('0') && digits.isNotEmpty) {
+        digits = '0$digits';
+      }
+      if (digits.length == 9) {
+        return '${digits.substring(0, 3)} ${digits.substring(3, 6)} ${digits.substring(6)}';
+      }
+      return digits;
+    }
+
+    String getTransactionTitle(bool isIn) {
+      return isIn
+          ? 'transaction_received_from'.tr()
+          : 'transaction_sent_to'.tr();
+    }
+
+    String getDisplayName() {
+      if (name != 'N/A' && name.isNotEmpty) {
+        return name;
+      }
+
+      final displayPhone = formatPhoneNumber(phone);
+      if (displayPhone.isNotEmpty) {
+        return displayPhone;
+      }
+
+      return isIn ? 'អ្នកប្រើប្រាស់' : 'អ្នកទទួល';
+    }
+
+    String _getQuantityUnit(String accountCode) {
+      switch (accountCode.toUpperCase()) {
+        case 'GB':
+          return 'can';
+        case 'BS':
+          return 'can';
+        case 'ID':
+          return 'can';
+        case 'DM':
+          return 'piece';
+        default:
+          return 'piece';
+      }
+    }
+
+    String _translateUnit(String unit) {
+      if (localeCode == 'km') {
+        switch (unit.toLowerCase()) {
+          case 'can':
+            return 'កំប៉ុង';
+          case 'bottle':
+            return 'ដប';
+          case 'piece':
+            return 'ប្រអប់';
+          case 'pack':
+            return 'ប៉ាក';
+          default:
+            return unit;
+        }
+      }
+      return unit;
+    }
+
+    final String quantityUnit = _translateUnit(_getQuantityUnit(account));
+    final IconData icon = isIn ? Icons.arrow_downward : Icons.arrow_upward;
+    final double rotation = isIn ? 0.8 : 0.8;
+    final Color iconColor = Colors.white;
+    final Color containerColor = isIn ? Colors.green : Colors.red;
+
+    return GestureDetector(
+      onTap: () {
+        // Create a copy of transactionData with the correct wallet_type
+        final modifiedTransactionData = Map<String, dynamic>.from(
+          transactionData,
+        );
+        modifiedTransactionData['wallet_type'] = account; // Add the wallet_type
+
+        // Show transaction detail modal like in notification code
+        showModalBottomSheet(
+          context: context,
+          isScrollControlled: true,
+          backgroundColor: Colors.transparent,
+          builder:
+              (context) =>
+                  TransactionDetailModal(transaction: modifiedTransactionData),
+        );
+      },
+      child: Card(
+        color: Colors.white,
+        elevation: 1,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        margin: const EdgeInsets.symmetric(vertical: 6),
+        child: ListTile(
+          leading: Container(
+            width: 48,
+            height: 48,
+            decoration: BoxDecoration(
+              color: containerColor,
+              shape: BoxShape.circle,
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.1),
+                  blurRadius: 4,
+                  offset: const Offset(0, 2),
+                ),
+              ],
+            ),
+            child: Center(
+              child: Transform.rotate(
+                angle: rotation,
+                child: Icon(icon, color: iconColor, size: 24),
               ),
             ),
           ),
-        ),
-        title: Text(
-          (name.isNotEmpty) ? name : phone,
-          style: const TextStyle(fontWeight: FontWeight.w500),
-        ),
-        subtitle: (name.isNotEmpty) ? Text(phone) : null,
-        trailing: Text(
-          "${isIn ? "+" : "-"}$points $unit", // <-- Use the unit here
-          style: TextStyle(
-            fontWeight: FontWeight.bold,
-            color: isIn ? Colors.green : Colors.red,
-            fontSize: 16,
+          title: Text(
+            getTransactionTitle(isIn),
+            style: TextStyle(
+              fontWeight: FontWeight.w500,
+              fontSize: 14,
+              fontFamily: 'KhmerFont',
+            ),
+          ),
+          subtitle: Text(
+            getDisplayName(),
+            style: TextStyle(
+              fontSize: 16,
+              fontWeight: FontWeight.bold,
+              fontFamily: 'KhmerFont',
+            ),
+          ),
+          trailing: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            crossAxisAlignment: CrossAxisAlignment.end,
+            children: [
+              Text(
+                "${isIn ? "+" : "-"}$points $unit",
+                style: TextStyle(
+                  fontWeight: FontWeight.bold,
+                  color: isIn ? Colors.green : Colors.red,
+                  fontSize: 16,
+                  fontFamily: 'KhmerFont',
+                ),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                'x $qty $quantityUnit',
+                style: TextStyle(
+                  fontSize: 12,
+                  color: Colors.grey[600],
+                  fontWeight: FontWeight.w600,
+                  fontFamily: 'KhmerFont',
+                ),
+              ),
+            ],
           ),
         ),
       ),
     );
   }
+
+  // Make this helper function static for use in static methods
+  static String _getWalletUnitStatic(String accountCode) {
+    switch (accountCode.toUpperCase()) {
+      case 'DM':
+        return 'D';
+      case 'GB':
+      case 'BS':
+      case 'ID':
+      default:
+        return 'score'.tr();
+    }
+  }
 }
 
-//Correct with 260 line code changes
+//Correct with 511 line code changes

@@ -1,81 +1,536 @@
+// import 'dart:convert';
+// import 'package:http/http.dart' as http;
+
+// class ApiService {
+//   static const String baseUrl = 'https://redeemapi-merchant.piikmall.com/api/v2';
+
+//   static Future<Map<String, dynamic>> signUp({
+//     required String name,
+//     required String phone,
+//     required String otp,
+//     required String provinceId, // Now accepts numeric ID directly
+//     required String district,
+//     required String commune,
+//     required String village,
+//   }) async {
+//     try {
+//       final url = Uri.parse(
+//         'https://redeemapi-merchant.piikmall.com/api/v2/auth/signup',
+//       );
+
+//       // Debug the request data
+//       print('🔐 SIGNUP REQUEST DATA:');
+//       print('Name: $name');
+//       print('Phone: $phone');
+//       print('OTP: $otp');
+//       print('Province: $provinceId');
+//       print('District: $district');
+//       print('Commune: $commune');
+//       print('Village: $village');
+
+//       final response = await http.post(
+//         url,
+//         headers: {'Accept': 'application/json'},
+//         body: {
+//           'name': name,
+//           'phone': phone,
+//           'otp': otp,
+//           'province': provinceId, // Send numeric ID directly
+//           'district': district,
+//           'commune': commune,
+//           'village': village,
+//         },
+//       );
+
+//       print('🔐 SIGNUP API RESPONSE:');
+//       print('Status: ${response.statusCode}');
+//       print('Body: ${response.body}');
+
+//       return json.decode(response.body);
+//     } catch (e) {
+//       print('❌ SIGNUP ERROR: $e');
+//       return {'success': false, 'message': 'Network error: $e'};
+//     }
+//   }
+
+//   static Future<Map<String, dynamic>> requestOtpV2(String phone) async {
+//     final url = Uri.parse('$baseUrl/auth/request-otp');
+//     final response = await http.post(
+//       url,
+//       headers: {'Accept': 'application/json'},
+//       body: {'phone': phone},
+//     );
+//     return json.decode(response.body);
+//   }
+
+//   static Future<Map<String, dynamic>> verifyOtpV2(
+//     String phone,
+//     String otp,
+//     String userType,
+//   ) async {
+//     final url = Uri.parse('$baseUrl/auth/verify-otp');
+//     final response = await http.post(
+//       url,
+//       headers: {'Accept': 'application/json'},
+//       body: {'phone': phone, 'otp': otp, 'user_type': userType},
+//     );
+//     return json.decode(response.body);
+//   }
+
+//   static Future<Map<String, dynamic>> getUserProfile(String token) async {
+//     try {
+//       final url = Uri.parse(
+//         'https://redeemapi-merchant.piikmall.com/api/v2/user/profile?force=1',
+//       );
+
+//       final response = await http.get(
+//         url,
+//         headers: {
+//           'Authorization': 'Bearer $token',
+//           'Accept': 'application/json',
+//         },
+//       );
+
+//       if (response.statusCode == 200) {
+//         final result = json.decode(response.body);
+
+//         // ✅ DEBUG: Check what fields actually exist in the response
+//         if (result['data'] != null) {
+//           print('🔐 USER PROFILE FIELDS: ${result['data'].keys.toList()}');
+//           print('🔐 STATUS FIELD: ${result['data']['status']}'); // Add this
+//           print('🔐 PASSCODE FIELD: ${result['data']['passcode']}');
+//           print('🔐 PASSCODE_HASH FIELD: ${result['data']['passcode_hash']}');
+
+//           // Handle the status field
+//           final status = result['data']['status'];
+//           print('🔐 USER STATUS: $status');
+
+//           // You might want to add status to the returned data
+//           result['user_status'] = status;
+//         }
+
+//         return result;
+//       } else {
+//         return {'success': false, 'message': 'Failed to get user profile'};
+//       }
+//     } catch (e) {
+//       return {'success': false, 'message': 'Network error'};
+//     }
+//   }
+
+//   static Future<Map<String, dynamic>> createPasscode(
+//     String token,
+//     String passcode,
+//     String passcodeConfirmation,
+//   ) async {
+//     try {
+//       final response = await http.post(
+//         Uri.parse('https://redeemapi-merchant.piikmall.com/api/v2/user/passcode'),
+//         headers: {
+//           'Authorization': 'Bearer $token',
+//           'Accept': 'application/json',
+//         },
+//         body: {
+//           'passcode': passcode,
+//           'passcode_confirmation': passcodeConfirmation,
+//         },
+//       );
+
+//       // ✅ DEBUG: Check the actual response
+//       print('🔐 CREATE PASSCODE API RESPONSE:');
+//       print('Status: ${response.statusCode}');
+//       print('Body: ${response.body}');
+
+//       return json.decode(response.body);
+//     } catch (e) {
+//       print('❌ CREATE PASSCODE ERROR: $e');
+//       return {'success': false, 'message': 'Network error: $e'};
+//     }
+//   }
+
+//   static Future<Map<String, dynamic>> verifyPasscode(
+//     String token,
+//     String passcode,
+//   ) async {
+//     try {
+//       final response = await http.post(
+//         Uri.parse('https://redeemapi-merchant.piikmall.com/api/v2/user/passcode/verify'),
+//         headers: {
+//           'Authorization': 'Bearer $token',
+//           'Accept': 'application/json',
+//         },
+//         body: {'passcode': passcode},
+//       );
+
+//       // ✅ Add debug logging
+//       print('🔐 VERIFY PASSCODE API RESPONSE:');
+//       print('Status: ${response.statusCode}');
+//       print('Body: ${response.body}');
+
+//       return json.decode(response.body);
+//     } catch (e) {
+//       print('❌ VERIFY PASSCODE ERROR: $e');
+//       return {'success': false, 'message': 'Network error: $e'};
+//     }
+//   }
+
+//   static Future<Map<String, dynamic>> scanQrCode(
+//     String code,
+//     String token,
+//   ) async {
+//     try {
+//       final response = await http.post(
+//         Uri.parse('https://redeemapi-merchant.piikmall.com/api/v2/redeem/scan'),
+//         headers: {
+//           'Authorization': 'Bearer $token',
+//           'Accept': 'application/json',
+//           'Content-Type': 'application/x-www-form-urlencoded',
+//         },
+//         body: {'code': code},
+//       );
+
+//       return json.decode(response.body);
+//     } catch (e) {
+//       return {'success': false, 'message': 'Network error'};
+//     }
+//   }
+// }
+
+// //Correct with 187 line code changes
+
 import 'dart:convert';
+import 'dart:io';
 import 'package:http/http.dart' as http;
-import '../models/user_model.dart';
 
 class ApiService {
   static const String baseUrl =
-      'http://192.168.1.28:8080/api'; // Change this to your server IP
+      'https://redeemapi-merchant.piikmall.com/api/v2';
+  static const String appPackage = 'com.example.gb_merchant';
 
-  // Get user info by phone number
-  Future<Map<String, dynamic>?> getUserByPhone(String phone) async {
-    final response = await http.get(
-      Uri.parse('$baseUrl/auth/users?phoneNumber=$phone'),
-    );
-    if (response.statusCode == 200) {
-      final data = jsonDecode(response.body);
-      if (data['users'] != null && data['users'].isNotEmpty) {
-        return {
-          'userId': data['users'][0]['UserID'],
-          'fullName': data['users'][0]['UserName'],
-          'phoneNumber': data['users'][0]['PhoneNumber'],
-        };
-      }
-    }
-    return null;
-  }
+  static Future<Map<String, dynamic>> uploadFcmToken({
+    required String apiToken,
+    required String fcmToken,
+  }) async {
+    final url = Uri.parse('$baseUrl/user/save-fcm-token');
 
-  // Add this method to ApiService
-  Future<Map<String, dynamic>?> signupWithPhone(String phone) async {
     final response = await http.post(
-      Uri.parse('$baseUrl/auth/signup'),
-      headers: {'Content-Type': 'application/json'},
-      body: jsonEncode({'phoneNumber': phone}),
+      url,
+      headers: {
+        "Authorization": "Bearer $apiToken",
+        "Accept": "application/json",
+      },
+      body: {"fcm_token": fcmToken},
     );
-    if (response.statusCode == 201) {
-      final data = jsonDecode(response.body);
-      return data;
+    try {
+      final decoded = json.decode(response.body);
+      if (decoded is Map<String, dynamic>) {
+        return decoded;
+      } else {
+        return {"result": decoded};
+      }
+    } catch (e) {
+      return {
+        "error": "Failed to decode response",
+        "status": response.statusCode,
+      };
     }
-    return null;
   }
 
-  Future<Map<String, dynamic>> login(
-    String phoneNumber,
-    String password,
-  ) async {
+  static Future<Map<String, dynamic>> signUp({
+    required String name,
+    required String phone,
+    required String otp,
+    required String provinceId,
+    required String district,
+    required String commune,
+    required String village,
+    required String deviceUuid, // Add device_uuid parameter
+    required String fcmToken, // Add fcm_token parameter
+  }) async {
     try {
+      final url = Uri.parse(
+        'https://redeemapi-merchant.piikmall.com/api/v2/auth/signup',
+      );
+
+      // Debug the request data
+      print('🔐 SIGNUP REQUEST DATA:');
+      print('Name: $name');
+      print('Phone: $phone');
+      print('OTP: $otp');
+      print('Province: $provinceId');
+      print('District: $district');
+      print('Commune: $commune');
+      print('Village: $village');
+      print('Device UUID: $deviceUuid'); // Add debug for device UUID
+      print('FCM Token: $fcmToken'); // Add debug for FCM token
+
       final response = await http.post(
-        Uri.parse('$baseUrl/auth/login'),
-        headers: {'Content-Type': 'application/json'},
-        body: json.encode({'phoneNumber': phoneNumber, 'password': password}),
+        url,
+        headers: {
+          'Accept': 'application/json',
+          'X-App-Package': appPackage, // Add X-App-Package header
+        },
+        body: {
+          'name': name,
+          'phone': phone,
+          'otp': otp,
+          'province': provinceId,
+          'district': district,
+          'commune': commune,
+          'village': village,
+          'device_uuid': deviceUuid, // Add device_uuid to request body
+          'fcm_token': fcmToken, // Add fcm_token to request body
+        },
+      );
+
+      print('🔐 SIGNUP API RESPONSE:');
+      print('Status: ${response.statusCode}');
+      print('Body: ${response.body}');
+
+      return json.decode(response.body);
+    } catch (e) {
+      print('❌ SIGNUP ERROR: $e');
+      return {'success': false, 'message': 'Network error: $e'};
+    }
+  }
+
+  static Future<Map<String, dynamic>> uploadIdentityDocuments({
+    required String token,
+    required File nationalIdFront,
+    required File nationalIdBack,
+    String uploadType = 'nid',
+  }) async {
+    try {
+      final url = Uri.parse('$baseUrl/uploads');
+
+      var request = http.MultipartRequest('POST', url);
+
+      // Add headers
+      request.headers['Authorization'] = 'Bearer $token';
+      request.headers['Accept'] = 'application/json';
+      request.headers['X-App-Package'] = appPackage;
+
+      // Add form fields
+      request.fields['upload_type'] = uploadType;
+
+      // Add front image
+      request.files.add(
+        await http.MultipartFile.fromPath(
+          'national_id_front',
+          nationalIdFront.path,
+          filename: 'front_${DateTime.now().millisecondsSinceEpoch}.jpg',
+        ),
+      );
+
+      // Add back image
+      request.files.add(
+        await http.MultipartFile.fromPath(
+          'national_id_back',
+          nationalIdBack.path,
+          filename: 'back_${DateTime.now().millisecondsSinceEpoch}.jpg',
+        ),
+      );
+
+      // Send request
+      final response = await request.send();
+      final responseBody = await response.stream.bytesToString();
+
+      print('📸 UPLOAD RESPONSE: ${response.statusCode}');
+      print('📸 UPLOAD BODY: $responseBody');
+
+      return json.decode(responseBody);
+    } catch (e) {
+      print('❌ UPLOAD ERROR: $e');
+      return {'success': false, 'message': 'Upload failed: $e'};
+    }
+  }
+
+  static Future<Map<String, dynamic>> requestSignUpOtp(String phone) async {
+    final url = Uri.parse('$baseUrl/auth/request-signup-otp');
+    final response = await http.post(
+      url,
+      headers: {'Accept': 'application/json', 'X-App-Package': appPackage},
+      body: {'phone': phone},
+    );
+    return json.decode(response.body);
+  }
+
+  static Future<Map<String, dynamic>> requestSignInOtp(String phone) async {
+    final url = Uri.parse('$baseUrl/auth/request-otp');
+    final response = await http.post(
+      url,
+      headers: {'Accept': 'application/json', 'X-App-Package': appPackage},
+      body: {'phone': phone},
+    );
+    return json.decode(response.body);
+  }
+
+  // static Future<Map<String, dynamic>> requestOtpV2(String phone) async {
+  //   final url = Uri.parse('$baseUrl/auth/request-otp');
+  //   final response = await http.post(
+  //     url,
+  //     headers: {
+  //       'Accept': 'application/json',
+  //       'X-App-Package': appPackage, // Add X-App-Package header
+  //     },
+  //     body: {'phone': phone},
+  //   );
+  //   return json.decode(response.body);
+  // }
+
+  static Future<Map<String, dynamic>> verifyOtpV2(
+    String phone,
+    String otp,
+    String deviceUuid, // Add device_uuid parameter
+    String fcmToken, // Add fcm_token parameter 
+  ) async {
+    final url = Uri.parse('$baseUrl/auth/verify-otp');
+    final response = await http.post(
+      url,
+      headers: {
+        'Accept': 'application/json',
+        'X-App-Package': appPackage, // Add X-App-Package header
+      },
+      body: {
+        'phone': phone,
+        'otp': otp,
+        'device_uuid': deviceUuid,
+        'fcm_token': fcmToken,
+      },
+    );
+    // Debug the request
+    print('🔐 SIGNIN REQUEST DATA:');
+    print('Phone: $phone');
+    print('OTP: $otp');
+    print('Device UUID: $deviceUuid');
+    print('FCM Token: $fcmToken');
+    print('🔐 SIGNIN API RESPONSE:');
+    print('Status: ${response.statusCode}');
+    print('Body: ${response.body}');
+
+    return json.decode(response.body);
+  }
+
+  static Future<Map<String, dynamic>> getUserProfile(String token) async {
+    try {
+      final url = Uri.parse(
+        'https://redeemapi-merchant.piikmall.com/api/v2/user/profile?force=1',
+      );
+
+      final response = await http.get(
+        url,
+        headers: {
+          'Authorization': 'Bearer $token',
+          'Accept': 'application/json',
+          'X-App-Package': appPackage, // Add X-App-Package header
+        },
       );
 
       if (response.statusCode == 200) {
-        return json.decode(response.body);
+        final result = json.decode(response.body);
+
+        if (result['data'] != null) {
+          print('🔐 USER PROFILE FIELDS: ${result['data'].keys.toList()}');
+          print('🔐 STATUS FIELD: ${result['data']['status']}');
+          print('🔐 PASSCODE FIELD: ${result['data']['passcode']}');
+          print('🔐 PASSCODE_HASH FIELD: ${result['data']['passcode_hash']}');
+
+          final status = result['data']['status'];
+          print('🔐 USER STATUS: $status');
+
+          result['user_status'] = status;
+        }
+
+        return result;
       } else {
-        throw Exception(json.decode(response.body)['message']);
+        return {'success': false, 'message': 'Failed to get user profile'};
       }
     } catch (e) {
-      throw Exception('Failed to login: $e');
+      return {'success': false, 'message': 'Network error'};
     }
   }
 
-  Future<Map<String, dynamic>> signUp(Users user) async {
+  static Future<Map<String, dynamic>> createPasscode(
+    String token,
+    String passcode,
+    String passcodeConfirmation,
+  ) async {
     try {
       final response = await http.post(
-        Uri.parse('$baseUrl/auth/signup'),
-        headers: {'Content-Type': 'application/json'},
-        body: json.encode(user.toJson()),
+        Uri.parse(
+          'https://redeemapi-merchant.piikmall.com/api/v2/user/passcode',
+        ),
+        headers: {
+          'Authorization': 'Bearer $token',
+          'Accept': 'application/json',
+          'X-App-Package': appPackage, // Add X-App-Package header
+        },
+        body: {
+          'passcode': passcode,
+          'passcode_confirmation': passcodeConfirmation,
+        },
       );
 
-      if (response.statusCode == 201) {
-        return json.decode(response.body);
-      } else {
-        throw Exception(json.decode(response.body)['message']);
-      }
+      print('🔐 CREATE PASSCODE API RESPONSE:');
+      print('Status: ${response.statusCode}');
+      print('Body: ${response.body}');
+
+      return json.decode(response.body);
     } catch (e) {
-      throw Exception('Failed to sign up: $e');
+      print('❌ CREATE PASSCODE ERROR: $e');
+      return {'success': false, 'message': 'Network error: $e'};
+    }
+  }
+
+  static Future<Map<String, dynamic>> verifyPasscode(
+    String token,
+    String passcode,
+  ) async {
+    try {
+      final response = await http.post(
+        Uri.parse(
+          'https://redeemapi-merchant.piikmall.com/api/v2/user/passcode/verify',
+        ),
+        headers: {
+          'Authorization': 'Bearer $token',
+          'Accept': 'application/json',
+          'X-App-Package': appPackage, // Add X-App-Package header
+        },
+        body: {'passcode': passcode},
+      );
+
+      print('🔐 VERIFY PASSCODE API RESPONSE:');
+      print('Status: ${response.statusCode}');
+      print('Body: ${response.body}');
+
+      return json.decode(response.body);
+    } catch (e) {
+      print('❌ VERIFY PASSCODE ERROR: $e');
+      return {'success': false, 'message': 'Network error: $e'};
+    }
+  }
+
+  static Future<Map<String, dynamic>> scanQrCode(
+    String code,
+    String token,
+  ) async {
+    try {
+      final response = await http.post(
+        Uri.parse('https://redeemapi-merchant.piikmall.com/api/v2/redeem/scan'),
+        headers: {
+          'Authorization': 'Bearer $token',
+          'Accept': 'application/json',
+          'Content-Type': 'application/x-www-form-urlencoded',
+          'X-App-Package': appPackage, // Add X-App-Package header
+        },
+        body: {'code': code},
+      );
+
+      return json.decode(response.body);
+    } catch (e) {
+      return {'success': false, 'message': 'Network error'};
     }
   }
 }
 
-//Correct with 81 line code changes
+//Correct with 514 line code changes

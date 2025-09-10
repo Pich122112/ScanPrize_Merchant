@@ -1,0 +1,48 @@
+{
+  "project_info": {
+    "project_number": "227002644924",
+    "project_id": "reward-9e279",
+    "storage_bucket": "reward-9e279.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:227002644924:android:36d0e6e820f1ddf8bcd3b9",
+        "android_client_info": {
+          "package_name": "com.example.gb_merchant"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCD59WNzu4bb097QhDZ-y-g8i_VkYHGgxk"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:227002644924:android:8d8a916b167e5dbcbcd3b9",
+        "android_client_info": {
+          "package_name": "com.example.scanprize_frontend"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCD59WNzu4bb097QhDZ-y-g8i_VkYHGgxk"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

@@ -1,20 +1,23 @@
 import 'dart:async';
 // ignore: unused_import
 import 'dart:math';
+import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_fortune_wheel/flutter_fortune_wheel.dart';
 import 'package:confetti/confetti.dart';
-import 'package:scanprize_frontend/utils/constants.dart';
+import 'package:gb_merchant/utils/constants.dart';
 
 class QrScanSpinWheelDialog extends StatefulWidget {
   final String prize;
   final List<String> defaultItems;
   final VoidCallback onClose;
+  final String prizeLogo; // Add this parameter
 
   const QrScanSpinWheelDialog({
     required this.prize,
     required this.defaultItems,
     required this.onClose,
+    this.prizeLogo = 'assets/images/default.png', // Default value
     super.key,
   });
 
@@ -79,13 +82,31 @@ class _QrScanSpinWheelDialogState extends State<QrScanSpinWheelDialog> {
             angle: 3.1416,
             child: Padding(
               padding: const EdgeInsets.all(8.0),
-              child: Text(
-                item,
-                style: const TextStyle(
-                  fontSize: 14,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.white,
-                ),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  // If ends with D (and has number in front), show number + diamond
+                  if (RegExp(r'^\d+\s*D$').hasMatch(item)) ...[
+                    Text(
+                      item.replaceAll(RegExp(r'D$'), ''),
+                      style: const TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.white,
+                      ),
+                    ),
+                    const SizedBox(width: 4),
+                    diamondIcon(size: 22, color: Colors.white),
+                  ] else
+                    Text(
+                      item,
+                      style: const TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.white,
+                      ),
+                    ),
+                ],
               ),
             ),
           ),
@@ -125,7 +146,7 @@ class _QrScanSpinWheelDialogState extends State<QrScanSpinWheelDialog> {
 
     selected.add(selectedIndex);
 
-    await Future.delayed(const Duration(seconds: 3));
+    await Future.delayed(const Duration(seconds: 1));
 
     if (mounted) {
       setState(() {
@@ -149,6 +170,8 @@ class _QrScanSpinWheelDialogState extends State<QrScanSpinWheelDialog> {
 
   @override
   Widget build(BuildContext context) {
+    final localeCode = context.locale.languageCode;
+
     return Dialog(
       backgroundColor: Colors.transparent,
       insetPadding: const EdgeInsets.all(20),
@@ -172,11 +195,12 @@ class _QrScanSpinWheelDialogState extends State<QrScanSpinWheelDialog> {
               mainAxisSize: MainAxisSize.min,
               children: [
                 Text(
-                  isSpinning ? 'កំពុងបង្វិល...' : 'បានបញ្ចប់',
-                  style: const TextStyle(
+                  isSpinning ? 'spinning'.tr() : 'completed'.tr(),
+                  style: TextStyle(
                     fontSize: 24,
                     fontWeight: FontWeight.bold,
                     color: AppColors.primaryColor,
+                    fontFamily: localeCode == 'km' ? 'KhmerFont' : null,
                   ),
                 ),
                 const SizedBox(height: 20),
@@ -192,9 +216,9 @@ class _QrScanSpinWheelDialogState extends State<QrScanSpinWheelDialog> {
                         child: FortuneWheel(
                           selected: selected.stream,
                           animateFirst: false,
-                          duration: const Duration(seconds: 3),
+                          duration: const Duration(seconds: 1),
                           physics: CircularPanPhysics(
-                            duration: const Duration(seconds: 1),
+                            duration: const Duration(milliseconds: 500),
                             curve: Curves.decelerate,
                           ),
                           indicators: [
@@ -231,8 +255,8 @@ class _QrScanSpinWheelDialogState extends State<QrScanSpinWheelDialog> {
                       widget.onClose();
                       Navigator.of(context).pop();
                     },
-                    child: const Text(
-                      'យល់ព្រម',
+                    child: Text(
+                      'ok'.tr(),
                       style: TextStyle(
                         fontSize: 18,
                         fontWeight: FontWeight.w600,
@@ -272,6 +296,8 @@ class _QrScanSpinWheelDialogState extends State<QrScanSpinWheelDialog> {
   }
 
   Widget _buildCongratulationDialog() {
+    final localeCode = context.locale.languageCode;
+
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
@@ -294,7 +320,7 @@ class _QrScanSpinWheelDialogState extends State<QrScanSpinWheelDialog> {
               shape: BoxShape.circle,
               boxShadow: [
                 BoxShadow(
-                  color: AppColors.textColor.withOpacity(0.2),
+                  color: AppColors.textColor.withOpacity(0),
                   blurRadius: 25,
                   spreadRadius: 4,
                   offset: const Offset(0, 6),
@@ -303,17 +329,19 @@ class _QrScanSpinWheelDialogState extends State<QrScanSpinWheelDialog> {
             ),
             padding: const EdgeInsets.all(12),
             child: Image.asset(
-              'assets/images/gblogo.png',
-              width: 50,
-              height: 50,
+              widget.prizeLogo,
+              width: 60,
+              height: 60,
+              fit: BoxFit.contain,
             ),
           ),
           const SizedBox(height: 16),
-          const Text(
-            'សូមអបអរសាទរ!',
+          Text(
+            'congratulation'.tr(),
             style: TextStyle(
               fontSize: 24,
-              fontWeight: FontWeight.w900,
+              fontWeight: FontWeight.w800,
+              fontFamily: localeCode == 'km' ? 'KhmerFont' : null,
               color: Color(0xFF212121),
             ),
           ),
@@ -327,19 +355,43 @@ class _QrScanSpinWheelDialogState extends State<QrScanSpinWheelDialog> {
             ),
           ),
           const SizedBox(height: 16),
-          Text(
-            'អ្នកទទួលបាន ${items[selectedIndex]}',
-            style: const TextStyle(
-              fontSize: 20,
-              fontWeight: FontWeight.w600,
-              color: Color(0xFF3B4957),
-            ),
-            textAlign: TextAlign.center,
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              if (RegExp(r'^\d+\s*D$').hasMatch(items[selectedIndex])) ...[
+                Text(
+                  'you_received'.tr(
+                    args: [items[selectedIndex].replaceAll(RegExp(r'D$'), '')],
+                  ),
+                  style: TextStyle(
+                    fontSize: 20,
+                    fontWeight: FontWeight.w600,
+                    color: Color(0xFF3B4957),
+                    fontFamily: localeCode == 'km' ? 'KhmerFont' : null,
+                  ),
+                ),
+                const SizedBox(width: 6),
+                diamondIcon(size: 22, color: Colors.black),
+              ] else
+                Text(
+                  'you_received'.tr(args: [items[selectedIndex]]),
+                  style: TextStyle(
+                    fontSize: 20,
+                    fontWeight: FontWeight.w600,
+                    color: Color(0xFF3B4957),
+                    fontFamily: localeCode == 'km' ? 'KhmerFont' : null,
+                  ),
+                ),
+            ],
           ),
         ],
       ),
     );
   }
+}
+
+Widget diamondIcon({double size = 30, Color color = Colors.yellow}) {
+  return Icon(Icons.diamond, size: size, color: color);
 }
 
 class TriangleIndicator extends StatelessWidget {
@@ -387,4 +439,4 @@ class _TriangleClipper extends CustomClipper<Path> {
   bool shouldReclip(covariant CustomClipper<Path> oldClipper) => false;
 }
 
-//Correct with 390 line code changes
+//Correct with 442 line code changes

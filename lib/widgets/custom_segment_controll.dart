@@ -18,7 +18,7 @@ class KhmerSegmentedControl extends StatelessWidget {
       height: 48,
       padding: const EdgeInsets.all(4),
       decoration: BoxDecoration(
-        color: const Color(0xFFDCDCDC),
+        color: Colors.white,
         borderRadius: BorderRadius.circular(24),
       ),
       child: Row(
@@ -31,7 +31,8 @@ class KhmerSegmentedControl extends StatelessWidget {
               child: AnimatedContainer(
                 duration: const Duration(milliseconds: 180),
                 decoration: BoxDecoration(
-                  color: isSelected ? const Color(0xFFFF6B00) : Colors.transparent,
+                  color:
+                      isSelected ? const Color(0xFFFF6B00) : Colors.transparent,
                   borderRadius: BorderRadius.circular(24),
                 ),
                 alignment: Alignment.center,
@@ -39,9 +40,9 @@ class KhmerSegmentedControl extends StatelessWidget {
                   options[index],
                   style: TextStyle(
                     color: isSelected ? Colors.white : Colors.black,
-                    fontWeight: FontWeight.w600,
+                    fontWeight: FontWeight.bold,
+                    fontFamily: 'KhmerFont',
                     fontSize: 18,
-                    fontFamily: 'KhmerOS', // Optional: use your Khmer font
                   ),
                 ),
               ),

@@ -1,5 +1,5 @@
+import 'package:gb_merchant/authentication/verify_code.dart';
 import 'package:flutter/material.dart';
-import 'verify_code.dart';
 import '../utils/constants.dart';
 
 class ForgetPassword extends StatefulWidget {

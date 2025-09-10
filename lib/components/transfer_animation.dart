@@ -1,14 +1,17 @@
+import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
-import 'package:scanprize_frontend/utils/constants.dart';
+import 'package:gb_merchant/utils/constants.dart';
 
 class TransferAnimation extends StatefulWidget {
-  final String recipientPhone; // Add recipientPhone parameter
+  final String recipientPhone;
   final VoidCallback onAnimationComplete;
+  final String companyCategoryName;
 
   const TransferAnimation({
     super.key,
-    required this.recipientPhone, // Make it required
+    required this.recipientPhone,
     required this.onAnimationComplete,
+    required this.companyCategoryName,
   });
 
   @override
@@ -149,24 +152,51 @@ class _TransferAnimationState extends State<TransferAnimation>
   }
 
   String formatPhoneNumber(String raw) {
+    // Ensure we have a non-null string to work with
     String digits = raw.replaceAll(RegExp(r'\D'), '');
-
-    // Remove 855 country code if present at the start
     if (digits.startsWith('855')) {
       digits = digits.substring(3);
     }
-    // Add leading zero if not present
-    if (!digits.startsWith('0')) {
+    if (!digits.startsWith('0') && digits.isNotEmpty) {
       digits = '0$digits';
     }
+
+    // Format with spaces for both 9 and 10 digit numbers
     if (digits.length == 9) {
       return '${digits.substring(0, 3)} ${digits.substring(3, 6)} ${digits.substring(6)}';
+    } else if (digits.length == 10) {
+      return '${digits.substring(0, 3)} ${digits.substring(3, 6)} ${digits.substring(6)}';
     }
+
     return digits;
+  }
+
+  Widget _buildTransferIcon() {
+    final walletName = widget.companyCategoryName.toLowerCase();
+
+    switch (walletName) {
+      case 'gb':
+        return Image.asset('assets/images/logo.png', width: 45, height: 45);
+      case 'bs':
+        return Image.asset('assets/images/bstrong.png', width: 45, height: 45);
+      case 'id':
+        return Image.asset('assets/images/idollogo.png', width: 45, height: 45);
+      case 'dm':
+        return Image.asset(
+          'assets/images/dmond.png',
+          width: 45,
+          height: 45,
+          color: Colors.white,
+        );
+      default:
+        return const Icon(Icons.card_giftcard, size: 45, color: Colors.white);
+    }
   }
 
   @override
   Widget build(BuildContext context) {
+    final localeCode = context.locale.languageCode;
+
     return Scaffold(
       backgroundColor: AppColors.primaryColor,
       body: Stack(
@@ -239,12 +269,9 @@ class _TransferAnimationState extends State<TransferAnimation>
                         ),
                       ],
                     ),
-                    child: const Center(
-                      child: Icon(
-                        Icons.card_giftcard,
-                        size: 45,
-                        color: Colors.white,
-                      ),
+                    child: Center(
+                      child:
+                          _buildTransferIcon(), // Use our custom icon builder
                     ),
                   ),
                 ),
@@ -257,12 +284,13 @@ class _TransferAnimationState extends State<TransferAnimation>
             child: AnimatedOpacity(
               opacity: _controller.value > 0.8 ? 1.0 : 0.0,
               duration: const Duration(milliseconds: 300),
-              child: const Text(
-                'ផ្ទេរបានជោគជ័យ',
+              child: Text(
+                'transfer_successful'.tr(),
                 style: TextStyle(
                   color: Colors.white,
                   fontSize: 24,
                   fontWeight: FontWeight.bold,
+                  fontFamily: localeCode == 'km' ? 'KhmerFont' : null,
                 ),
               ),
             ),
@@ -273,4 +301,4 @@ class _TransferAnimationState extends State<TransferAnimation>
   }
 }
 
-//Correct with 257 line code changes
+//Correct with 304 line code changes

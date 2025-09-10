@@ -1,3 +1,4 @@
+import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
 
 class QrScanActionButtons extends StatelessWidget {
@@ -12,6 +13,8 @@ class QrScanActionButtons extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final localeCode = context.locale.languageCode; // 'km' or 'en'
+
     return SafeArea(
       child: Padding(
         padding: const EdgeInsets.only(bottom: 24.0, top: 30),
@@ -21,7 +24,12 @@ class QrScanActionButtons extends StatelessWidget {
             ElevatedButton.icon(
               onPressed: onToggleFlash,
               icon: const Icon(Icons.flashlight_on),
-              label: const Text("បើកពិល"),
+              label: Text(
+                'openflash'.tr(),
+                style: TextStyle(
+                  fontFamily: localeCode == 'km' ? 'KhmerFont' : null,
+                ),
+              ),
               style: ElevatedButton.styleFrom(
                 backgroundColor: Colors.black,
                 foregroundColor: Colors.white,
@@ -39,7 +47,12 @@ class QrScanActionButtons extends StatelessWidget {
               ElevatedButton.icon(
                 onPressed: onPickQr,
                 icon: const Icon(Icons.qr_code),
-                label: const Text("បើក QR"),
+                label: Text(
+                  'openqr'.tr(),
+                  style: TextStyle(
+                    fontFamily: localeCode == 'km' ? 'KhmerFont' : null,
+                  ),
+                ),
                 style: ElevatedButton.styleFrom(
                   backgroundColor: Colors.black,
                   foregroundColor: Colors.white,
@@ -59,4 +72,4 @@ class QrScanActionButtons extends StatelessWidget {
   }
 }
 
-//Correct with 62 line code changes
+//Correct with 75 line code changes

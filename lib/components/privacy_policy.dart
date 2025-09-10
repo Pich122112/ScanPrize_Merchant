@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:scanprize_frontend/utils/constants.dart';
+import 'package:gb_merchant/utils/constants.dart';
 
 class PrivacyPolicy extends StatelessWidget {
   const PrivacyPolicy({super.key});

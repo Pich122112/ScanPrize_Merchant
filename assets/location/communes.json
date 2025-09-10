@@ -1,0 +1,209 @@
+[
+  {
+    "id": 1,
+    "type": 6,
+    "province_id": 1,
+    "district_id": 1,
+    "geocode": "10201",
+    "name_en": "Banteay Neang",
+    "name_kh": "បន្ទាយនាង"
+  },
+  {
+    "id": 2,
+    "type": 6,
+    "province_id": 1,
+    "district_id": 1,
+    "geocode": "10202",
+    "name_en": "Bat Trang",
+    "name_kh": "បត់ត្រង់"
+  },
+  {
+    "id": 3,
+    "type": 6,
+    "province_id": 1,
+    "district_id": 1,
+    "geocode": "10203",
+    "name_en": "Chamnaom",
+    "name_kh": "ចំណោម"
+  },
+  {
+    "id": 4,
+    "type": 6,
+    "province_id": 1,
+    "district_id": 1,
+    "geocode": "10204",
+    "name_en": "Kouk Roka",
+    "name_kh": "គោករកា"
+  },
+  {
+    "id": 5,
+    "type": 6,
+    "province_id": 1,
+    "district_id": 1,
+    "geocode": "10205",
+    "name_en": "Kouk Prich",
+    "name_kh": "គោកព្រីង"
+  },
+  {
+    "id": 6,
+    "type": 6,
+    "province_id": 1,
+    "district_id": 1,
+    "geocode": "10206",
+    "name_en": "Ou Andoung",
+    "name_kh": "អូរអណ្ដូង"
+  },
+  {
+    "id": 7,
+    "type": 6,
+    "province_id": 1,
+    "district_id": 1,
+    "geocode": "10207",
+    "name_en": "Ou Prasat",
+    "name_kh": "អូរប្រាសាទ"
+  },
+  {
+    "id": 8,
+    "type": 6,
+    "province_id": 1,
+    "district_id": 1,
+    "geocode": "10208",
+    "name_en": "Prey Changha",
+    "name_kh": "ព្រៃចង្ហា"
+  },
+  {
+    "id": 9,
+    "type": 6,
+    "province_id": 1,
+    "district_id": 1,
+    "geocode": "10209",
+    "name_en": "Preah Ponlea",
+    "name_kh": "ព្រះពន្លា"
+  },
+  {
+    "id": 10,
+    "type": 6,
+    "province_id": 1,
+    "district_id": 1,
+    "geocode": "10210",
+    "name_en": "Phnum Lieb",
+    "name_kh": "ភ្នំលៀប"
+  },
+  {
+    "id": 11,
+    "type": 6,
+    "province_id": 1,
+    "district_id": 1,
+    "geocode": "10211",
+    "name_en": "Sla Kram",
+    "name_kh": "ស្លក្រាម"
+  },
+  {
+    "id": 12,
+    "type": 6,
+    "province_id": 1,
+    "district_id": 1,
+    "geocode": "10212",
+    "name_en": "Ta Poung",
+    "name_kh": "តាពូង"
+  },
+  {
+    "id": 13,
+    "type": 6,
+    "province_id": 1,
+    "district_id": 1,
+    "geocode": "10213",
+    "name_en": "Kouk Ballangk",
+    "name_kh": "គោកបល្ល័ង្ក"
+  },
+  {
+    "id": 14,
+    "type": 6,
+    "province_id": 1,
+    "district_id": 1,
+    "geocode": "10214",
+    "name_en": "Kouk Khmum",
+    "name_kh": "គោកឃ្មុំ"
+  },
+  {
+    "id": 15,
+    "type": 6,
+    "province_id": 1,
+    "district_id": 1,
+    "geocode": "10215",
+    "name_en": "Svay Chek",
+    "name_kh": "ស្វាយជែក"
+  },
+  {
+    "id": 16,
+    "type": 7,
+    "province_id": 1,
+    "district_id": 5,
+    "geocode": "10601",
+    "name_en": "Roka",
+    "name_kh": "រកា"
+  },
+  {
+    "id": 17,
+    "type": 7,
+    "province_id": 1,
+    "district_id": 5,
+    "geocode": "10602",
+    "name_en": "Kampong Svay",
+    "name_kh": "កំពង់ស្វាយ"
+  },
+  {
+    "id": 18,
+    "type": 7,
+    "province_id": 1,
+    "district_id": 5,
+    "geocode": "10603",
+    "name_en": "Kaoh Pong Satv",
+    "name_kh": "កោះពងសត្វ"
+  },
+  {
+    "id": 19,
+    "type": 7,
+    "province_id": 1,
+    "district_id": 5,
+    "geocode": "10604",
+    "name_en": "Prey Totueng",
+    "name_kh": "ព្រៃតുടោង"
+  },
+  {
+    "id": 20,
+    "type": 7,
+    "province_id": 1,
+    "district_id": 5,
+    "geocode": "10605",
+    "name_en": "Ta Sda",
+    "name_kh": "តាស្ដា"
+  },
+  {
+    "id": 21,
+    "type": 7,
+    "province_id": 1,
+    "district_id": 5,
+    "geocode": "10606",
+    "name_en": "Preah Sdech",
+    "name_kh": "ព្រះស្តេច"
+  },
+  {
+    "id": 22,
+    "type": 7,
+    "province_id": 1,
+    "district_id": 5,
+    "geocode": "10607",
+    "name_en": "Prey Svay",
+    "name_kh": "ព្រៃស្វាយ"
+  },
+  {
+    "id": 23,
+    "type": 7,
+    "province_id": 1,
+    "district_id": 5,
+    "geocode": "10608",
+    "name_en": "Sambuor",
+    "name_kh": "សំបួរ"
+  }
+]

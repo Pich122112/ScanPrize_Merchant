@@ -1,60 +1,112 @@
+import 'dart:io';
+
+import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
+import 'package:path_provider/path_provider.dart';
 import 'package:qr_code_scanner_plus/qr_code_scanner_plus.dart';
 import 'package:image_picker/image_picker.dart';
-import 'package:scanprize_frontend/components/qr_scan_action_button.dart';
+import 'package:gb_merchant/components/qr_scan_action_button.dart';
+import 'package:gb_merchant/services/transfer_service.dart';
+import 'package:gb_merchant/utils/qr_code_parser.dart';
 import 'package:zxing2/qrcode.dart';
 import 'package:image/image.dart' as img;
-import '../services/exchange_prize_service.dart';
 import 'dart:typed_data';
 import 'package:qr_code_tools/qr_code_tools.dart';
 import './ExchangePrizeList.dart';
 
-// Helper: Parse phone number from qrPayload (customize this if QR changes)
 String? getPhoneNumberFromQr(String qrPayload) {
-  // Example qrPayload: ganzbergqr:ganzberg,idol,boostrong,money:3109-all|3109|<signature>
-  // You may need to decode phone number via an API call using userId (3109 in this example)
-  // Here, just return null (you will fetch from backend below)
   return null;
 }
 
-// Show scan dialog, then show prize exchange dialog with phone number from QR
 Future<void> showTransferPrizeScanDialog(BuildContext context) async {
   String? scannedQr;
-  await showDialog(
+  await showGeneralDialog(
     context: context,
+    barrierDismissible: true,
     barrierColor: Colors.black87,
-    builder:
-        (context) => TransferPrizeScan(
+    barrierLabel: "TransferPrizeScan",
+    transitionDuration: const Duration(milliseconds: 300),
+    pageBuilder: (context, animation, secondaryAnimation) {
+      return Scaffold(
+        backgroundColor: Colors.white,
+        body: TransferPrizeScan(
           onScanned: (qrCode) {
             scannedQr = qrCode;
           },
         ),
+      );
+    },
   );
+
   if (scannedQr != null) {
-    // Get phone number of scanned user from backend using userId from QR
-    String? phoneNumber;
+    String phoneNumber = 'Unknown';
+    String userId = '0';
+    String userName = 'Unknown';
+    String signature = scannedQr!;
+
     try {
-      // Parse userId from qrPayload
-      final parts = scannedQr!.split(':');
-      if (parts.length > 2) {
-        final rest = parts[2];
-        final userId = rest.split('|')[1];
-        // Fetch from backend
-        // Replace with your actual API URL
-        final response = await ExchangePrizeService().fetchUserById(userId);
-        phoneNumber = response?.phoneNumber ?? 'Unknown';
+      // Parse the QR code using our signature parser
+      final qrData = QrCodeParser.parseTransferQr(scannedQr!);
+      phoneNumber = qrData['phoneNumber'] ?? 'Unknown';
+      userName = qrData['name'] ?? 'Unknown';
+      signature = qrData['signature'] ?? scannedQr!;
+
+      print("📱 Parsed QR: Phone: $phoneNumber, Name: $userName");
+
+      // Validate the user with the backend to get user ID
+      try {
+        // Clean phone number for API call (already in 855 format)
+        String cleanPhone = phoneNumber.replaceAll(' ', '').replaceAll('-', '');
+
+        // Ensure it's in international format for API
+        if (cleanPhone.startsWith('0') && cleanPhone.length == 9) {
+          cleanPhone = '855${cleanPhone.substring(1)}';
+        }
+
+        if (cleanPhone != '855Unknown') {
+          final userData = await TransferService.verifyReceiver(cleanPhone);
+          if (userData != null && userData['receiver'] != null) {
+            final receiver = userData['receiver'];
+            phoneNumber = receiver['phone_number'] ?? phoneNumber;
+            userId = receiver['id']?.toString() ?? '0';
+            userName = receiver['name'] ?? userName;
+            print("✅ Validated user: $userName ($phoneNumber) ID: $userId");
+          } else {
+            print("⚠️ Receiver validation returned null data");
+          }
+        } else {
+          print("⚠️ Invalid phone number format: $cleanPhone");
+        }
+      } catch (e) {
+        print("⚠️ User validation failed: $e");
+        // Continue with the parsed phone number even if validation fails
       }
-    } catch (_) {
+    } catch (e) {
+      print("⚠️ Error parsing QR: $e");
       phoneNumber = 'Unknown';
+      userId = '0';
+      userName = 'Unknown';
     }
-    // In showTransferPrizeScanDialog
-    await showDialog(
+
+    // Format phone number for display (convert to local format)
+    final formattedPhone = QrCodeParser.formatPhoneNumber(phoneNumber);
+
+    await showGeneralDialog(
       context: context,
-      builder:
-          (context) => ExchangePrizeDialog(
-            phoneNumber: phoneNumber ?? 'Unknown',
-            scannedQr: scannedQr!, // <-- add this!
+      barrierDismissible: true,
+      barrierLabel: "ExchangePrizeDialog",
+      barrierColor: Colors.black.withOpacity(0.5),
+      transitionDuration: Duration.zero,
+      pageBuilder: (context, animation, secondaryAnimation) {
+        return Scaffold(
+          backgroundColor: Colors.white,
+          body: ExchangePrizeDialog(
+            phoneNumber: formattedPhone,
+            scannedQr: signature,
+            userId: userId,
           ),
+        );
+      },
     );
   }
 }
@@ -62,7 +114,13 @@ Future<void> showTransferPrizeScanDialog(BuildContext context) async {
 // TransferPrizeScan widget (Scan direct and from image)
 class TransferPrizeScan extends StatefulWidget {
   final Function(String) onScanned;
-  const TransferPrizeScan({super.key, required this.onScanned});
+  final Map<String, dynamic> scannedData;
+
+  const TransferPrizeScan({
+    super.key,
+    required this.onScanned,
+    this.scannedData = const {},
+  });
 
   @override
   State<TransferPrizeScan> createState() => _TransferPrizeScanState();
@@ -74,9 +132,9 @@ class _TransferPrizeScanState extends State<TransferPrizeScan>
   QRViewController? controller;
   bool isFlashOn = false;
   // String? scannedCode;
-  bool _isProcessing = false; // Add processing state
+  bool _isProcessing = false;
   // ignore: unused_field
-  bool _isValidQr = false; // Add QR validation state
+  bool _isValidQr = false;
 
   late AnimationController _animationController;
   late Animation<double> _positionAnimation;
@@ -96,18 +154,28 @@ class _TransferPrizeScanState extends State<TransferPrizeScan>
 
   @override
   void dispose() {
-    controller?.dispose();
+    // Stop animation first
+    _animationController.stop();
     _animationController.dispose();
+
+    // Dispose camera controller safely
+    if (controller != null) {
+      try {
+        controller!.dispose();
+      } catch (e) {
+        print("Camera dispose error: $e");
+      }
+    }
+
     super.dispose();
   }
 
   void _onQRViewCreated(QRViewController ctrl) {
     controller = ctrl;
     controller?.scannedDataStream.listen((scanData) async {
-      if (scanData.code != null && !_isProcessing) {
+      if (scanData.code != null && !_isProcessing && mounted) {
         setState(() {
           _isProcessing = true;
-          // scannedCode = scanData.code;
         });
 
         // Validate QR format before proceeding
@@ -117,8 +185,10 @@ class _TransferPrizeScanState extends State<TransferPrizeScan>
           _isValidQr = isValid;
         });
 
-        // Only proceed if QR is valid
-        if (isValid) {
+        // Only proceed if QR is valid TRANSFER code
+        if (isValid && mounted) {
+          print("✅ Valid TRANSFER QR detected: ${scanData.code!}");
+
           // Add slight delay for better UX
           await Future.delayed(const Duration(milliseconds: 500));
 
@@ -126,43 +196,86 @@ class _TransferPrizeScanState extends State<TransferPrizeScan>
             widget.onScanned(scanData.code!);
             Navigator.of(context).pop();
           }
-        } else {
-          // Show error feedback
+        } else if (mounted) {
+          // Show specific error message for prize QR codes
+          final errorMessage =
+              _isPrizeQrCode(scanData.code!)
+                  ? 'QR មិនត្រឺមត្រូវសូមជ្រើសរើសម្តងទៀត'
+                  : 'Invalid transfer QR code format';
+
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Invalid QR code format'),
-              duration: Duration(seconds: 2),
+            SnackBar(
+              content: Text(errorMessage),
+              duration: const Duration(seconds: 3),
+              backgroundColor: Colors.red,
+              padding: const EdgeInsets.only(bottom: 30.0),
             ),
           );
 
           // Resume scanning after delay
           await Future.delayed(const Duration(seconds: 2));
-          setState(() {
-            _isProcessing = false;
-            // scannedCode = null;
-          });
+          if (mounted) {
+            setState(() {
+              _isProcessing = false;
+            });
+          }
         }
       }
     });
   }
 
   // QR format validation
+  // In _TransferPrizeScanState, update the validation
+  // QR format validation - Only accept transfer QR codes
   bool _validateQrFormat(String qrCode) {
     try {
-      final parts = qrCode.split(':');
-      if (parts.length < 3) return false;
+      // First, check if this is a prize QR code (should be rejected)
+      if (_isPrizeQrCode(qrCode)) {
+        print("❌ Rejected: QR មិនត្រឺមត្រូវសូមជ្រើសរើសម្តងទៀត");
+        return false;
+      }
 
-      final prefix = parts[0];
-      if (prefix != 'ganzbergqr') return false;
+      // Use the proper parser that handles both signature and JSON formats
+      final parsed = QrCodeParser.parseTransferQr(qrCode);
 
-      final rest = parts[2];
-      final qrData = rest.split('|');
-      if (qrData.length < 3) return false;
-
-      return true;
-    } catch (e) {
+      // Valid if we can extract a proper phone number
+      final phone = parsed['phoneNumber'] ?? '';
+      return phone != 'Unknown' && phone.isNotEmpty;
+    } catch (_) {
       return false;
     }
+  }
+
+  // Helper function to detect prize QR codes
+  bool _isPrizeQrCode(String code) {
+    // Prize QR codes typically follow these patterns:
+    final prizeQrPatterns = [
+      RegExp(r'^[A-Z]{1,2}\d{6,9}$'), // Like B000194023, GB123456
+      RegExp(r'^[A-Z]{2,3}\d+$'), // Like BS123, ID4567
+      RegExp(r'^[A-Z]\d{8,10}$'), // Single letter prefix with numbers
+    ];
+
+    for (final pattern in prizeQrPatterns) {
+      if (pattern.hasMatch(code)) {
+        return true;
+      }
+    }
+
+    // Also check for common prize code prefixes
+    final prizePrefixes = ['B', 'GB', 'BS', 'ID', 'DM'];
+    for (final prefix in prizePrefixes) {
+      if (code.startsWith(prefix) && code.length >= 3) {
+        // Check if the rest is numeric
+        final numericPart = code.substring(prefix.length);
+        if (numericPart.isNotEmpty &&
+            RegExp(r'^\d+$').hasMatch(numericPart) &&
+            numericPart.length >= 6) {
+          return true;
+        }
+      }
+    }
+
+    return false;
   }
 
   Future<void> _toggleFlash() async {
@@ -175,76 +288,261 @@ class _TransferPrizeScanState extends State<TransferPrizeScan>
     }
   }
 
-  Future<void> _pickQrFromGallery() async {
-    final picker = ImagePicker();
-    final XFile? image = await picker.pickImage(source: ImageSource.gallery);
-    if (image != null) {
-      String? qrText;
-      try {
-        // Try qr_code_tools first (platform native, works best)
-        qrText = await QrCodeToolsPlugin.decodeFrom(image.path);
-      } catch (e) {
-        // If plugin throws but not a 'not found' error, show it
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text("Failed to scan QR from image: ${e.toString()}"),
-          ),
-        );
-        return;
-      }
+  // add code here
 
-      if (qrText == null || qrText.isEmpty) {
-        // Try zxing2 fallback (pure Dart, works with more image types)
+  Future<void> _pickQrFromGallery() async {
+    if (_isProcessing) return;
+
+    setState(() => _isProcessing = true);
+
+    // Pause camera before opening gallery
+    if (controller != null && mounted) {
+      try {
+        await controller!.pauseCamera();
+      } catch (e) {
+        print("Camera pause error: $e");
+      }
+    }
+
+    try {
+      final picker = ImagePicker();
+      final XFile? image = await picker.pickImage(
+        source: ImageSource.gallery,
+        imageQuality: 100,
+        maxWidth: 2000,
+        maxHeight: 2000,
+      );
+
+      if (image != null && mounted) {
+        String? qrText = await _decodeQRFromImage(File(image.path));
+
+        // Resume camera
+        if (mounted && controller != null) {
+          try {
+            await controller!.resumeCamera();
+          } catch (e) {
+            print("Camera resume error: $e");
+          }
+        }
+
+        if (qrText != null && qrText.isNotEmpty && mounted) {
+          print("Detected QR content: $qrText");
+
+          // Check if it's a valid QR code (not just your specific format)
+          if (_isValidQrContent(qrText)) {
+            widget.onScanned(qrText);
+            Navigator.of(context).pop();
+          } else {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                padding: const EdgeInsets.only(bottom: 20.0, top: 10),
+                content: Text(
+                  'Invalid QR code format',
+                  style: const TextStyle(fontSize: 16),
+                  textAlign: TextAlign.center,
+                ),
+                duration: const Duration(seconds: 3),
+                backgroundColor: Colors.red,
+              ),
+            );
+            setState(() => _isProcessing = false);
+          }
+        } else if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text(
+                "No QR code found in this image. Please choose another image or retake a clear photo of your QR code.",
+                textAlign: TextAlign.center,
+              ),
+              duration: Duration(seconds: 3),
+            ),
+          );
+          setState(() => _isProcessing = false);
+        }
+      } else {
+        // User cancelled gallery selection
+        if (mounted && controller != null) {
+          try {
+            await controller!.resumeCamera();
+          } catch (e) {
+            print("Camera resume error: $e");
+          }
+        }
+        setState(() => _isProcessing = false);
+      }
+    } catch (e) {
+      print("Gallery picker error: $e");
+      if (mounted && controller != null) {
         try {
-          final bytes = await image.readAsBytes();
-          final decodedImage = img.decodeImage(bytes);
-          if (decodedImage != null) {
-            final width = decodedImage.width;
-            final height = decodedImage.height;
-            final pixels = decodedImage.getBytes();
-            final intCount = pixels.length ~/ 4;
-            final argbInts = Int32List(intCount);
-            for (var i = 0; i < intCount; i++) {
-              final r = pixels[i * 4];
-              final g = pixels[i * 4 + 1];
-              final b = pixels[i * 4 + 2];
-              final a = pixels[i * 4 + 3];
-              argbInts[i] = ((a << 24) | (r << 16) | (g << 8) | b);
-            }
-            final luminanceSource = RGBLuminanceSource(width, height, argbInts);
-            final bitmap = BinaryBitmap(HybridBinarizer(luminanceSource));
-            final reader = QRCodeReader();
-            Result? result;
-            try {
-              result = reader.decode(bitmap);
-              qrText = result.text;
-            } catch (e) {
-              // Still failed, show friendly message
-              qrText = null;
-            }
+          await controller!.resumeCamera();
+        } catch (e) {
+          print("Camera resume error: $e");
+        }
+      }
+      setState(() => _isProcessing = false);
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text(
+            "Failed to access gallery. Please check permissions.",
+            textAlign: TextAlign.center,
+          ),
+          duration: const Duration(seconds: 3),
+        ),
+      );
+    }
+  }
+
+  // Universal QR code validation - accepts any QR code content
+  bool _isValidQrContent(String qrCode) {
+    // Accept any non-empty QR code content
+    return qrCode.isNotEmpty && qrCode.trim().isNotEmpty;
+  }
+
+  // Enhanced QR decoding from image
+  Future<String?> _decodeQRFromImage(File imageFile) async {
+    try {
+      // Try multiple decoding approaches
+      final decodingMethods = [
+        _decodeWithQrCodeTools(imageFile),
+        _decodeWithZxing(imageFile),
+        _decodeWithImageProcessing(imageFile),
+      ];
+
+      // Try each method sequentially until we get a result
+      for (final method in decodingMethods) {
+        try {
+          final result = await method;
+          if (result != null && result.isNotEmpty) {
+            return result;
           }
         } catch (e) {
-          qrText = null;
+          print("Decoding method failed: $e");
+          continue;
         }
       }
 
-      if (qrText != null && qrText.isNotEmpty) {
-        // setState(() {
-        //   // scannedCode = qrText;
-        // });
-        widget.onScanned(qrText);
-        Navigator.of(context).pop();
-      } else {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text(
-              "No QR code found in this image. Please choose another image or retake a clear photo of your QR code.",
-            ),
-          ),
-        );
-      }
+      return null;
+    } catch (e) {
+      print("QR decoding error: $e");
+      return null;
     }
   }
+
+  Future<String?> _decodeWithQrCodeTools(File imageFile) async {
+    try {
+      return await QrCodeToolsPlugin.decodeFrom(imageFile.path);
+    } catch (e) {
+      print("QR Tools error: $e");
+      return null;
+    }
+  }
+
+  Future<String?> _decodeWithZxing(File imageFile) async {
+    try {
+      final bytes = await imageFile.readAsBytes();
+      final decodedImage = img.decodeImage(bytes);
+
+      if (decodedImage == null) return null;
+
+      final width = decodedImage.width;
+      final height = decodedImage.height;
+      final pixels = decodedImage.getBytes();
+
+      // Convert to ARGB format that zxing expects
+      final intCount = pixels.length ~/ 4;
+      final argbInts = Int32List(intCount);
+
+      for (var i = 0; i < intCount; i++) {
+        final r = pixels[i * 4];
+        final g = pixels[i * 4 + 1];
+        final b = pixels[i * 4 + 2];
+        final a = pixels[i * 4 + 3];
+        argbInts[i] = ((a << 24) | (r << 16) | (g << 8) | b);
+      }
+
+      final luminanceSource = RGBLuminanceSource(width, height, argbInts);
+      final binarizer = HybridBinarizer(luminanceSource);
+      final bitmap = BinaryBitmap(binarizer);
+      final reader = QRCodeReader();
+
+      try {
+        final result = reader.decode(bitmap);
+        return result.text;
+      } catch (e) {
+        print("ZXing decoding failed: $e");
+        return null;
+      }
+    } catch (e) {
+      print("ZXing processing error: $e");
+      return null;
+    }
+  }
+
+  Future<String?> _decodeWithImageProcessing(File imageFile) async {
+    try {
+      final bytes = await imageFile.readAsBytes();
+      img.Image? decodedImage = img.decodeImage(bytes);
+
+      if (decodedImage == null) return null;
+
+      // Try multiple image processing techniques
+      final processingTechniques = [
+        decodedImage, // Original
+        img.grayscale(decodedImage), // Grayscale
+        img.adjustColor(decodedImage, contrast: 1.8), // Higher contrast
+        img.adjustColor(decodedImage, brightness: 1.2), // Brighter
+        _binarizeImage(decodedImage, threshold: 150), // Black and white
+      ];
+
+      for (final processedImage in processingTechniques) {
+        try {
+          // Save processed image to temp file and try decoding
+          final tempDir = await getTemporaryDirectory();
+          final tempFile = File('${tempDir.path}/processed_qr.jpg');
+          await tempFile.writeAsBytes(
+            img.encodeJpg(processedImage, quality: 90),
+          );
+
+          // Try with QR Code Tools
+          final result = await QrCodeToolsPlugin.decodeFrom(tempFile.path);
+          if (result != null && result.isNotEmpty) {
+            return result;
+          }
+
+          // Try with ZXing
+          final zxingResult = await _decodeWithZxing(tempFile);
+          if (zxingResult != null && zxingResult.isNotEmpty) {
+            return zxingResult;
+          }
+        } catch (e) {
+          continue;
+        }
+      }
+
+      return null;
+    } catch (e) {
+      print("Image processing error: $e");
+      return null;
+    }
+  }
+
+  img.Image _binarizeImage(img.Image image, {int threshold = 128}) {
+    final result = img.Image(width: image.width, height: image.height);
+
+    for (var y = 0; y < image.height; y++) {
+      for (var x = 0; x < image.width; x++) {
+        final pixel = image.getPixel(x, y);
+        final luminance =
+            (0.299 * pixel.r + 0.587 * pixel.g + 0.114 * pixel.b).round();
+        final value = luminance > threshold ? 255 : 0;
+        result.setPixel(x, y, img.ColorRgb8(value, value, value));
+      }
+    }
+
+    return result;
+  }
+  // Update your QR validation to accept any QR code
 
   @override
   Widget build(BuildContext context) {
@@ -329,35 +627,39 @@ class _TransferPrizeScanState extends State<TransferPrizeScan>
               child: Container(
                 height: kToolbarHeight,
                 color: Colors.transparent,
-                child: Stack(
-                  alignment: Alignment.center,
+                child: Row(
                   children: [
-                    Align(
-                      alignment: Alignment.centerLeft,
-                      child: Padding(
-                        padding: const EdgeInsets.only(left: 16.0),
-                        child: Image.asset(
-                          'assets/images/logo.png',
-                          width: 50,
-                          height: 50,
+                    // Close button on the left
+                    IconButton(
+                      icon: const Icon(
+                        Icons.arrow_back_ios_new,
+                        color: Colors.white,
+                      ),
+                      onPressed: () => Navigator.of(context).pop(),
+                    ),
+                    // Spacer between button and title
+                    const SizedBox(width: 16),
+                    // Title centered (Expanded to take available space)
+                    Expanded(
+                      child: Center(
+                        child: Text(
+                          'transfer_out'.tr(),
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 20,
+                            fontWeight: FontWeight.bold,
+                            fontFamily: 'KhmerFont',
+                          ),
                         ),
                       ),
                     ),
-                    const Center(
-                      child: Text(
-                        'ផ្ទេរចេញ',
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontSize: 20,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                    ),
-                    Align(
-                      alignment: Alignment.centerRight,
-                      child: IconButton(
-                        icon: const Icon(Icons.close, color: Colors.white),
-                        onPressed: () => Navigator.of(context).pop(),
+                    // Logo on the right
+                    Padding(
+                      padding: const EdgeInsets.only(right: 16.0),
+                      child: Image.asset(
+                        'assets/images/logo.png',
+                        width: 50,
+                        height: 50,
                       ),
                     ),
                   ],
@@ -365,7 +667,6 @@ class _TransferPrizeScanState extends State<TransferPrizeScan>
               ),
             ),
             // Bottom action buttons
-            // Replace the bottom action buttons with QrScanActionButtons
             Positioned(
               bottom: 0,
               left: 0,
@@ -375,26 +676,6 @@ class _TransferPrizeScanState extends State<TransferPrizeScan>
                 onPickQr: _pickQrFromGallery,
               ),
             ),
-            // Scan result display
-            //   if (scannedCode != null)
-            //     Positioned(
-            //       bottom: 100,
-            //       left: 0,
-            //       right: 0,
-            //       child: Center(
-            //         child: Container(
-            //           padding: const EdgeInsets.all(16),
-            //           decoration: BoxDecoration(
-            //             color: Colors.black.withOpacity(0.7),
-            //             borderRadius: BorderRadius.circular(8),
-            //           ),
-            //           child: Text(
-            //             'Scanned: $scannedCode',
-            //             style: const TextStyle(fontSize: 18, color: Colors.white),
-            //           ),
-            //         ),
-            //       ),
-            //     ),
           ],
         ),
       ),
@@ -402,4 +683,4 @@ class _TransferPrizeScanState extends State<TransferPrizeScan>
   }
 }
 
-//Correct with 405 line code changes
+//Correct with 686 line code changes

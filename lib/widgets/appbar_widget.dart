@@ -1,11 +1,23 @@
+// import 'dart:convert';
+
 // import 'package:flutter/material.dart';
-// import 'package:scanprize_frontend/utils/constants.dart';
+// import 'package:easy_localization/easy_localization.dart';
+// import 'package:http/http.dart' as http;
+// import 'package:gb_merchant/components/user_qr_code_component.dart';
+// import 'package:gb_merchant/main/TransactionPage.dart';
+// import 'package:gb_merchant/services/scanqr_prize.dart';
+// import 'package:gb_merchant/utils/constants.dart';
+// import 'package:shared_preferences/shared_preferences.dart';
 
 // class CustomAppBar extends StatefulWidget implements PreferredSizeWidget {
 //   final VoidCallback? onMenuPressed;
-//   final String userName;
+//   final String phoneNumber;
 
-//   const CustomAppBar({super.key, this.onMenuPressed, required this.userName});
+//   const CustomAppBar({
+//     super.key,
+//     this.onMenuPressed,
+//     required this.phoneNumber,
+//   });
 
 //   @override
 //   State<CustomAppBar> createState() => _CustomAppBarState();
@@ -14,109 +26,88 @@
 // }
 
 // class _CustomAppBarState extends State<CustomAppBar> {
-//   String currentLanguageCode = 'km';
+//   String formatPhoneNumber(String raw) {
+//     String digits = raw.replaceAll(RegExp(r'\D'), '');
+//     if (digits.startsWith('855')) {
+//       digits = digits.substring(3);
+//     }
+//     if (!digits.startsWith('0')) {
+//       digits = '0$digits';
+//     }
 
-//   // Future<void> _showQrCode(BuildContext context) async {
-//   //   final prefs = await SharedPreferences.getInstance();
-//   //   String? qrGanzbergPayload = prefs.getString('qrGanzbergPayload');
-//   //   String? qrIdolPayload = prefs.getString('qrIdolPayload');
-//   //   String? qrBoostrongPayload = prefs.getString('qrBoostrongPayload');
-//   //   final phoneNumber = prefs.getString('phoneNumber');
+//     if (digits.length == 9) {
+//       return '${digits.substring(0, 3)} ${digits.substring(3, 6)} ${digits.substring(6)}';
+//     } else if (digits.length == 10) {
+//       return '${digits.substring(0, 3)} ${digits.substring(3, 6)} ${digits.substring(6)}';
+//     }
 
-//   //   // Try to fetch from local storage first
-//   //   if ((qrGanzbergPayload != null && qrGanzbergPayload.isNotEmpty) &&
-//   //       (qrIdolPayload != null && qrIdolPayload.isNotEmpty)) {
-//   //     // Show QR from local storage (always available)
-//   //     showDialog(
-//   //       context: context,
-//   //       builder:
-//   //           (context) => UserQrCodeComponent(
-//   //             qrGanzbergPayload: qrGanzbergPayload ?? '',
-//   //             qrIdolPayload: qrIdolPayload ?? '',
-//   //             qrBoostrongPayload: qrBoostrongPayload ?? '',
-//   //             userName: widget.userName, // Pass the userName from CustomAppBar
-//   //             initialIndex: 0,
-//   //           ),
-//   //     );
-//   //     return;
-//   //   }
+//     return digits;
+//   }
 
-//   //   // If either payload is missing, try to fetch from backend
-//   //   if (phoneNumber != null && phoneNumber.isNotEmpty) {
-//   //     try {
-//   //       // Fetch item QR
-//   //       final ganzbergResponse = await http.get(
-//   //         Uri.parse(
-//   //           'http://172.17.5.242:8080/api/auth/me/qr?phoneNumber=$phoneNumber&type=ganzberg',
-//   //         ),
-//   //         headers: {'Content-Type': 'application/json'},
-//   //       );
-//   //       // Fetch money QR
-//   //       final idolResponse = await http.get(
-//   //         Uri.parse(
-//   //           'http://172.17.5.242:8080/api/auth/me/qr?phoneNumber=$phoneNumber&type=idol',
-//   //         ),
-//   //         headers: {'Content-Type': 'application/json'},
-//   //       );
-//   //       // fetch for big prize
-//   //       final boostrongResponse = await http.get(
-//   //         Uri.parse(
-//   //           'http://172.17.5.242:8080/api/auth/me/qr?phoneNumber=$phoneNumber&type=boostrong',
-//   //         ),
-//   //         headers: {'Content-Type': 'application/json'},
-//   //       );
+//   Future<void> _showQrCode(BuildContext context) async {
+//     final prefs = await SharedPreferences.getInstance();
+//     final qrPayload = prefs.getString('qrPayload');
+//     final phoneNumber = prefs.getString('phoneNumber');
 
-//   //       if (ganzbergResponse.statusCode == 200 &&
-//   //           idolResponse.statusCode == 200 &&
-//   //           boostrongResponse.statusCode == 200) {
-//   //         final ganzbergData = json.decode(ganzbergResponse.body);
-//   //         final idolData = json.decode(idolResponse.body);
-//   //         final boostrongData = json.decode(boostrongResponse.body);
+//     // Try to use cached QR first
+//     if (qrPayload != null && phoneNumber != null) {
+//       _showQrDialog(context, qrPayload, phoneNumber);
+//       return;
+//     }
 
-//   //         qrGanzbergPayload = ganzbergData['qrPayload'];
-//   //         qrIdolPayload = idolData['qrPayload'];
-//   //         qrBoostrongPayload = boostrongData['qrPayload'];
-//   //         if (qrGanzbergPayload != null && qrIdolPayload != null) {
-//   //           await prefs.setString('qrGanzbergPayload', qrGanzbergPayload);
-//   //           await prefs.setString('qrIdolPayload', qrIdolPayload);
-//   //           await prefs.setString('qrBoostrongPayload', qrBoostrongPayload!);
+//     // Fetch from backend if not cached
+//     if (phoneNumber != null && phoneNumber.isNotEmpty) {
+//       try {
+//         final response = await http.get(
+//           Uri.parse('${Constants.apiUrl}/auth/me/qr?phoneNumber=$phoneNumber'),
+//           headers: {'Content-Type': 'application/json'},
+//         );
 
-//   //           showDialog(
-//   //             context: context,
-//   //             builder:
-//   //                 (context) => UserQrCodeComponent(
-//   //                   qrGanzbergPayload: qrGanzbergPayload!,
-//   //                   qrIdolPayload: qrIdolPayload!,
-//   //                   qrBoostrongPayload: qrBoostrongPayload!,
-//   //                   userName: widget.userName,
-//   //                   initialIndex: 0,
-//   //                 ),
-//   //           );
-//   //           return;
-//   //         } else {
-//   //           throw Exception('QR payload is null');
-//   //         }
-//   //       } else {
-//   //         throw Exception(
-//   //           'Failed with status ${ganzbergResponse.statusCode}, ${idolResponse.statusCode}',
-//   //         );
-//   //       }
-//   //     } catch (e) {
-//   //       ScaffoldMessenger.of(context).showSnackBar(
-//   //         SnackBar(content: Text('Failed to fetch QR code: ${e.toString()}')),
-//   //       );
-//   //       return;
-//   //     }
-//   //   } else {
-//   //     ScaffoldMessenger.of(
-//   //       context,
-//   //     ).showSnackBar(SnackBar(content: Text('Please login again')));
-//   //     return;
-//   //   }
-//   // }
+//         if (response.statusCode == 200) {
+//           final data = json.decode(response.body);
+//           await prefs.setString('qrPayload', data['qrPayload']);
+//           _showQrDialog(context, data['qrPayload'], phoneNumber);
+//         } else {
+//           throw Exception('Failed to fetch QR code: ${response.statusCode}');
+//         }
+//       } catch (e) {
+//         ScaffoldMessenger.of(context).showSnackBar(
+//           SnackBar(content: Text('Failed to fetch QR code: ${e.toString()}')),
+//         );
+//       }
+//     } else {
+//       ScaffoldMessenger.of(
+//         context,
+//       ).showSnackBar(SnackBar(content: Text('Please login again')));
+//     }
+//   }
+
+//   void _showQrDialog(
+//     BuildContext context,
+//     String qrPayload,
+//     String phoneNumber,
+//   ) {
+//     Navigator.push(
+//       context,
+//       MaterialPageRoute(
+//         fullscreenDialog: true,
+//         builder:
+//             (context) => Scaffold(
+//               backgroundColor: AppColors.primaryColor,
+//               body: SafeArea(
+//                 child: UserQrCodeComponent(
+//                   qrPayload: qrPayload,
+//                   phoneNumber: phoneNumber,
+//                 ),
+//               ),
+//             ),
+//       ),
+//     );
+//   }
 
 //   @override
 //   Widget build(BuildContext context) {
+//     final localeCode = context.locale.languageCode; // 'km' or 'en'
 //     return Padding(
 //       padding: const EdgeInsets.only(),
 //       child: AppBar(
@@ -133,34 +124,27 @@
 //                 backgroundImage: AssetImage('assets/images/logo.png'),
 //               ),
 //             ),
-//             const SizedBox(width: 2),
+//             const SizedBox(width: 8),
 //             Column(
 //               crossAxisAlignment: CrossAxisAlignment.start,
 //               children: [
 //                 Text(
-//                   "សូមស្វាគមន័ 👋",
+//                   'welcome'.tr(),
 //                   style: TextStyle(
 //                     fontSize: 12,
 //                     color: Colors.white,
-//                     fontWeight: FontWeight.w500,
+//                     fontWeight: FontWeight.w600,
+//                     fontFamily: localeCode == 'km' ? 'KhmerFont' : null,
 //                   ),
 //                 ),
 //                 const SizedBox(height: 4),
-
-//                 // Text(
-//                 //   widget.userName,
-//                 //   style: TextStyle(
-//                 //     fontSize: 18,
-//                 //     color: Colors.white,
-//                 //     fontWeight: FontWeight.w500,
-//                 //   ),
-//                 // ),
 //                 Text(
-//                   '092787171',
+//                   formatPhoneNumber(widget.phoneNumber),
 //                   style: TextStyle(
 //                     fontSize: 18,
 //                     color: Colors.white,
-//                     fontWeight: FontWeight.w500,
+//                     fontWeight: FontWeight.w600,
+//                     fontFamily: localeCode == 'km' ? 'KhmerFont' : null,
 //                   ),
 //                 ),
 //               ],
@@ -168,100 +152,73 @@
 //           ],
 //         ),
 //         actions: [
-//           // Language Selection
-//           TextButton.icon(
-//             style: TextButton.styleFrom(
-//               foregroundColor: Colors.white,
-//               padding: const EdgeInsets.symmetric(horizontal: 14),
-//             ),
-//             icon: Text(
-//               currentLanguageCode == 'km'
-//                   ? '🇰🇭'
-//                   : currentLanguageCode == 'en'
-//                   ? '🇺🇸'
-//                   : '🇨🇳', // Add more flags if you have more languages
-//               style: const TextStyle(fontSize: 20),
-//             ),
-//             label: Row(
-//               children: [
-//                 Text(
-//                   currentLanguageCode == 'km'
-//                       ? 'ខ្មែរ'
-//                       : currentLanguageCode == 'en'
-//                       ? 'អង់គ្លេស'
-//                       : '中文',
-//                   style: const TextStyle(color: Colors.white),
-//                 ),
-//                 const SizedBox(width: 4),
-//                 const Icon(Icons.keyboard_arrow_down, color: Colors.white),
-//               ],
-//             ),
-//             onPressed: () async {
-//               final selected = await showModalBottomSheet<String>(
-//                 backgroundColor: Colors.white,
-//                 context: context,
-//                 shape: const RoundedRectangleBorder(
-//                   borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
-//                 ),
-//                 builder: (context) {
-//                   return Column(
-//                     mainAxisSize: MainAxisSize.min,
-//                     children: [
-//                       const SizedBox(height: 10),
-//                       ListTile(
-//                         leading: const Text(
-//                           '🇰🇭',
-//                           style: TextStyle(fontSize: 20),
-//                         ),
-//                         title: const Text('ភាសាខ្មែរ'),
-//                         onTap: () => Navigator.pop(context, 'km'),
-//                       ),
-//                       ListTile(
-//                         leading: const Text(
-//                           '🇺🇸',
-//                           style: TextStyle(fontSize: 20),
-//                         ),
-//                         title: const Text('អង់គ្លេស'),
-//                         onTap: () => Navigator.pop(context, 'en'),
-//                       ),
-//                       const SizedBox(height: 40),
-//                     ],
-//                   );
-//                 },
-//               );
-
-//               if (selected != null && selected != currentLanguageCode) {
-//                 setState(() {
-//                   currentLanguageCode = selected;
-//                 });
-//               }
-//             },
+//           buildNotificationButton(context, 4),
+//           IconButton(
+//             icon: const Icon(Icons.qr_code, color: Colors.white),
+//             onPressed: () => _showQrCode(context),
 //           ),
-//           // IconButton(
-//           //   padding: EdgeInsets.zero,
-//           //   icon: Icon(Icons.qr_code, color: Colors.white),
-//           //   onPressed: () => _showQrCode(context),
-//           // ),
-//           // IconButton(
-//           //   padding: EdgeInsets.zero,
-//           //   icon: Icon(Icons.notifications_outlined, color: Colors.white),
-//           //   onPressed: () {},
-//           // ),
 //         ],
 //       ),
 //     );
 //   }
+
+//   Widget buildNotificationButton(BuildContext context, int badgeCount) {
+//     return Stack(
+//       clipBehavior: Clip.none,
+//       children: [
+//         IconButton(
+//           icon: const Icon(Icons.notifications, color: Colors.white),
+//           onPressed: () {
+//             Navigator.push(
+//               context,
+//               MaterialPageRoute(builder: (context) => Transactionpage()),
+//             );
+//           },
+//         ),
+//         if (badgeCount > 0)
+//           Positioned(
+//             right: 4,
+//             top: 4,
+//             child: Container(
+//               padding: const EdgeInsets.all(2),
+//               decoration: BoxDecoration(
+//                 color: Colors.black,
+//                 borderRadius: BorderRadius.circular(10),
+//               ),
+//               constraints: const BoxConstraints(minWidth: 20, minHeight: 16),
+//               child: Text(
+//                 '$badgeCount',
+//                 style: const TextStyle(
+//                   color: Colors.white,
+//                   fontSize: 11,
+//                   fontWeight: FontWeight.bold,
+//                 ),
+//                 textAlign: TextAlign.center,
+//               ),
+//             ),
+//           ),
+//       ],
+//     );
+//   }
 // }
 
-// //Correct with 232 line code changes
+// //Correct with 201 line code changes
+
+import 'dart:convert';
 
 import 'package:flutter/material.dart';
-import 'package:scanprize_frontend/utils/constants.dart';
+import 'package:easy_localization/easy_localization.dart';
+import 'package:gb_merchant/services/firebase_service.dart';
+import 'package:http/http.dart' as http;
+import 'package:gb_merchant/components/user_qr_code_component.dart';
+import 'package:gb_merchant/main/TransactionPage.dart';
+import 'package:gb_merchant/services/scanqr_prize.dart';
+import 'package:gb_merchant/utils/constants.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class CustomAppBar extends StatefulWidget implements PreferredSizeWidget {
   final VoidCallback? onMenuPressed;
-  final String
-  phoneNumber; // Accepts anything: "099929292", "+85599929292", "99929292"
+  final String phoneNumber;
 
   const CustomAppBar({
     super.key,
@@ -276,146 +233,334 @@ class CustomAppBar extends StatefulWidget implements PreferredSizeWidget {
 }
 
 class _CustomAppBarState extends State<CustomAppBar> {
-  String currentLanguageCode = 'km';
+  late ValueNotifier<int> _badgeNotifier;
 
-  /// Always show phone as local (0xx xxx xxx).
-  /// If phoneNumber contains "855" or "+855", strip it and add leading 0.
+  @override
+  void initState() {
+    super.initState();
+
+    _badgeNotifier = FirebaseService.badgeCountNotifier;
+
+    // Load saved value once at startup
+    SharedPreferences.getInstance().then((prefs) {
+      int savedCount = prefs.getInt('badgeCount') ?? 0;
+      _badgeNotifier.value = savedCount;
+    });
+  }
+
   String formatPhoneNumber(String raw) {
     String digits = raw.replaceAll(RegExp(r'\D'), '');
-
-    // Remove 855 country code if present at the start
     if (digits.startsWith('855')) {
       digits = digits.substring(3);
     }
-    // Remove leading + if any (already handled by \D above)
-    // Add leading zero if not present
     if (!digits.startsWith('0')) {
       digits = '0$digits';
     }
-    // Format 3-3-3 for Cambodian numbers
+
     if (digits.length == 9) {
       return '${digits.substring(0, 3)} ${digits.substring(3, 6)} ${digits.substring(6)}';
+    } else if (digits.length == 10) {
+      return '${digits.substring(0, 3)} ${digits.substring(3, 6)} ${digits.substring(6)}';
     }
-    // fallback for other lengths
+
     return digits;
+  }
+
+  // In CustomAppBar class, modify the _showQrCode method:
+  // In CustomAppBar class, modify the _showQrCode method:
+  Future<void> _showQrCode(BuildContext context) async {
+    print('DEBUG: _showQrCode called');
+
+    final prefs = await SharedPreferences.getInstance();
+    final userDataString = prefs.getString('user_data');
+    print('DEBUG: userDataString from prefs: $userDataString');
+
+    int userStatus = 1; // Default to approved
+
+    // First try to get status from SharedPreferences
+    if (userDataString != null) {
+      try {
+        final userData = json.decode(userDataString);
+        userStatus = userData['data']['status'] ?? 1;
+        print('DEBUG: User status from prefs: $userStatus');
+      } catch (e) {
+        print('DEBUG: Error parsing user data from prefs: $e');
+        // If parsing fails, proceed normally instead of blocking
+        userStatus = 1;
+      }
+    }
+
+    // Check the status - status 2 means pending approval
+    if (userStatus == 2) {
+      print('DEBUG: Showing approval dialog (status 2)');
+      _showApprovalRequiredDialog(context);
+      return;
+    } else {
+      print(
+        'DEBUG: User approved (status $userStatus), proceeding with QR code',
+      );
+    }
+
+    // Rest of your QR code logic...
+    final qrPayload = prefs.getString('qrPayload');
+    final phoneNumber = prefs.getString('phoneNumber');
+
+    // Try to use cached QR first
+    if (qrPayload != null && phoneNumber != null) {
+      _showQrDialog(context, qrPayload, phoneNumber);
+      return;
+    }
+
+    // Fetch from backend if not cached
+    if (phoneNumber != null && phoneNumber.isNotEmpty) {
+      try {
+        final response = await http.get(
+          Uri.parse('${Constants.apiUrl}/auth/me/qr?phoneNumber=$phoneNumber'),
+          headers: {'Content-Type': 'application/json'},
+        );
+
+        if (response.statusCode == 200) {
+          final data = json.decode(response.body);
+          await prefs.setString('qrPayload', data['qrPayload']);
+          _showQrDialog(context, data['qrPayload'], phoneNumber);
+        } else {
+          throw Exception('Failed to fetch QR code: ${response.statusCode}');
+        }
+      } catch (e) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Failed to fetch QR code: ${e.toString()}')),
+        );
+      }
+    } else {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Please login again')));
+    }
+  }
+
+  // Add this method to get user name from SharedPreferences
+  Future<String?> _getUserName() async {
+    final prefs = await SharedPreferences.getInstance();
+    final userDataString = prefs.getString('user_data');
+
+    if (userDataString != null) {
+      try {
+        final userData = json.decode(userDataString);
+        return userData['data']['name'] as String?;
+      } catch (e) {
+        print('Error parsing user name: $e');
+      }
+    }
+    return null;
+  }
+
+  // Add this method to show approval dialog
+  void _showApprovalRequiredDialog(BuildContext context) {
+    final localeCode = context.locale.languageCode;
+
+    showDialog(
+      context: context,
+      barrierDismissible: true,
+      builder:
+          (context) => Dialog(
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(16),
+            ),
+            backgroundColor: Colors.white,
+            child: Padding(
+              padding: const EdgeInsets.all(24),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(Icons.lock_outline, size: 60, color: Colors.orange),
+                  const SizedBox(height: 20),
+                  Text(
+                    'សូមអភ័យទោស អ្នកមិនអាចដំណើរការមុខងារនេះបានទេ!',
+                    style: TextStyle(
+                      fontSize: 20,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.black87,
+                      fontFamily: localeCode == 'km' ? 'KhmerFont' : null,
+                    ),
+                    textAlign: TextAlign.center,
+                  ),
+                  const SizedBox(height: 12),
+                  Text(
+                    'សូមរង់ចាំការអនុញ្ញាតពីក្រុមហ៊ុនជាមុនសិន',
+                    style: TextStyle(
+                      fontSize: 16,
+                      color: Colors.black54,
+                      fontFamily: localeCode == 'km' ? 'KhmerFont' : null,
+                    ),
+                    textAlign: TextAlign.center,
+                  ),
+                  const SizedBox(height: 24),
+                  ElevatedButton(
+                    onPressed: () => Navigator.of(context).pop(),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppColors.primaryColor,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 20,
+                        vertical: 12,
+                      ),
+                    ),
+                    child: Text(
+                      'យល់ព្រម',
+                      style: TextStyle(
+                        fontSize: 16,
+                        color: Colors.white,
+                        fontFamily: localeCode == 'km' ? 'KhmerFont' : null,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+    );
+  }
+
+  void _showQrDialog(
+    BuildContext context,
+    String qrPayload,
+    String phoneNumber,
+  ) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        fullscreenDialog: true,
+        builder:
+            (context) => Scaffold(
+              backgroundColor: AppColors.primaryColor,
+              body: SafeArea(
+                child: UserQrCodeComponent(
+                  qrPayload: qrPayload,
+                  phoneNumber: phoneNumber,
+                ),
+              ),
+            ),
+      ),
+    );
   }
 
   @override
   Widget build(BuildContext context) {
+    final localeCode = context.locale.languageCode; // 'km' or 'en'
     return Padding(
       padding: const EdgeInsets.only(),
       child: AppBar(
         backgroundColor: AppColors.primaryColor,
         elevation: 0,
         automaticallyImplyLeading: false,
-        title: Row(
-          children: [
-            GestureDetector(
-              onTap: widget.onMenuPressed,
-              child: const CircleAvatar(
-                backgroundColor: AppColors.primaryColor,
-                radius: 33,
-                backgroundImage: AssetImage('assets/images/logo.png'),
-              ),
-            ),
-            const SizedBox(width: 2),
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+        title: FutureBuilder<String?>(
+          future: _getUserName(),
+          builder: (context, snapshot) {
+            final userName = snapshot.data ?? 'UnknowName';
+            final formattedPhone = formatPhoneNumber(widget.phoneNumber);
+
+            return Row(
               children: [
-                Text(
-                  "សូមស្វាគមន៍ 👋",
-                  style: TextStyle(
-                    fontSize: 12,
-                    color: Colors.white,
-                    fontWeight: FontWeight.w500,
+                GestureDetector(
+                  onTap: widget.onMenuPressed,
+                  child: const CircleAvatar(
+                    backgroundColor: AppColors.primaryColor,
+                    radius: 33,
+                    backgroundImage: AssetImage('assets/images/logo.png'),
                   ),
                 ),
-                const SizedBox(height: 4),
-                Text(
-                  formatPhoneNumber(widget.phoneNumber),
-                  style: TextStyle(
-                    fontSize: 18,
-                    color: Colors.white,
-                    fontWeight: FontWeight.w500,
-                  ),
+                const SizedBox(width: 8),
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // Username on first line
+                    Text(
+                      userName,
+                      style: TextStyle(
+                        fontSize: 16,
+                        color: Colors.white,
+                        fontWeight: FontWeight.w600,
+                        fontFamily: localeCode == 'km' ? 'KhmerFont' : null,
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    const SizedBox(height: 4),
+                    // Phone number on second line
+                    Text(
+                      formattedPhone,
+                      style: TextStyle(
+                        fontSize: 14,
+                        color: Colors.white,
+                        fontWeight: FontWeight.bold,
+                        fontFamily: localeCode == 'km' ? 'KhmerFont' : null,
+                      ),
+                    ),
+                  ],
                 ),
               ],
-            ),
-          ],
+            );
+          },
         ),
         actions: [
-          TextButton.icon(
-            style: TextButton.styleFrom(
-              foregroundColor: Colors.white,
-              padding: const EdgeInsets.symmetric(horizontal: 14),
-            ),
-            icon: Text(
-              currentLanguageCode == 'km'
-                  ? '🇰🇭'
-                  : currentLanguageCode == 'en'
-                  ? '🇺🇸'
-                  : '🇨🇳',
-              style: const TextStyle(fontSize: 20),
-            ),
-            label: Row(
-              children: [
-                Text(
-                  currentLanguageCode == 'km'
-                      ? 'KH'
-                      : currentLanguageCode == 'en'
-                      ? 'English'
-                      : '中文',
-                  style: const TextStyle(color: Colors.white),
-                ),
-                const SizedBox(width: 4),
-                const Icon(Icons.keyboard_arrow_down, color: Colors.white),
-              ],
-            ),
-            onPressed: () async {
-              final selected = await showModalBottomSheet<String>(
-                backgroundColor: Colors.white,
-                context: context,
-                shape: const RoundedRectangleBorder(
-                  borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
-                ),
-                builder: (context) {
-                  return Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      const SizedBox(height: 10),
-                      ListTile(
-                        leading: const Text(
-                          '🇰🇭',
-                          style: TextStyle(fontSize: 20),
-                        ),
-                        title: const Text('Khmer'),
-                        onTap: () => Navigator.pop(context, 'km'),
-                      ),
-                      ListTile(
-                        leading: const Text(
-                          '🇺🇸',
-                          style: TextStyle(fontSize: 20),
-                        ),
-                        title: const Text('English'),
-                        onTap: () => Navigator.pop(context, 'en'),
-                      ),
-                      const SizedBox(height: 40),
-                    ],
-                  );
-                },
-              );
-
-              if (selected != null && selected != currentLanguageCode) {
-                setState(() {
-                  currentLanguageCode = selected;
-                });
-              }
+          ValueListenableBuilder<int>(
+            valueListenable: _badgeNotifier,
+            builder: (context, badgeCount, _) {
+              return buildNotificationButton(context, badgeCount);
             },
+          ),
+          IconButton(
+            icon: const Icon(Icons.qr_code, color: Colors.white),
+            onPressed: () => _showQrCode(context),
           ),
         ],
       ),
     );
   }
+
+  Widget buildNotificationButton(BuildContext context, int badgeCount) {
+    return Stack(
+      clipBehavior: Clip.none,
+      children: [
+        IconButton(
+          icon: const Icon(Icons.notifications, color: Colors.white),
+          onPressed: () async {
+            // Reset badge count when user views notifications
+            await FirebaseService.resetBadgeCount();
+            Navigator.push(
+              context,
+              MaterialPageRoute(builder: (context) => NotificationPage()),
+            );
+          },
+        ),
+        if (badgeCount > 0)
+          Positioned(
+            right: 4,
+            top: 4,
+            child: Container(
+              padding: const EdgeInsets.all(2),
+              decoration: BoxDecoration(
+                color: Colors.black,
+                borderRadius: BorderRadius.circular(10),
+              ),
+              constraints: const BoxConstraints(minWidth: 20, minHeight: 16),
+              child: Text(
+                '$badgeCount',
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 11,
+                  fontWeight: FontWeight.bold,
+                  fontFamily: 'KhmerFont',
+                ),
+                textAlign: TextAlign.center,
+              ),
+            ),
+          ),
+      ],
+    );
+  }
 }
 
-//Correct with 164 line code changes
+//Correct with 564 line code changes

@@ -5,8 +5,7 @@ class SuccessDialog extends StatelessWidget {
 
   const SuccessDialog({
     Key? key,
-    this.message =
-        "លេខសម្ងាត់របស់អ្នកបង្កើតបានជោគជ័យ!", // "Passcode successfully created!"
+    this.message = "លេខសម្ងាត់របស់អ្នកបង្កើតបានជោគជ័យ!",
   }) : super(key: key);
 
   @override
@@ -15,26 +14,32 @@ class SuccessDialog extends StatelessWidget {
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
       backgroundColor: Colors.white,
       child: Padding(
-        padding: const EdgeInsets.symmetric(vertical: 32, horizontal: 24),
+        padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 12),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
+            Align(
+              alignment: Alignment.topRight,
+              child: IconButton(
+                icon: const Icon(Icons.close, color: Colors.red, size: 30),
+                onPressed: () => Navigator.of(context).pop(),
+              ),
+            ),
             Container(
               decoration: const BoxDecoration(
-                color: Color(0xFF4CAF50), // green
+                color: Color(0xFF4CAF50),
                 shape: BoxShape.circle,
               ),
               padding: const EdgeInsets.all(20),
               child: const Icon(Icons.check, color: Colors.white, size: 35),
             ),
-            const SizedBox(height: 24),
+            const SizedBox(height: 40),
             Text(
               message,
               textAlign: TextAlign.center,
               style: const TextStyle(fontSize: 20, color: Color(0xFF6B7280)),
             ),
             const SizedBox(height: 24),
-            // Optionally you can add a fading progress bar
             SizedBox(
               width: 100,
               child: LinearProgressIndicator(
@@ -43,6 +48,7 @@ class SuccessDialog extends StatelessWidget {
                 color: const Color(0xFF4CAF50),
               ),
             ),
+            const SizedBox(height: 30),
           ],
         ),
       ),
@@ -50,4 +56,4 @@ class SuccessDialog extends StatelessWidget {
   }
 }
 
-//Correct with 53 line code changes
+//Correct with 59 line code changes

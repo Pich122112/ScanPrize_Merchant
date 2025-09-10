@@ -1,233 +1,118 @@
-import 'dart:io'; // Required for File
 import 'package:flutter/material.dart';
-import 'package:image_picker/image_picker.dart'; // For picking images
-import 'package:shared_preferences/shared_preferences.dart';
-import '../components/ProfileButton.dart';
-import '../components/privacy_policy.dart'; // Import your PrivacyPolicy widget
+import 'package:url_launcher/url_launcher.dart';
 
-class ProfilePage extends StatefulWidget {
-  final String phoneNumber;
-  final VoidCallback onLogout;
+class ContactUsPage extends StatelessWidget {
+  const ContactUsPage({super.key});
 
-  const ProfilePage({
-    super.key,
-    required this.phoneNumber,
-    required this.onLogout,
-  });
+  Future<void> _openMessenger() async {
+    const messengerUrl = "https://m.me/moeys.gov.kh"; // official Messenger link
+    final uri = Uri.parse(messengerUrl);
 
-  @override
-  State<ProfilePage> createState() => _ProfilePageState();
-}
+    if (await canLaunchUrl(uri)) {
+      // Try opening Messenger app
+      final launched = await launchUrl(
+        uri,
+        mode: LaunchMode.externalApplication,
+      );
 
-class _ProfilePageState extends State<ProfilePage> {
-  String? _profileImagePath;
-
-  @override
-  void initState() {
-    super.initState();
-    _loadProfileImage();
-  }
-
-  String formatPhoneNumber(String raw) {
-    String digits = raw.replaceAll(RegExp(r'\D'), '');
-
-    // Remove 855 country code if present at the start
-    if (digits.startsWith('855')) {
-      digits = digits.substring(3);
-    }
-    // Remove leading + if any (already handled by \D above)
-    // Add leading zero if not present
-    if (!digits.startsWith('0')) {
-      digits = '0$digits';
-    }
-    // Format 3-3-3 for Cambodian numbers
-    if (digits.length == 9) {
-      return '${digits.substring(0, 3)} ${digits.substring(3, 6)} ${digits.substring(6)}';
-    }
-    // fallback for other lengths
-    return digits;
-  }
-
-  Future<void> _loadProfileImage() async {
-    final prefs = await SharedPreferences.getInstance();
-    setState(() {
-      _profileImagePath = prefs.getString('profileImagePath');
-    });
-  }
-
-  Future<void> _pickImage() async {
-    final picker = ImagePicker();
-    final pickedFile = await picker.pickImage(source: ImageSource.gallery);
-
-    if (pickedFile != null) {
-      setState(() {
-        _profileImagePath = pickedFile.path;
-      });
-
-      final prefs = await SharedPreferences.getInstance();
-      await prefs.setString('profileImagePath', pickedFile.path);
+      if (!launched) {
+        // Fallback: open in browser
+        await launchUrl(uri, mode: LaunchMode.inAppBrowserView);
+      }
+    } else {
+      // Last fallback: force open in browser
+      await launchUrl(uri, mode: LaunchMode.inAppBrowserView);
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    const khmerFont = 'KhmerFont';
+    final screenWidth = MediaQuery.of(context).size.width;
+    final isTablet = screenWidth > 600;
+
     return Scaffold(
       backgroundColor: Colors.white,
-      body: SafeArea(
-        child: SingleChildScrollView(
-          // <-- Make whole content scrollable
+      body: Center(
+        child: Padding(
+          padding: EdgeInsets.symmetric(horizontal: screenWidth * 0.1),
           child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              const SizedBox(height: 40),
-              Center(
-                child: Stack(
-                  children: [
-                    CircleAvatar(
-                      radius: 90,
-                      backgroundImage:
-                          _profileImagePath != null
-                              ? FileImage(File(_profileImagePath!))
-                              : const AssetImage('assets/images/user.png')
-                                  as ImageProvider,
-                    ),
-                    Positioned(
-                      bottom: 4,
-                      right: 16,
-                      child: GestureDetector(
-                        onTap: _pickImage,
-                        child: Container(
-                          padding: const EdgeInsets.all(6),
-                          decoration: const BoxDecoration(
-                            color: Colors.white,
-                            shape: BoxShape.circle,
-                            boxShadow: [
-                              BoxShadow(
-                                color: Colors.black12,
-                                blurRadius: 4,
-                                offset: Offset(0, 2),
-                              ),
-                            ],
-                          ),
-                          child: const Icon(Icons.camera_alt, size: 20),
-                        ),
-                      ),
+              // Circle with soft shadow
+              Container(
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: Colors.grey.shade100,
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.06),
+                      blurRadius: 12,
+                      offset: const Offset(0, 4),
                     ),
                   ],
                 ),
+                padding: const EdgeInsets.all(24),
+                child: Icon(
+                  Icons.call,
+                  size: isTablet ? 60 : 50,
+                  color: Colors.deepOrange,
+                ),
               ),
-              const SizedBox(height: 14),
+              const SizedBox(height: 24),
+
+              // Title
               Text(
-                formatPhoneNumber(widget.phoneNumber),
+                "Contact Us",
                 style: TextStyle(
-                  fontSize: 22,
-                  color: Colors.black,
-                  fontWeight: FontWeight.w500,
+                  fontSize: isTablet ? 24 : 20,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.black87,
                 ),
               ),
-              const SizedBox(height: 50),
+              const SizedBox(height: 12),
 
-              // Buttons
-              const ProfileButton(
-                icon: Icons.person,
-                text: 'ព័ត៍មានផ្ទាល់ខ្លួនអ្នក',
-              ),
-              ProfileButton(
-                icon: Icons.description,
-                text: 'គោលការណ៍ & ឯកជនភាព',
-                onTap: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => const PrivacyPolicy(),
-                    ),
-                  );
-                },
-              ),
-              const ProfileButton(
-                icon: Icons.photo_album,
-                text: 'ទាក់ទងមកកាន់ក្រុមហ៊ុន',
-              ),
-
-              const SizedBox(height: 20),
-              // Logout button
-              Padding(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 30.0,
-                  vertical: 25,
+              // Subtitle
+              Text(
+                "You can reach us anytime through any of the platforms below.",
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  fontSize: isTablet ? 16 : 14,
+                  color: Colors.grey[600],
+                  height: 1.5,
                 ),
+              ),
+              const SizedBox(height: 80),
+
+              // Messenger Button
+              SizedBox(
+                width: double.infinity,
                 child: ElevatedButton.icon(
-                  onPressed: () async {
-                    showDialog(
-                      context: context,
-                      builder: (BuildContext context) {
-                        return AlertDialog(
-                          backgroundColor: Colors.white,
-                          title: const Text(
-                            'ចាកចេញ',
-                            style: TextStyle(
-                              fontFamily: 'KhmerFont',
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                          content: const Text(
-                            'តើអ្នកប្រាកដថាចង់ចាកចេញមែនទេ?',
-                            style: TextStyle(fontFamily: 'KhmerFont'),
-                          ),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(15),
-                          ),
-                          actions: <Widget>[
-                            TextButton(
-                              onPressed: () {
-                                Navigator.of(context).pop(); // Close the dialog
-                              },
-                              child: const Text(
-                                'បោះបង់',
-                                style: TextStyle(
-                                  color: Colors.grey,
-                                  fontFamily: 'KhmerFont',
-                                ),
-                              ),
-                            ),
-                            ElevatedButton(
-                              onPressed: () async {
-                                final prefs =
-                                    await SharedPreferences.getInstance();
-                                await prefs.clear();
-
-                                Navigator.of(context).pop(); // Close the dialog
-                                widget.onLogout(); // Call the logout callback
-                              },
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: Colors.red,
-                                foregroundColor: Colors.white,
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(10),
-                                ),
-                              ),
-                              child: const Text(
-                                'បាទ/ចាស',
-                                style: TextStyle(fontFamily: 'KhmerFont'),
-                              ),
-                            ),
-                          ],
-                        );
-                      },
-                    );
-                  },
-                  icon: const Icon(Icons.logout),
-                  label: const Text(
-                    'ចាកចេញ',
-                    style: TextStyle(fontFamily: khmerFont, fontSize: 16),
+                  onPressed: _openMessenger, // ✅ Open Messenger
+                  icon: Image.asset(
+                    "assets/images/messengerlogo.png",
+                    height: 28,
+                    width: 28,
+                    color: Colors.white,
+                  ),
+                  label: const Padding(
+                    padding: EdgeInsets.only(left: 8.0),
+                    child: Text(
+                      "Facebook Messenger",
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w600,
+                        color: Colors.white,
+                      ),
+                    ),
                   ),
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.red,
-                    foregroundColor: Colors.white,
-                    minimumSize: const Size(double.infinity, 50),
+                    backgroundColor: Colors.deepOrange,
+                    padding: const EdgeInsets.symmetric(vertical: 16),
                     shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(50),
+                      borderRadius: BorderRadius.circular(8),
                     ),
+                    elevation: 4,
+                    shadowColor: Colors.deepOrange.withOpacity(0.4),
                   ),
                 ),
               ),
@@ -238,3 +123,5 @@ class _ProfilePageState extends State<ProfilePage> {
     );
   }
 }
+
+//Correct with 127 line code changes

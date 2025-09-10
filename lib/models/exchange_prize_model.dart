@@ -1,41 +1,49 @@
 class ExchangePrize {
-  final int exchangePrizeListID;
-  final String exchangePrizeName;
-  final String exchangePrizeValue;
-  final String imageFileName;
-  final int productCategoryID; // Now using this to map to company categories
-  final String companyCategoryName;
-  final int? companyCategoryID;
+  final int prizeId;
+  final String prizeName;
+  final int brandId;
+  final String brandName;
+  final String walletType;
+  final String walletName;
+  final int point;
+  final String sku;
+  final String unit; // Add unit field
+  final String thumbnail; // Add thumbnail field
+  final bool status;
 
   ExchangePrize({
-    required this.exchangePrizeListID,
-    required this.exchangePrizeName,
-    required this.exchangePrizeValue,
-    required this.imageFileName,
-    required this.productCategoryID,
-    required this.companyCategoryName,
-    this.companyCategoryID,
+    required this.prizeId,
+    required this.prizeName,
+    required this.brandId,
+    required this.brandName,
+    required this.walletType,
+    required this.walletName,
+    required this.point,
+    required this.sku,
+    required this.unit, // Add unit parameter
+    required this.thumbnail, // Add thumbnail parameter
+    required this.status,
   });
 
   factory ExchangePrize.fromJson(Map<String, dynamic> json) {
-    try {
-      return ExchangePrize(
-        exchangePrizeListID: json['ExchangePrizeListID'] as int? ?? 0,
-        exchangePrizeName: json['ExchangePrizeName'] as String? ?? '',
-        exchangePrizeValue: json['ExchangePrizeValue'] as String? ?? '0',
-        imageFileName: json['ImageFileName'] as String? ?? '',
-        productCategoryID: json['ProductCategoryID'] as int? ?? 0,
-        companyCategoryName: json['CompanyCategoryName'] as String? ?? '',
-        companyCategoryID: json['CompanyCategoryID'] as int?,
-      );
-    } catch (e) {
-      print('Error parsing ExchangePrize: $e');
-      print('Problematic JSON: $json');
-      rethrow;
-    }
+    return ExchangePrize(
+      prizeId: json['prize_id'],
+      prizeName: json['prize_name'],
+      brandId: json['brand_id'],
+      brandName: json['brand_name'],
+      walletType: json['wallet_type'].toString(),
+      walletName: json['wallet_name'],
+      point: json['point'],
+      sku: json['sku'],
+      unit: json['unit'] ?? 'can', // Default to 'can' if null
+      thumbnail: json['thumbnail'] ?? '', // Add thumbnail from JSON
+      status: json['status'],
+    );
   }
 
-  String get displayText => '$exchangePrizeValue = $exchangePrizeName';
+  // Update the imageUrl getter to use the thumbnail from API
+  String get imageUrl =>
+      thumbnail.isNotEmpty ? thumbnail : 'assets/images/default.png';
 }
 
-//Correct with 40 line code changes
+//Correct with 39 line code changes

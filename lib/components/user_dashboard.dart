@@ -1,22 +1,20 @@
 import 'dart:async';
+import 'dart:convert';
 
 import 'package:flutter/material.dart';
-// ignore: unused_import
-import 'package:scanprize_frontend/components/Enter_Quantity.dart';
-import 'package:scanprize_frontend/utils/constants.dart';
-import 'package:scanprize_frontend/utils/transaction_by_account.dart';
-import './transfer_prize_qr.dart';
+import 'package:gb_merchant/merchant/passcode_cache.dart';
+import 'package:gb_merchant/services/user_balance_service.dart';
+import 'package:gb_merchant/utils/constants.dart';
+import 'package:gb_merchant/utils/transaction_by_account.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:http/http.dart' as http;
-import 'dart:convert';
-import '../services/scanqr_prize.dart';
-import '../components/passcode.dart';
-import '../widgets/attemp_time.dart';
-import 'package:scanprize_frontend/components/user_qr_code_component.dart';
-import '../widgets/Dialog_Success.dart';
 import 'package:shimmer/shimmer.dart';
+import '../services/user_server.dart';
 import './slider.dart';
 import '../services/websocket_service.dart';
+import 'package:connectivity_plus/connectivity_plus.dart';
+import 'package:easy_localization/easy_localization.dart';
+import '../services/passcode_service.dart';
+import '../utils/balance_refresh_notifier.dart';
 
 class ThreeBoxSection extends StatefulWidget {
   final GlobalKey<ImageSliderState> sliderKey;
@@ -29,50 +27,270 @@ class ThreeBoxSectionState extends State<ThreeBoxSection> {
   int ganzbergPoints = 0;
   int idolPoints = 0;
   int boostrongPoints = 0;
-  double moneyAmount = 0.0;
+  double diamondAmount = 0.0;
   String? errorMessage;
   int failedAttempts = 0;
   bool _showAmount = false;
   Timer? _eyeAutoLockTimer;
+  Timer? _eyeExpireWatcher;
+  BalanceRefreshNotifier? _balanceNotifier;
+  bool _isEyePressed = false;
+  Timer? _eyeColorResetTimer;
+  bool _isUnlocked = false;
+
   final GlobalKey<RefreshIndicatorState> refreshIndicatorKey =
       GlobalKey<RefreshIndicatorState>();
   StreamSubscription<Map<String, dynamic>>? _balanceSubscription;
 
-  // 2. Dispose timer in dispose():
   @override
   void dispose() {
+    _balanceNotifier?.removeListener(_handleBalanceRefresh);
+    _balanceNotifier = null;
     _balanceSubscription?.cancel();
     WebSocketService().disconnect();
     _eyeAutoLockTimer?.cancel();
+    _eyeExpireWatcher?.cancel();
+    _eyeColorResetTimer?.cancel();
     super.dispose();
   }
 
-  // 3. Helper to handle 20s auto-lock logic:
-  void _startEyeAutoLockTimer() async {
-    _eyeAutoLockTimer?.cancel(); // Cancel any previous timer
-    final prefs = await SharedPreferences.getInstance();
-    final expires =
-        DateTime.now().add(const Duration(seconds: 50)).millisecondsSinceEpoch;
-    await prefs.setInt('eye_window_expires_at', expires);
+  void _handleBalanceRefresh() {
+    if (mounted) {
+      print('DEBUG: Balance refresh notified in ThreeBoxSection');
+      _fetchBalances(useCache: false); // Force refresh from API
+    }
+  }
 
-    _eyeAutoLockTimer = Timer(const Duration(seconds: 50), () async {
-      setState(() {
-        _showAmount = false;
-      });
-      // Optionally, clear the eye_window_expires_at or keep for next check
-      // await prefs.remove('eye_window_expires_at');
+  void _handleEyeIconPress() async {
+    // Check user status first
+    final userStatus = await _getUserStatus();
+    if (userStatus == 2) {
+      _showApprovalRequiredDialog(context);
+      return; // Stop here for pending approval users
+    }
+
+    // Set pressed state to true (black color)
+    setState(() {
+      _isEyePressed = true;
     });
+
+    // Cancel any existing timer
+    _eyeColorResetTimer?.cancel();
+
+    // Set timer to revert back to white after 200ms
+    _eyeColorResetTimer = Timer(const Duration(milliseconds: 200), () {
+      if (mounted) {
+        setState(() {
+          _isEyePressed = false;
+        });
+      }
+    });
+
+    try {
+      final connectivityResult = await Connectivity().checkConnectivity();
+      if (connectivityResult == ConnectivityResult.none) {
+        if (mounted) _showNoInternetDialog(context);
+        return;
+      }
+
+      final prefs = await SharedPreferences.getInstance();
+      final nowMillis = DateTime.now().millisecondsSinceEpoch;
+      final eyeWindowExpiresAt = prefs.getInt('eye_window_expires_at') ?? 0;
+
+      if (_isUnlocked && eyeWindowExpiresAt > nowMillis) {
+        setState(() {
+          _showAmount = !_showAmount;
+        });
+        _startEyeAutoLockTimer();
+        return;
+      }
+
+      bool unlocked = await PasscodeService.requireUnlock(context);
+      if (!unlocked) return;
+
+      final expires =
+          DateTime.now().add(const Duration(minutes: 5)).millisecondsSinceEpoch;
+      await prefs.setInt('eye_window_expires_at', expires);
+      setState(() {
+        _isUnlocked = true;
+        _showAmount = true;
+      });
+      _startEyeAutoLockTimer();
+    } catch (e) {
+      if (mounted) _showNoInternetDialog(context);
+    }
+  }
+
+  // Create a wrapper method for wallet tap actions
+  Future<void> _handleWalletTap(Function() action) async {
+    // Check user status first
+    final userStatus = await _getUserStatus();
+    if (userStatus == 2) {
+      _showApprovalRequiredDialog(context);
+      return; // Stop here for pending approval users
+    }
+
+    // If status is 1 or other, proceed with the action
+    action();
+  }
+
+  void _startEyeAutoLockTimer() {
+    _eyeAutoLockTimer?.cancel();
+    _eyeAutoLockTimer = Timer(const Duration(minutes: 5), () {
+      if (mounted) {
+        setState(() {
+          _showAmount = false;
+          _isUnlocked = false;
+        });
+      }
+    });
+  }
+
+  // NEW: periodically check if unlock has expired, and auto-lock
+  void _startEyeExpireWatcher() {
+    _eyeExpireWatcher?.cancel();
+    _eyeExpireWatcher = Timer.periodic(const Duration(seconds: 1), (
+      timer,
+    ) async {
+      final prefs = await SharedPreferences.getInstance();
+      final nowMillis = DateTime.now().millisecondsSinceEpoch;
+      final eyeWindowExpiresAt = prefs.getInt('eye_window_expires_at') ?? 0;
+      if (_isUnlocked && eyeWindowExpiresAt <= nowMillis) {
+        if (mounted) {
+          setState(() {
+            _isUnlocked = false;
+            _showAmount = false;
+          });
+        }
+        timer.cancel(); // stop checking after lock
+      }
+    });
+  }
+
+  void _showNoInternetDialog(BuildContext context) {
+    final localeCode = context.locale.languageCode; // 'km' or 'en'
+    showDialog(
+      context: context,
+      barrierDismissible: true,
+      builder:
+          (context) => Dialog(
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(16),
+            ),
+            backgroundColor: Colors.white,
+            child: Padding(
+              padding: const EdgeInsets.all(24),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(Icons.wifi_off, size: 60, color: Colors.redAccent),
+                  const SizedBox(height: 20),
+                  Text(
+                    'no_internet'.tr(),
+                    style: TextStyle(
+                      fontSize: 20,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.black87,
+                      fontFamily: localeCode == 'km' ? 'KhmerFont' : null,
+                    ),
+                    textAlign: TextAlign.center,
+                  ),
+                  const SizedBox(height: 12),
+                  Text(
+                    'សូមពិនិត្យការតភ្ជាប់អ៊ីនធឺណិតរបស់អ្នក ហើយសាកល្បងម្តងទៀត។',
+                    style: TextStyle(
+                      fontSize: 16,
+                      color: Colors.black54,
+                      fontFamily: 'KhmerFont',
+                    ),
+                    textAlign: TextAlign.center,
+                  ),
+                  const SizedBox(height: 24),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.end,
+                    children: [
+                      TextButton(
+                        onPressed: () => Navigator.of(context).pop(),
+                        child: const Text(
+                          'បិទ',
+                          style: TextStyle(
+                            fontSize: 16,
+                            color: Colors.redAccent,
+                            fontFamily: 'KhmerFont',
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      ElevatedButton(
+                        onPressed: () {
+                          // TODO: បន្ថែមលទ្ធភាពសាកល្បងឡើងវិញ
+                          Navigator.of(context).pop();
+                        },
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: AppColors.primaryColor,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 20,
+                            vertical: 12,
+                          ),
+                        ),
+                        child: const Text(
+                          'សាកល្បងឡើងវិញ',
+                          style: TextStyle(
+                            fontSize: 16,
+                            color: Colors.white,
+                            fontFamily: 'KhmerFont',
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          ),
+    );
   }
 
   @override
   void initState() {
     super.initState();
     _initWebSocket();
-    _fetchBalances();
-    // Add listener for app state changes
+    _fetchBalances(useCache: true); // Use cache on start
+    checkUnlockState();
+    _startEyeExpireWatcher();
+
+    // Add for fast passcode show also will delete
+    // Initialize passcode cache
+    _initializePasscodeCache();
+    // Listen for balance refresh events
+    _balanceNotifier = BalanceRefreshNotifier();
+    _balanceNotifier?.addListener(_handleBalanceRefresh);
+
     WidgetsBinding.instance.addObserver(
-      LifecycleEventHandler(resumeCallBack: () => _handleAppResumed()),
+      LifecycleEventHandler(
+        resumeCallBack: () {
+          _handleAppResumed();
+          checkUnlockState();
+        },
+      ),
     );
+  }
+
+  // Add for fast passcode show will delete
+  Future<void> _initializePasscodeCache() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final token = prefs.getString('token');
+      if (token != null) {
+        // Pre-load passcode status in background
+        await PasscodeCache.refreshPasscodeStatus(token);
+      }
+    } catch (e) {
+      print('Error initializing passcode cache: $e');
+    }
   }
 
   void _handleAppResumed() async {
@@ -96,7 +314,7 @@ class ThreeBoxSectionState extends State<ThreeBoxSection> {
               ganzbergPoints = (data['ganzberg'] ?? 0).toInt();
               idolPoints = (data['idol'] ?? 0).toInt();
               boostrongPoints = (data['boostrong'] ?? 0).toInt();
-              moneyAmount = (data['money'] ?? 0).toDouble();
+              diamondAmount = (data['diamond'] ?? 0).toDouble();
             });
           }
         },
@@ -122,55 +340,240 @@ class ThreeBoxSectionState extends State<ThreeBoxSection> {
     });
   }
 
-  // refresh balance methos
-  Future<void> refreshBalances() async {
-    await _fetchBalances();
+  void updateWalletAmount(String issuer, int newAmount) async {
+    setState(() {
+      switch (issuer) {
+        case 'BS':
+          boostrongPoints = newAmount;
+          break;
+        case 'GB':
+          ganzbergPoints = newAmount;
+          break;
+        case 'ID':
+          idolPoints = newAmount;
+          break;
+        case 'DM':
+          diamondAmount = newAmount.toDouble();
+          break;
+      }
+    });
+    // Save to cache
+    await UserBalanceService.setBalancesToCache({
+      'ganzberg': ganzbergPoints,
+      'idol': idolPoints,
+      'boostrong': boostrongPoints,
+      'diamond': diamondAmount,
+    });
   }
 
-  // Update the _fetchPrizeSummary method to use the new endpoint
-  Future<void> _fetchBalances() async {
-    final prefs = await SharedPreferences.getInstance();
-    final userIdStr = prefs.getString('userId') ?? '';
-    final userId = int.tryParse(userIdStr) ?? 0;
-    if (userId == 0) return;
+  // Add this method to refresh user data and check status
+  Future<void> _refreshUserDataAndCheckStatus() async {
+    try {
+      // Refresh user data from API
+      final prefs = await SharedPreferences.getInstance();
+      final token = prefs.getString('token');
 
-    final url = '${Constants.apiUrl}/user-balances/$userId';
-    final response = await http.get(
-      Uri.parse(url),
-      headers: {"x-app-secret": Constants.appSecret},
-    );
+      if (token != null) {
+        final userProfile = await ApiService.getUserProfile(token);
+        // ignore: unnecessary_null_comparison
+        if (userProfile != null && userProfile['success'] == true) {
+          // Save updated user data
+          await prefs.setString('user_data', jsonEncode(userProfile));
 
-    if (response.statusCode == 200) {
-      final data = json.decode(response.body);
-      setState(() {
-        ganzbergPoints = (data['ganzberg'] ?? 0).toInt();
-        idolPoints = (data['idol'] ?? 0).toInt();
-        boostrongPoints = (data['boostrong'] ?? 0).toInt();
-        moneyAmount = (data['money'] ?? 0).toDouble();
-      });
-    } else {
-      // Handle error or set default values
-      setState(() {
-        ganzbergPoints = 0;
-        idolPoints = 0;
-        boostrongPoints = 0;
-        moneyAmount = 0.0;
-      });
+          // Check if status changed from 2 to 1
+          final newStatus = userProfile['data']['status'] as int?;
+          if (newStatus == 1) {
+            print('DEBUG: User status updated from 2 to 1 - approval granted');
+          }
+        }
+      }
+    } catch (e) {
+      print('Error refreshing user data: $e');
     }
   }
 
-  String formatMoney(double moneyAmount) {
-    if (moneyAmount % 1 == 0) {
+  // refresh balance methos
+  // Modify the refreshBalances method to also refresh user data
+  Future<void> refreshBalances() async {
+    print('DEBUG: Calling refreshBalances()');
+    await _fetchBalances(useCache: false); // Force update and cache
+
+    // Also refresh user data to get latest status
+    await _refreshUserDataAndCheckStatus();
+
+    if (mounted) setState(() {}); // Ensures UI refresh
+  }
+
+  // --- NEW: Parse balances from new API structure ---
+  // In ThreeBoxSectionState class
+  // In ThreeBoxSectionState class
+  // Add retry logic to _fetchBalances
+  Future<void> _fetchBalances({
+    bool useCache = true,
+    int retryCount = 0,
+  }) async {
+    try {
+      Map<String, dynamic> balances;
+
+      if (useCache) {
+        balances = await UserBalanceService.getCachedOrFetchBalances();
+      } else {
+        balances = await UserBalanceService.fetchUserBalances();
+      }
+
+      if (mounted) {
+        setState(() {
+          ganzbergPoints = (balances['ganzberg'] ?? 0).toInt();
+          boostrongPoints = (balances['boostrong'] ?? 0).toInt();
+          idolPoints = (balances['idol'] ?? 0).toInt();
+          diamondAmount = (balances['diamond'] ?? 0).toDouble();
+        });
+      }
+    } catch (e) {
+      print('Error fetching balances: $e');
+
+      // Retry logic
+      if (retryCount < 3 && mounted) {
+        await Future.delayed(Duration(seconds: 1 + retryCount));
+        _fetchBalances(useCache: useCache, retryCount: retryCount + 1);
+      } else if (mounted) {
+        setState(() {
+          ganzbergPoints = 0;
+          idolPoints = 0;
+          boostrongPoints = 0;
+          diamondAmount = 0.0;
+        });
+      }
+    }
+  }
+
+  // Add this method to check user status from SharedPreferences
+  Future<int?> _getUserStatus() async {
+    final prefs = await SharedPreferences.getInstance();
+    final userDataString = prefs.getString('user_data');
+
+    if (userDataString != null) {
+      try {
+        final userData = json.decode(userDataString);
+        return userData['data']['status'] as int?;
+      } catch (e) {
+        print('Error parsing user data: $e');
+      }
+    }
+    return null;
+  }
+
+  // Add this method to show approval dialog
+  void _showApprovalRequiredDialog(BuildContext context) {
+    final localeCode = context.locale.languageCode;
+
+    showDialog(
+      context: context,
+      barrierDismissible: true,
+      builder:
+          (context) => Dialog(
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(16),
+            ),
+            backgroundColor: Colors.white,
+            child: Padding(
+              padding: const EdgeInsets.all(24),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(Icons.lock_outline, size: 60, color: Colors.orange),
+                  const SizedBox(height: 20),
+                  Text(
+                    'សូមអភ័យទោស អ្នកមិនអាចដំណើរការមុខងារនេះបានទេ!',
+                    style: TextStyle(
+                      fontSize: 20,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.black87,
+                      fontFamily: localeCode == 'km' ? 'KhmerFont' : null,
+                    ),
+                    textAlign: TextAlign.center,
+                  ),
+                  const SizedBox(height: 12),
+                  Text(
+                    'សូមរង់ចាំការអនុញ្ញាតពីក្រុមហ៊ុនជាមុនសិន',
+                    style: TextStyle(
+                      fontSize: 16,
+                      color: Colors.black54,
+                      fontFamily: localeCode == 'km' ? 'KhmerFont' : null,
+                    ),
+                    textAlign: TextAlign.center,
+                  ),
+                  const SizedBox(height: 24),
+                  ElevatedButton(
+                    onPressed: () => Navigator.of(context).pop(),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppColors.primaryColor,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 20,
+                        vertical: 12,
+                      ),
+                    ),
+                    child: Text(
+                      'យល់ព្រម',
+                      style: TextStyle(
+                        fontSize: 16,
+                        color: Colors.white,
+                        fontFamily: localeCode == 'km' ? 'KhmerFont' : null,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+    );
+  }
+
+  String formatDiamond(double diamondAmount) {
+    if (diamondAmount % 1 == 0) {
       // Whole number, no decimals
-      return moneyAmount.toInt().toString();
+      return diamondAmount.toInt().toString();
     } else {
       // Has decimals, show up to 2 digits
-      return moneyAmount.toStringAsFixed(2);
+      return diamondAmount.toStringAsFixed(2);
+    }
+  }
+
+  Future<void> checkUnlockState() async {
+    final prefs = await SharedPreferences.getInstance();
+    final nowMillis = DateTime.now().millisecondsSinceEpoch;
+    final eyeWindowExpiresAt = prefs.getInt('eye_window_expires_at') ?? 0;
+    final stillUnlocked = eyeWindowExpiresAt > nowMillis;
+    setState(() {
+      _isUnlocked = stillUnlocked;
+      _showAmount = stillUnlocked;
+    });
+    if (stillUnlocked) {
+      _startEyeAutoLockTimer();
+      _startEyeExpireWatcher(); // <-- restart watcher if still unlocked
     }
   }
 
   @override
   Widget build(BuildContext context) {
+    double screenWidth = MediaQuery.of(context).size.width;
+    double screenHeight = MediaQuery.of(context).size.height;
+    // --- AUTO LOCK ON TIMEOUT ---
+    Future.microtask(() async {
+      final prefs = await SharedPreferences.getInstance();
+      final nowMillis = DateTime.now().millisecondsSinceEpoch;
+      final eyeWindowExpiresAt = prefs.getInt('eye_window_expires_at') ?? 0;
+      if (_isUnlocked && eyeWindowExpiresAt <= nowMillis) {
+        setState(() {
+          _isUnlocked = false;
+          _showAmount = false;
+        });
+      }
+    });
+
     return RefreshIndicator(
       key: refreshIndicatorKey,
       onRefresh: () async {
@@ -184,739 +587,493 @@ class ThreeBoxSectionState extends State<ThreeBoxSection> {
       backgroundColor: Colors.white,
       displacement: 40.0,
       edgeOffset: 20.0,
-      child: SingleChildScrollView(
-        physics: const AlwaysScrollableScrollPhysics(),
-        child: Column(
-          children: [
-            // TextButton(
-            //   onPressed: () {
-            //     showDialog(
-            //       context: context,
-            //       barrierColor:
-            //           Colors
-            //               .white, // Makes the background white instead of semi-transparent
-            //       builder: (context) => const ExchangePrizeDialog(),
-            //     );
-            //   },
-            //   child: const Text('Click'),
-            // ),
-            // TextButton(
-            //   onPressed: () {
-            //     showDialog(
-            //       context: context,
-            //       barrierColor:
-            //           Colors
-            //               .white, // Makes the background white instead of semi-transparent
-            //       builder: (context) => const EnterQuantityDialog(),
-            //     );
-            //   },
-            //   child: Text('Click me'),
-            // ),
-            // TextButton(
-            //   onPressed: () {
-            //     showDialog(
-            //       context: context,
-            //       barrierColor:
-            //           Colors
-            //               .white, // Makes the background white instead of semi-transparent
-            //       builder: (context) => TransactionDetail(),
-            //     );
-            //   },
-            //   child: Text('Click me'),
-            // ),
-            // TextButton(
-            //   onPressed: () {
-            //     showDialog(
-            //       context: context,
-            //       barrierColor:
-            //           Colors
-            //               .white, // Makes the background white instead of semi-transparent
-            //       builder: (context) => TransactionByAccount(),
-            //     );
-            //   },
-            //   child: Text('Click me'),
-            // ),
-            Container(
-              margin: const EdgeInsets.symmetric(horizontal: 16),
-              padding: const EdgeInsets.symmetric(vertical: 20),
-              decoration: BoxDecoration(
-                color: AppColors.primaryColor,
-                borderRadius: BorderRadius.circular(10),
-              ),
-              child: Stack(
-                children: [
-                  Positioned(
-                    top: -15,
-                    right: 0,
-                    child: IconButton(
-                      icon: Icon(
-                        _showAmount
-                            ? Icons.visibility_outlined
-                            : Icons.visibility_off,
-                        color: Colors.white,
-                      ),
-                      onPressed: () async {
-                        final prefs = await SharedPreferences.getInstance();
-                        final userIdStr = prefs.getString('userId') ?? '';
-                        final userId = int.tryParse(userIdStr) ?? 0;
+      child: Column(
+        children: [
+          Container(
+            margin: const EdgeInsets.symmetric(horizontal: 16),
+            padding: const EdgeInsets.symmetric(vertical: 20),
+            decoration: BoxDecoration(
+              color: AppColors.primaryColor,
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: Stack(
+              children: [
+                Positioned(
+                  top: -15,
+                  right: 0,
+                  child: IconButton(
+                    icon: Icon(
+                      _showAmount
+                          ? Icons.visibility_outlined
+                          : Icons.visibility_off,
+                      color: _isEyePressed ? Colors.black : Colors.white,
+                    ),
+                    splashColor: Colors.transparent,
+                    highlightColor: Colors.transparent,
+                    onPressed: _handleEyeIconPress,
+                  ),
+                ),
+                GestureDetector(
+                  // For diamond
+                  // For Diamond tap:
+                  onTap: () async {
+                    await _handleWalletTap(() async {
+                      try {
+                        final connectivityResult =
+                            await Connectivity().checkConnectivity();
+                        if (connectivityResult == ConnectivityResult.none) {
+                          if (mounted) _showNoInternetDialog(context);
+                          return;
+                        }
 
+                        final prefs = await SharedPreferences.getInstance();
                         final nowMillis = DateTime.now().millisecondsSinceEpoch;
-                        final unlockAtMillis =
-                            prefs.getInt('passcode_unlock_at') ?? 0;
                         final eyeWindowExpiresAt =
                             prefs.getInt('eye_window_expires_at') ?? 0;
 
-                        // If _showAmount is true, and inside 20s window, allow toggle hide/show freely
-                        if (_showAmount && eyeWindowExpiresAt > nowMillis) {
-                          setState(() {
-                            _showAmount = false;
-                          });
-                          _eyeAutoLockTimer?.cancel();
-                          return;
-                        }
-
-                        // If 20s window expired, require passcode again
-                        if (eyeWindowExpiresAt > nowMillis) {
-                          // Still inside window, allow show without passcode
-                          setState(() {
-                            _showAmount = true;
-                          });
+                        if (_isUnlocked && eyeWindowExpiresAt > nowMillis) {
                           _startEyeAutoLockTimer();
-                          return;
-                        }
-
-                        // If passcode lockout active, show timer dialog
-                        if (unlockAtMillis > nowMillis) {
-                          final secondsLeft =
-                              ((unlockAtMillis - nowMillis) / 1000).ceil();
-                          await showDialog(
-                            context: context,
-                            barrierDismissible: true,
-                            builder:
-                                (context) => LockTimerDialog(
-                                  initialSeconds: secondsLeft,
-                                ),
-                          );
-                          return;
-                        }
-
-                        // 1. Check if passcode is set
-                        final checkResp = await http.post(
-                          Uri.parse('${Constants.apiUrl}/user-passcode/check'),
-                          headers: {
-                            "x-app-secret": Constants.appSecret,
-                            "Content-Type": "application/json",
-                          },
-                          body: json.encode({"userId": userId}),
-                        );
-                        final isSet =
-                            json.decode(checkResp.body)['isSet'] == true;
-
-                        if (!isSet) {
-                          // 2. Create passcode (input twice)
-                          final code1 = await showDialog<String>(
-                            context: context,
-                            builder:
-                                (context) => CustomPasscodeDialog(
-                                  subtitle:
-                                      'សូមធ្វើការបង្កើតលេខសម្ងាត់របស់អ្នក',
-                                ),
-                          );
-                          if (code1 == null || code1.length != 4) return;
-
-                          final code2 = await showDialog<String>(
-                            context: context,
-                            builder:
-                                (context) => CustomPasscodeDialog(
-                                  subtitle:
-                                      'សូមផ្ទៀងផ្ទាត់លេខសម្ងាត់អ្នកម្តងទៀត',
-                                ),
-                          );
-                          if (code2 == null || code2.length != 4) return;
-
-                          if (code1 != code2) {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              SnackBar(
-                                content: Text(
-                                  'លេខសម្ងាត់ដែលអ្នកបញ្ចូលមិនដូចគ្នា សូមបង្កើតម្តងទៀត',
-                                  style: TextStyle(
-                                    color: Colors.white,
-                                    fontSize: 16,
-                                    fontWeight: FontWeight.w500,
-                                  ),
-                                ),
-                                backgroundColor: Colors.redAccent,
-                              ),
-                            );
-                            return;
-                          }
-
-                          final createResp = await http.post(
-                            Uri.parse(
-                              '${Constants.apiUrl}/user-passcode/create',
-                            ),
-                            headers: {
-                              "x-app-secret": Constants.appSecret,
-                              "Content-Type": "application/json",
-                            },
-                            body: json.encode({
-                              "userId": userId,
-                              "passcode": code1,
-                              "passcodeConfirm": code2,
-                            }),
-                          );
-                          if (createResp.statusCode == 200) {
-                            showDialog(
-                              context: context,
-                              barrierDismissible: false,
-                              builder:
-                                  (dialogContext) => const SuccessDialog(
-                                    message:
-                                        "លេខសម្ងាត់របស់អ្នកបង្កើតបានជោគជ័យ!",
-                                  ),
-                            );
-
-                            // Auto close after 5 seconds
-                            Future.delayed(const Duration(seconds: 5), () {
-                              Navigator.of(context, rootNavigator: true).pop();
-                            });
-
-                            setState(() {
-                              _showAmount = true;
-                            });
-                            _startEyeAutoLockTimer();
-                            return;
-                          } else {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              SnackBar(
-                                content: Text(
-                                  'បង្កើតលេខសម្ងាត់បរាជ័យ',
-                                  style: TextStyle(
-                                    color: Colors.white,
-                                    fontSize: 16,
-                                    fontWeight: FontWeight.w500,
-                                  ),
-                                ),
-                                backgroundColor: Colors.red,
-                              ),
-                            );
-                            return;
-                          }
-                        }
-                        // 3. Verify passcode (with lockout)
-                        for (;;) {
-                          final code = await showDialog<String>(
-                            context: context,
-                            builder:
-                                (context) => CustomPasscodeDialog(
-                                  subtitle:
-                                      'សូមបញ្ចូលលេខសម្ងាត់ របស់អ្នកដើម្បីចូល',
-                                  errorMessage:
-                                      errorMessage != null && failedAttempts > 0
-                                          ? 'លេខសម្ងាត់មិនត្រឹមត្រូវ​ (អាចព្យាយាម​ ${(3 - failedAttempts)} ដងទៀត)'
-                                          : null,
-                                ),
-                          );
-                          if (code == null || code.length != 4) return;
-
-                          final verifyResp = await http.post(
-                            Uri.parse(
-                              '${Constants.apiUrl}/user-passcode/verify',
-                            ),
-                            headers: {
-                              "x-app-secret": Constants.appSecret,
-                              "Content-Type": "application/json",
-                            },
-                            body: json.encode({
-                              "userId": userId,
-                              "passcode": code,
-                            }),
-                          );
-                          if (verifyResp.statusCode == 200) {
-                            setState(() {
-                              errorMessage = null;
-                              failedAttempts = 0;
-                              _showAmount = true;
-                            });
-                            _startEyeAutoLockTimer();
-                            break;
-                          } else if (verifyResp.statusCode == 423) {
-                            final waitSeconds =
-                                json.decode(verifyResp.body)['waitSeconds'] ??
-                                0;
-                            final unlockAt = DateTime.now().add(
-                              Duration(seconds: waitSeconds),
-                            );
-                            await prefs.setInt(
-                              'passcode_unlock_at',
-                              unlockAt.millisecondsSinceEpoch,
-                            );
-
-                            await showDialog(
+                          if (mounted) {
+                            showGeneralDialog(
                               context: context,
                               barrierDismissible: true,
-                              builder:
-                                  (context) => LockTimerDialog(
-                                    initialSeconds: waitSeconds,
+                              barrierLabel: "TransactionByAccountDiamond",
+                              barrierColor: Colors.black.withOpacity(0.5),
+                              transitionDuration: Duration.zero,
+                              pageBuilder: (
+                                context,
+                                animation,
+                                secondaryAnimation,
+                              ) {
+                                return Scaffold(
+                                  backgroundColor: Colors.white,
+                                  body: TransactionByAccount(
+                                    account: 'DM',
+                                    logoPath: 'assets/images/diamond.png',
+                                    balance: diamondAmount.toInt(),
                                   ),
+                                );
+                              },
                             );
-                            break;
-                          } else {
-                            final respBody = json.decode(verifyResp.body);
-                            failedAttempts = respBody['failedAttempts'] ?? 0;
-                            int maxAttempts = 3;
-                            int leftAttempts = maxAttempts - failedAttempts;
-                            errorMessage =
-                                'លេខសម្ងាត់មិនត្រឹមត្រូវ​ (អាចព្យាយាម​ $leftAttempts ដងទៀត)';
                           }
+                          return;
                         }
-                      },
-                    ),
-                  ),
-                  GestureDetector(
-                    // For Money
-                    onTap: () {
-                      showDialog(
-                        context: context,
-                        builder:
-                            (context) => TransactionByAccount(
-                              account: 'money',
-                              logoPath: 'assets/images/diamond.png',
-                              balance: moneyAmount.toInt(),
-                            ),
-                      );
-                    },
-                    child: Center(
-                      child: SizedBox(
-                        height: 40,
-                        child: Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            _showAmount
-                                ? Text(
-                                  formatMoney(moneyAmount),
-                                  style: const TextStyle(
-                                    fontSize: 22,
-                                    color: Colors.white,
-                                    fontWeight: FontWeight.bold,
-                                    letterSpacing: 1.1,
+
+                        bool unlocked = await PasscodeService.requireUnlock(
+                          context,
+                        );
+                        if (!unlocked) return;
+
+                        final expires =
+                            DateTime.now()
+                                .add(const Duration(minutes: 5))
+                                .millisecondsSinceEpoch;
+                        await prefs.setInt('eye_window_expires_at', expires);
+                        setState(() {
+                          _isUnlocked = true;
+                          _showAmount = true;
+                        });
+                        _startEyeAutoLockTimer();
+
+                        if (mounted) {
+                          showGeneralDialog(
+                            context: context,
+                            barrierDismissible: true,
+                            barrierLabel: "TransactionByAccountDiamond",
+                            barrierColor: Colors.black.withOpacity(0.5),
+                            transitionDuration: Duration.zero,
+                            pageBuilder: (
+                              context,
+                              animation,
+                              secondaryAnimation,
+                            ) {
+                              return Scaffold(
+                                backgroundColor: Colors.white,
+                                body: TransactionByAccount(
+                                  account: 'DM',
+                                  logoPath: 'assets/images/diamond.png',
+                                  balance: diamondAmount.toInt(),
+                                ),
+                              );
+                            },
+                          );
+                        }
+                      } catch (e) {
+                        if (mounted) _showNoInternetDialog(context);
+                      }
+                    });
+                  },
+                  child: Center(
+                    child: SizedBox(
+                      height: screenHeight * 0.05,
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          _showAmount
+                              ? Text(
+                                formatDiamond(diamondAmount),
+                                style: const TextStyle(
+                                  fontSize: 22,
+                                  color: Colors.white,
+                                  fontWeight: FontWeight.bold,
+                                  letterSpacing: 1.1,
+                                ),
+                              )
+                              : Shimmer.fromColors(
+                                baseColor: Colors.white.withOpacity(0.2),
+                                highlightColor: Colors.white.withOpacity(0.5),
+                                child: Container(
+                                  width: screenWidth * 0.2,
+                                  height: 32,
+                                  decoration: BoxDecoration(
+                                    color: Colors.white.withOpacity(0.70),
+                                    borderRadius: BorderRadius.circular(20),
                                   ),
-                                )
-                                : Shimmer.fromColors(
-                                  baseColor: Colors.white.withOpacity(0.2),
-                                  highlightColor: Colors.white.withOpacity(0.5),
-                                  child: Container(
-                                    width: 80,
-                                    height: 32,
-                                    decoration: BoxDecoration(
-                                      color: Colors.white.withOpacity(0.70),
-                                      borderRadius: BorderRadius.circular(20),
-                                    ),
-                                    alignment: Alignment.center,
-                                    child: Row(
-                                      mainAxisAlignment:
-                                          MainAxisAlignment.center,
-                                      children: List.generate(
-                                        4,
-                                        (index) => Padding(
-                                          padding: const EdgeInsets.symmetric(
-                                            horizontal: 2,
-                                          ),
-                                          child: Container(
-                                            width: 10,
-                                            height: 10,
-                                            decoration: BoxDecoration(
-                                              color: Colors.white.withOpacity(
-                                                0.8,
-                                              ),
-                                              shape: BoxShape.circle,
+                                  alignment: Alignment.center,
+                                  child: Row(
+                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    children: List.generate(
+                                      4,
+                                      (index) => Padding(
+                                        padding: const EdgeInsets.symmetric(
+                                          horizontal: 2,
+                                        ),
+                                        child: Container(
+                                          width: 10,
+                                          height: 10,
+                                          decoration: BoxDecoration(
+                                            color: Colors.white.withOpacity(
+                                              0.8,
                                             ),
+                                            shape: BoxShape.circle,
                                           ),
                                         ),
                                       ),
                                     ),
                                   ),
                                 ),
-                            const SizedBox(width: 12),
-                            Container(
-                              padding: const EdgeInsets.all(6),
-                              decoration: const BoxDecoration(
-                                color: Colors.white,
-                                shape: BoxShape.circle,
                               ),
-                              child: const Icon(
-                                Icons.diamond_outlined,
-                                color: Colors.black,
-                                size: 24,
-                              ),
+                          const SizedBox(width: 12),
+                          Container(
+                            padding: const EdgeInsets.all(6),
+                            decoration: const BoxDecoration(
+                              color: Colors.white,
+                              shape: BoxShape.circle,
                             ),
-                          ],
-                        ),
+                            child: const Icon(
+                              Icons.diamond_outlined,
+                              color: Colors.black,
+                              size: 24,
+                            ),
+                          ),
+                        ],
                       ),
                     ),
                   ),
-                ],
-              ),
-            ),
-            const SizedBox(height: 20),
-            Container(
-              margin: const EdgeInsets.symmetric(horizontal: 16),
-              padding: const EdgeInsets.symmetric(vertical: 20),
-              decoration: BoxDecoration(
-                color: AppColors.primaryColor,
-                borderRadius: BorderRadius.circular(10),
-              ),
-              child: SizedBox(
-                height: 115,
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                  children: [
-                    // Example usage in ThreeBoxSection
-                    _buildInfoBox(
-                      imagePath: 'assets/images/ganzberg.png',
-                      value: _showAmount ? '$ganzbergPoints' : null,
-                      label: 'ពិន្ទុ',
-                      onTap: () {
-                        showDialog(
-                          context: context,
-                          builder:
-                              (context) => TransactionByAccount(
-                                account: 'ganzberg',
-                                logoPath: 'assets/images/ganzberg.png',
-                                balance: ganzbergPoints,
-                              ),
-                        );
-                      },
-                    ),
-                    _verticalDivider(),
-                    _buildInfoBox(
-                      imagePath: 'assets/images/idollogo.png',
-                      value: _showAmount ? '$idolPoints' : null,
-                      label: 'ពិន្ទុ',
-                      onTap: () {
-                        showDialog(
-                          context: context,
-                          builder:
-                              (context) => TransactionByAccount(
-                                account: 'idol',
-                                logoPath: 'assets/images/idollogo.png',
-                                balance: idolPoints,
-                              ),
-                        );
-                      },
-                    ),
-                    _verticalDivider(),
-                    _buildInfoBox(
-                      imagePath: 'assets/images/boostrong.png',
-                      value: _showAmount ? '$boostrongPoints' : null,
-                      label: 'ពិន្ទុ',
-                      onTap: () {
-                        showDialog(
-                          context: context,
-                          builder:
-                              (context) => TransactionByAccount(
-                                account: 'boostrong',
-                                logoPath: 'assets/images/boostrong.png',
-                                balance: boostrongPoints,
-                              ),
-                        );
-                      },
-                    ),
-                  ],
                 ),
-              ),
+              ],
             ),
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16.0),
+          ),
+          const SizedBox(height: 20),
+          Container(
+            margin: const EdgeInsets.symmetric(horizontal: 16),
+            padding: const EdgeInsets.symmetric(vertical: 20),
+            decoration: BoxDecoration(
+              color: AppColors.primaryColor,
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: SizedBox(
+              height: 140,
               child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                 children: [
-                  Expanded(
-                    child: InkWell(
-                      // Open transfer without need to input or create passcode
-                      onTap: () async {
-                        await showTransferPrizeScanDialog(context);
-                      },
-                      // Open transfer with need to input or create passcode
-                      // onTap: () async {
-                      //   final prefs = await SharedPreferences.getInstance();
-                      //   final userIdStr = prefs.getString('userId') ?? '';
-                      //   final userId = int.tryParse(userIdStr) ?? 0;
+                  // Example usage in ThreeBoxSection
+                  _buildInfoBox(
+                    imagePath: 'assets/images/ganzberg.png',
+                    value: _showAmount ? '$ganzbergPoints' : null,
+                    label: 'score',
+                    onTap: () async {
+                      await _handleWalletTap(() async {
+                        try {
+                          final connectivityResult =
+                              await Connectivity().checkConnectivity();
+                          if (connectivityResult == ConnectivityResult.none) {
+                            if (mounted) _showNoInternetDialog(context);
+                            return;
+                          }
 
-                      //   // NEW: Check lockout time before any passcode input
-                      //   final nowMillis = DateTime.now().millisecondsSinceEpoch;
-                      //   final unlockAtMillis =
-                      //       prefs.getInt('passcode_unlock_at') ?? 0;
-                      //   if (unlockAtMillis > nowMillis) {
-                      //     final secondsLeft =
-                      //         ((unlockAtMillis - nowMillis) / 1000).ceil();
-                      //     await showDialog(
-                      //       context: context,
-                      //       barrierDismissible: true,
-                      //       builder:
-                      //           (context) =>
-                      //               LockTimerDialog(initialSeconds: secondsLeft),
-                      //     );
-                      //     // Do NOT allow passcode input yet
-                      //     return;
-                      //   }
-                      //   // 1. Check if passcode is set
-                      //   final checkResp = await http.post(
-                      //     Uri.parse('${Constants.apiUrl}/user-passcode/check'),
-                      //     headers: {
-                      //       "x-app-secret": Constants.appSecret,
-                      //       "Content-Type": "application/json",
-                      //     },
-                      //     body: json.encode({"userId": userId}),
-                      //   );
-                      //   final isSet = json.decode(checkResp.body)['isSet'] == true;
+                          final prefs = await SharedPreferences.getInstance();
+                          final nowMillis =
+                              DateTime.now().millisecondsSinceEpoch;
+                          final eyeWindowExpiresAt =
+                              prefs.getInt('eye_window_expires_at') ?? 0;
 
-                      //   if (!isSet) {
-                      //     // 2. Create passcode (input twice)
-                      //     final code1 = await showDialog<String>(
-                      //       context: context,
-                      //       builder:
-                      //           (context) => CustomPasscodeDialog(
-                      //             subtitle: 'សូមធ្វើការបង្កើតលេខសម្ងាត់របស់អ្នក',
-                      //           ),
-                      //     );
-                      //     if (code1 == null || code1.length != 4) return;
-
-                      //     final code2 = await showDialog<String>(
-                      //       context: context,
-                      //       builder:
-                      //           (context) => CustomPasscodeDialog(
-                      //             subtitle: 'សូមបញ្ចូលលេខសម្ងាត់អ្នកម្តងទៀត',
-                      //           ),
-                      //     );
-                      //     if (code2 == null || code2.length != 4) return;
-
-                      //     if (code1 != code2) {
-                      //       // Show error, let user try again
-                      //       ScaffoldMessenger.of(context).showSnackBar(
-                      //         SnackBar(
-                      //           content: Text(
-                      //             'លេខសម្ងាត់ដែលអ្នកបញ្ចូលមិនដូចគ្នា សូមបង្កើតម្តងទៀត',
-                      //             style: TextStyle(
-                      //               color: Colors.white,
-                      //               fontSize: 16,
-                      //               fontWeight: FontWeight.w500,
-                      //             ),
-                      //           ),
-                      //           backgroundColor: AppColors.secondaryColor,
-                      //         ),
-                      //       );
-                      //       return;
-                      //     }
-
-                      //     final createResp = await http.post(
-                      //       Uri.parse('${Constants.apiUrl}/user-passcode/create'),
-                      //       headers: {
-                      //         "x-app-secret": Constants.appSecret,
-                      //         "Content-Type": "application/json",
-                      //       },
-                      //       body: json.encode({
-                      //         "userId": userId,
-                      //         "passcode": code1,
-                      //         "passcodeConfirm": code2,
-                      //       }),
-                      //     );
-                      //     if (createResp.statusCode == 200) {
-                      //       ScaffoldMessenger.of(context).showSnackBar(
-                      //         SnackBar(
-                      //           backgroundColor: Colors.green,
-                      //           content: Text(
-                      //             'បង្កើតលេខសម្ងាត់ជោគជ័យ',
-                      //             style: TextStyle(
-                      //               fontSize: 16,
-                      //               color: Colors.white,
-                      //               fontWeight: FontWeight.w500,
-                      //             ),
-                      //           ),
-                      //         ),
-                      //       );
-                      //       //For auto open after create
-                      //       // Ready for transfer
-                      //       // showDialog(
-                      //       //   context: context,
-                      //       //   barrierColor: Colors.black87,
-                      //       //   builder: (context) => const TransferPrizeScan(),
-                      //       // );
-                      //       // Do NOT open scan dialog, just return (let user tap again to enter passcode and scan)
-                      //       return;
-                      //     } else {
-                      //       // Show error
-                      //       ScaffoldMessenger.of(context).showSnackBar(
-                      //         SnackBar(
-                      //           content: Text(
-                      //             'បង្កើតលេខសម្ងាត់បរាជ័យ',
-                      //             style: TextStyle(
-                      //               color: Colors.white,
-                      //               fontSize: 16,
-                      //               fontWeight: FontWeight.w500,
-                      //             ),
-                      //           ),
-                      //           backgroundColor: Colors.red,
-                      //         ),
-                      //       );
-                      //     }
-                      //   } else {
-                      //     // 3. Verify passcode (with lockout)
-                      //     for (;;) {
-                      //       final code = await showDialog<String>(
-                      //         context: context,
-                      //         builder:
-                      //             (context) => CustomPasscodeDialog(
-                      //               subtitle:
-                      //                   'សូមបញ្ចូលលេខសម្ងាត់របស់អ្នកដើម្បីបន្ត',
-                      //               errorMessage:
-                      //                   errorMessage != null && failedAttempts > 0
-                      //                       ? 'លេខសម្ងាត់មិនត្រឹមត្រូវ $failedAttempts/5'
-                      //                       : null,
-                      //             ),
-                      //       );
-                      //       if (code == null || code.length != 4) return;
-
-                      //       final verifyResp = await http.post(
-                      //         Uri.parse('${Constants.apiUrl}/user-passcode/verify'),
-                      //         headers: {
-                      //           "x-app-secret": Constants.appSecret,
-                      //           "Content-Type": "application/json",
-                      //         },
-                      //         body: json.encode({
-                      //           "userId": userId,
-                      //           "passcode": code,
-                      //         }),
-                      //       );
-                      //       if (verifyResp.statusCode == 200) {
-                      //         // Success, reset error and attempts!
-                      //         errorMessage = null;
-                      //         failedAttempts = 0;
-
-                      //         showDialog(
-                      //           context: context,
-                      //           barrierColor: Colors.black87,
-                      //           builder: (context) => const TransferPrizeScan(),
-                      //         );
-                      //         break;
-                      //       } else if (verifyResp.statusCode == 423) {
-                      //         final waitSeconds =
-                      //             json.decode(verifyResp.body)['waitSeconds'] ?? 0;
-                      //         // Save lockout end time in local storage
-                      //         final prefs = await SharedPreferences.getInstance();
-                      //         final unlockAt = DateTime.now().add(
-                      //           Duration(seconds: waitSeconds),
-                      //         );
-                      //         await prefs.setInt(
-                      //           'passcode_unlock_at',
-                      //           unlockAt.millisecondsSinceEpoch,
-                      //         );
-
-                      //         await showDialog(
-                      //           context: context,
-                      //           barrierDismissible: true,
-                      //           builder:
-                      //               (context) => LockTimerDialog(
-                      //                 initialSeconds: waitSeconds,
-                      //               ),
-                      //         );
-                      //         // After dialog closes (wait over or closed manually), user must tap again to retry, logic will check unlock time again.
-                      //         break;
-                      //       } else {
-                      //         // Incorrect, get failedAttempts from backend response
-                      //         final respBody = json.decode(verifyResp.body);
-                      //         failedAttempts = respBody['failedAttempts'] ?? 0;
-                      //         errorMessage =
-                      //             'លេខសម្ងាត់មិនត្រឹមត្រូវ $failedAttempts/5';
-                      //         // Loop to allow retry (dialog will show errorMessage)
-                      //       }
-                      //     }
-                      //   }
-                      // },
-                      child: _buildActionButton(
-                        Icons.arrow_circle_up_sharp,
-                        "ផ្ទេរចេញ",
-                        Colors.red,
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: 16),
-                  Expanded(
-                    child: InkWell(
-                      onTap: () async {
-                        final prefs = await SharedPreferences.getInstance();
-                        final qrPayload = prefs.getString('qrPayload');
-                        final phoneNumber = prefs.getString('phoneNumber');
-
-                        if (qrPayload != null && phoneNumber != null) {
-                          showDialog(
-                            context: context,
-                            builder:
-                                (context) => UserQrCodeComponent(
-                                  qrPayload: qrPayload,
-                                  phoneNumber: phoneNumber,
-                                ),
-                          );
-                          return;
-                        }
-
-                        // Fetch from backend if not cached
-                        if (phoneNumber != null && phoneNumber.isNotEmpty) {
-                          try {
-                            final response = await http.get(
-                              // Same endpoint but without type parameter
-                              Uri.parse(
-                                '${Constants.apiUrl}/auth/me/qr?phoneNumber=$phoneNumber',
-                              ),
-                              headers: {'Content-Type': 'application/json'},
-                            );
-
-                            if (response.statusCode == 200) {
-                              final data = json.decode(response.body);
-                              await prefs.setString(
-                                'qrPayload',
-                                data['qrPayload'],
-                              );
-                              showDialog(
+                          if (_isUnlocked && eyeWindowExpiresAt > nowMillis) {
+                            _startEyeAutoLockTimer();
+                            if (mounted) {
+                              showGeneralDialog(
                                 context: context,
-                                builder:
-                                    (context) => UserQrCodeComponent(
-                                      qrPayload: data['qrPayload'],
-                                      phoneNumber: phoneNumber,
+                                barrierDismissible: true,
+                                barrierLabel: "TransactionByAccountGanzberg",
+                                barrierColor: Colors.black.withOpacity(0.5),
+                                transitionDuration: Duration.zero,
+                                pageBuilder: (
+                                  context,
+                                  animation,
+                                  secondaryAnimation,
+                                ) {
+                                  return Scaffold(
+                                    backgroundColor: Colors.white,
+                                    body: TransactionByAccount(
+                                      account: 'GB',
+                                      logoPath: 'assets/images/ganzberg.png',
+                                      balance: ganzbergPoints,
                                     ),
-                              );
-                            } else {
-                              throw Exception(
-                                'Failed to fetch QR code: ${response.statusCode}',
+                                  );
+                                },
                               );
                             }
-                          } catch (e) {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              SnackBar(
-                                content: Text(
-                                  'Failed to fetch QR code: ${e.toString()}',
-                                ),
-                              ),
-                            );
-                            debugPrint('QR fetch error: ${e.toString()}');
+                            return;
                           }
-                        } else {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(content: Text('Please login again')),
+
+                          bool unlocked = await PasscodeService.requireUnlock(
+                            context,
                           );
+                          if (!unlocked) return;
+
+                          final expires =
+                              DateTime.now()
+                                  .add(const Duration(minutes: 5))
+                                  .millisecondsSinceEpoch;
+                          await prefs.setInt('eye_window_expires_at', expires);
+                          setState(() {
+                            _isUnlocked = true;
+                            _showAmount = true;
+                          });
+                          _startEyeAutoLockTimer();
+
+                          if (mounted) {
+                            showGeneralDialog(
+                              context: context,
+                              barrierDismissible: true,
+                              barrierLabel: "TransactionByAccountGanzberg",
+                              barrierColor: Colors.black.withOpacity(0.5),
+                              transitionDuration: Duration.zero,
+                              pageBuilder: (
+                                context,
+                                animation,
+                                secondaryAnimation,
+                              ) {
+                                return Scaffold(
+                                  backgroundColor: Colors.white,
+                                  body: TransactionByAccount(
+                                    account: 'GB',
+                                    logoPath: 'assets/images/ganzberg.png',
+                                    balance: ganzbergPoints,
+                                  ),
+                                );
+                              },
+                            );
+                          }
+                        } catch (e) {
+                          if (mounted) _showNoInternetDialog(context);
                         }
-                      },
-                      child: _buildActionButton(
-                        Icons.arrow_circle_down,
-                        "ទទួលចូល",
-                        Colors.lightBlue,
-                      ),
-                    ),
+                      });
+                    },
+                  ),
+                  _verticalDivider(),
+                  _buildInfoBox(
+                    imagePath: 'assets/images/idollogo.png',
+                    value: _showAmount ? '$idolPoints' : null,
+                    label: 'score',
+                    onTap: () async {
+                      await _handleWalletTap(() async {
+                        try {
+                          final connectivityResult =
+                              await Connectivity().checkConnectivity();
+                          if (connectivityResult == ConnectivityResult.none) {
+                            if (mounted) _showNoInternetDialog(context);
+                            return;
+                          }
+
+                          final prefs = await SharedPreferences.getInstance();
+                          final nowMillis =
+                              DateTime.now().millisecondsSinceEpoch;
+                          final eyeWindowExpiresAt =
+                              prefs.getInt('eye_window_expires_at') ?? 0;
+
+                          if (_isUnlocked && eyeWindowExpiresAt > nowMillis) {
+                            _startEyeAutoLockTimer();
+                            if (mounted) {
+                              showGeneralDialog(
+                                context: context,
+                                barrierDismissible: true,
+                                barrierLabel: "TransactionByAccountIdol",
+                                barrierColor: Colors.black.withOpacity(0.5),
+                                transitionDuration: Duration.zero,
+                                pageBuilder: (
+                                  context,
+                                  animation,
+                                  secondaryAnimation,
+                                ) {
+                                  return Scaffold(
+                                    backgroundColor: Colors.white,
+                                    body: TransactionByAccount(
+                                      account: 'ID', // Use 'ID' consistently
+                                      logoPath: 'assets/images/idollogo.png',
+                                      balance: idolPoints,
+                                    ),
+                                  );
+                                },
+                              );
+                            }
+                            return;
+                          }
+
+                          bool unlocked = await PasscodeService.requireUnlock(
+                            context,
+                          );
+                          if (!unlocked) return;
+
+                          final expires =
+                              DateTime.now()
+                                  .add(const Duration(minutes: 5))
+                                  .millisecondsSinceEpoch;
+                          await prefs.setInt('eye_window_expires_at', expires);
+                          setState(() {
+                            _isUnlocked = true;
+                            _showAmount = true;
+                          });
+                          _startEyeAutoLockTimer();
+
+                          if (mounted) {
+                            showGeneralDialog(
+                              context: context,
+                              barrierDismissible: true,
+                              barrierLabel: "TransactionByAccountIdol",
+                              barrierColor: Colors.black.withOpacity(0.5),
+                              transitionDuration: Duration.zero,
+                              pageBuilder: (
+                                context,
+                                animation,
+                                secondaryAnimation,
+                              ) {
+                                return Scaffold(
+                                  backgroundColor: Colors.white,
+                                  body: TransactionByAccount(
+                                    account: 'ID',
+                                    logoPath: 'assets/images/idollogo.png',
+                                    balance: idolPoints,
+                                  ),
+                                );
+                              },
+                            );
+                          }
+                        } catch (e) {
+                          if (mounted) _showNoInternetDialog(context);
+                        }
+                      });
+                    },
+                  ),
+                  _verticalDivider(),
+                  _buildInfoBox(
+                    imagePath: 'assets/images/newbslogo.png',
+                    value: _showAmount ? '$boostrongPoints' : null,
+                    label: 'score',
+                    onTap: () async {
+                      await _handleWalletTap(() async {
+                        try {
+                          final connectivityResult =
+                              await Connectivity().checkConnectivity();
+                          if (connectivityResult == ConnectivityResult.none) {
+                            if (mounted) _showNoInternetDialog(context);
+                            return;
+                          }
+
+                          final prefs = await SharedPreferences.getInstance();
+                          final nowMillis =
+                              DateTime.now().millisecondsSinceEpoch;
+                          final eyeWindowExpiresAt =
+                              prefs.getInt('eye_window_expires_at') ?? 0;
+
+                          if (_isUnlocked && eyeWindowExpiresAt > nowMillis) {
+                            _startEyeAutoLockTimer();
+                            if (mounted) {
+                              showGeneralDialog(
+                                context: context,
+                                barrierDismissible: true,
+                                barrierLabel: "TransactionByAccountBoostrong",
+                                barrierColor: Colors.black.withOpacity(0.5),
+                                transitionDuration: Duration.zero,
+                                pageBuilder: (
+                                  context,
+                                  animation,
+                                  secondaryAnimation,
+                                ) {
+                                  return Scaffold(
+                                    backgroundColor: Colors.white,
+                                    body: TransactionByAccount(
+                                      account: 'BS', // Use 'BS' consistently
+                                      logoPath: 'assets/images/boostrong.png',
+                                      balance: boostrongPoints,
+                                    ),
+                                  );
+                                },
+                              );
+                            }
+                            return;
+                          }
+
+                          bool unlocked = await PasscodeService.requireUnlock(
+                            context,
+                          );
+                          if (!unlocked) return;
+
+                          final expires =
+                              DateTime.now()
+                                  .add(const Duration(minutes: 5))
+                                  .millisecondsSinceEpoch;
+                          await prefs.setInt('eye_window_expires_at', expires);
+                          setState(() {
+                            _isUnlocked = true;
+                            _showAmount = true;
+                          });
+                          _startEyeAutoLockTimer();
+
+                          if (mounted) {
+                            showGeneralDialog(
+                              context: context,
+                              barrierDismissible: true,
+                              barrierLabel: "TransactionByAccountBoostrong",
+                              barrierColor: Colors.black.withOpacity(0.5),
+                              transitionDuration: Duration.zero,
+                              pageBuilder: (
+                                context,
+                                animation,
+                                secondaryAnimation,
+                              ) {
+                                return Scaffold(
+                                  backgroundColor: Colors.white,
+                                  body: TransactionByAccount(
+                                    account: 'BS',
+                                    logoPath: 'assets/images/boostrong.png',
+                                    balance: boostrongPoints,
+                                  ),
+                                );
+                              },
+                            );
+                          }
+                        } catch (e) {
+                          if (mounted) _showNoInternetDialog(context);
+                        }
+                      });
+                    },
                   ),
                 ],
               ),
             ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }
@@ -927,6 +1084,8 @@ class ThreeBoxSectionState extends State<ThreeBoxSection> {
     required String label,
     VoidCallback? onTap,
   }) {
+    final localeCode = context.locale.languageCode; // 'km' or 'en'
+
     Widget content = Column(
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
@@ -938,11 +1097,11 @@ class ThreeBoxSectionState extends State<ThreeBoxSection> {
               imagePath,
               width: 36,
               height: 36,
-              fit: BoxFit.fill,
+              fit: BoxFit.contain,
             ),
           ),
         ),
-        const SizedBox(height: 12),
+        const SizedBox(height: 22),
         value != null
             ? Text(
               value,
@@ -982,8 +1141,16 @@ class ThreeBoxSectionState extends State<ThreeBoxSection> {
                 ),
               ),
             ),
-        const SizedBox(height: 6),
-        Text(label, style: const TextStyle(color: Colors.white, fontSize: 16)),
+        SizedBox(height: 14),
+        Text(
+          label.tr(),
+          style: TextStyle(
+            color: Colors.white,
+            fontSize: 16,
+            fontWeight: FontWeight.w600,
+            fontFamily: localeCode == 'km' ? 'KhmerFont' : null,
+          ),
+        ),
       ],
     );
 
@@ -1002,43 +1169,8 @@ class ThreeBoxSectionState extends State<ThreeBoxSection> {
   Widget _verticalDivider() {
     return Container(width: 1, height: 45, color: Colors.white);
   }
-
-  Widget _buildActionButton(IconData icon, String label, Color iconColor) {
-    return Container(
-      width: 180,
-      height: 130,
-      margin: const EdgeInsets.only(top: 20),
-      decoration: BoxDecoration(
-        color: AppColors.primaryColor,
-        borderRadius: BorderRadius.circular(10),
-      ),
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Container(
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              color: Colors.white,
-            ),
-            child: Icon(icon, color: iconColor, size: 40),
-          ),
-          const SizedBox(height: 10),
-          Text(
-            label,
-            textAlign: TextAlign.center,
-            style: const TextStyle(
-              color: Colors.white,
-              fontSize: 18,
-              fontWeight: FontWeight.w400,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
 }
 
-//Correct with 981 line code changes
 class LifecycleEventHandler extends WidgetsBindingObserver {
   final VoidCallback resumeCallBack;
 
@@ -1051,3 +1183,5 @@ class LifecycleEventHandler extends WidgetsBindingObserver {
     }
   }
 }
+
+//Correct with 1169 line code changes

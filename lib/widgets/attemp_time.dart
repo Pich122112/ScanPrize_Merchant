@@ -1,6 +1,7 @@
 import 'dart:async';
+import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
-import 'package:scanprize_frontend/utils/constants.dart';
+import 'package:gb_merchant/utils/constants.dart';
 
 class LockTimerDialog extends StatefulWidget {
   final int initialSeconds;
@@ -48,11 +49,18 @@ class _LockTimerDialogState extends State<LockTimerDialog> {
 
   @override
   Widget build(BuildContext context) {
+    final localeCode = context.locale.languageCode; // 'km' or 'en'
+
     return Dialog(
       backgroundColor: Colors.black,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       child: Padding(
-        padding: const EdgeInsets.all(24.0),
+        padding: const EdgeInsets.only(
+          left: 10,
+          right: 10,
+          top: 10,
+          bottom: 10,
+        ),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
@@ -68,14 +76,15 @@ class _LockTimerDialogState extends State<LockTimerDialog> {
             Icon(Icons.lock_clock, color: AppColors.backgroundColor, size: 60),
             const SizedBox(height: 18),
             Text(
-              'មុខងារត្រូវបានផ្អាកដំណើរការ',
+              'attemp_lock'.tr(),
               style: TextStyle(
                 color: Colors.white,
-                fontSize: 20,
-                fontWeight: FontWeight.bold,
+                fontSize: 16,
+                fontWeight: FontWeight.w600,
+                fontFamily: localeCode == 'km' ? 'KhmerFont' : null,
               ),
             ),
-            const SizedBox(height: 15),
+            const SizedBox(height: 30),
             Text(
               'សូមរង់ចាំ $formattedTime វិនាទី',
               style: TextStyle(
@@ -92,4 +101,4 @@ class _LockTimerDialogState extends State<LockTimerDialog> {
   }
 }
 
-//Correct with 95 line code changes
+//Correct with 99 line code changes

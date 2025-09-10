@@ -2,11 +2,11 @@ import 'dart:io';
 // ignore: unused_import
 import 'dart:typed_data';
 import 'dart:ui' as ui;
+
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
-import 'package:path_provider/path_provider.dart';
+import 'package:flutter/services.dart';
 import 'package:permission_handler/permission_handler.dart';
-import 'package:media_scanner/media_scanner.dart';
 
 class QrCaptureService {
   static Future<bool> _requestPermissions() async {
@@ -30,7 +30,7 @@ class QrCaptureService {
     }
     return true; // iOS doesn't need these permissions
   }
-
+  /*
   static Future<String?> captureAndSaveQr(GlobalKey qrKey) async {
     try {
       // Wait for widget to render
@@ -120,6 +120,69 @@ class QrCaptureService {
       return null;
     }
   }
+*/
+
+  static const _channel = MethodChannel('qr_saver');
+
+  static Future<String?> captureAndSaveQr(GlobalKey qrKey) async {
+    try {
+      await Future.delayed(const Duration(milliseconds: 500));
+
+      final hasPermission = await _requestPermissions();
+      if (!hasPermission) {
+        debugPrint('Storage/Photos permission denied');
+        await openAppSettings();
+        return null;
+      }
+
+      final boundary = qrKey.currentContext?.findRenderObject();
+      if (boundary == null || !(boundary is RenderRepaintBoundary)) {
+        debugPrint('RenderBoundary not found');
+        return null;
+      }
+
+      final image = await (boundary as RenderRepaintBoundary).toImage(
+        pixelRatio: 3.0,
+      );
+      final byteData = await image.toByteData(format: ui.ImageByteFormat.png);
+      final buffer = byteData?.buffer.asUint8List();
+      if (buffer == null) return null;
+
+      final fileName = 'GB_QR_${DateTime.now().millisecondsSinceEpoch}.png';
+
+      if (Platform.isAndroid) {
+        final directory = Directory('/storage/emulated/0/Pictures/GB_Prize');
+        if (!await directory.exists()) {
+          await directory.create(recursive: true);
+        }
+        final filePath = '${directory.path}/$fileName';
+        final file = File(filePath);
+        await file.writeAsBytes(buffer);
+        debugPrint('Android: File saved at $filePath');
+
+        // Call media scanner via platform channel if you want
+        try {
+          await _channel.invokeMethod('scanFile', {'path': filePath});
+        } catch (e) {
+          debugPrint('MediaScanner not available: $e');
+        }
+        return filePath;
+      } else if (Platform.isIOS) {
+        // Send raw bytes to native iOS to save into Photos
+        final result = await _channel.invokeMethod('saveToPhotos', {
+          'bytes': buffer,
+          'name': fileName,
+        });
+        debugPrint('iOS save result: $result');
+        return result;
+      }
+      return null;
+    } catch (e, stack) {
+      debugPrint('Error saving QR: $e');
+      debugPrint('Stack: $stack');
+      return null;
+    }
+  }
 
   static Future<void> _refreshGallery(String filePath) async {
     if (Platform.isAndroid) {
@@ -148,3 +211,5 @@ class QrCaptureService {
     }
   }
 }
+
+//Correct with 152 line code changes

@@ -1,16 +1,17 @@
+import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
-import 'package:scanprize_frontend/utils/constants.dart';
+import 'package:gb_merchant/utils/constants.dart';
 import '../components/transfer_animation.dart';
 import './transaction_detail.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class ConfirmTransferDialog extends StatelessWidget {
   final int points;
   final String recipientName;
   final String recipientPhone;
-  final String companyCategoryName; // Add this property
-  final String productName; // Add this property
-  final int quantity; // Add this property
-
+  final String companyCategoryName;
+  final String productName;
+  final int quantity;
   final Function(bool) onConfirm;
 
   const ConfirmTransferDialog({
@@ -18,35 +19,47 @@ class ConfirmTransferDialog extends StatelessWidget {
     required this.points,
     required this.recipientName,
     required this.recipientPhone,
-    required this.companyCategoryName, // Add this parameter
+    required this.companyCategoryName,
     required this.onConfirm,
-    required this.productName, // Add this parameter
-    required this.quantity, // Add this parameter
+    required this.productName,
+    required this.quantity,
   });
+
+  // Add this method to get sender's phone
+  Future<String> _getSenderPhone() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getString('userPhone') ?? '';
+  }
 
   // Phone number formatting function
   String formatPhoneNumber(String raw) {
+    // Ensure we have a non-null string to work with
     String digits = raw.replaceAll(RegExp(r'\D'), '');
-
-    // Remove 855 country code if present at the start
     if (digits.startsWith('855')) {
       digits = digits.substring(3);
     }
-    // Add leading zero if not present
-    if (!digits.startsWith('0')) {
+    if (!digits.startsWith('0') && digits.isNotEmpty) {
       digits = '0$digits';
     }
-    // Format 3-3-3 for Cambodian numbers
+
+    // Format with spaces for both 9 and 10 digit numbers
     if (digits.length == 9) {
       return '${digits.substring(0, 3)} ${digits.substring(3, 6)} ${digits.substring(6)}';
+    } else if (digits.length == 10) {
+      return '${digits.substring(0, 3)} ${digits.substring(3, 6)} ${digits.substring(6)}';
     }
-    // fallback
+
     return digits;
   }
 
   @override
   Widget build(BuildContext context) {
+    final isDiamond = companyCategoryName.toLowerCase() == 'diamond';
+    final pointsText = isDiamond ? 'Diamond' : 'score'.tr();
+    final localeCode = context.locale.languageCode;
+
     return AlertDialog(
+      backgroundColor: Colors.white,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16.0)),
       titlePadding: const EdgeInsets.fromLTRB(24, 24, 24, 8),
       contentPadding: const EdgeInsets.fromLTRB(24, 8, 24, 16),
@@ -55,7 +68,7 @@ class ConfirmTransferDialog extends StatelessWidget {
         children: [
           const Icon(
             Icons.help_outline_rounded,
-            size: 48,
+            size: 50,
             color: AppColors.primaryColor,
           ),
         ],
@@ -64,22 +77,32 @@ class ConfirmTransferDialog extends StatelessWidget {
         mainAxisSize: MainAxisSize.min,
         children: [
           Text(
-            'តើអ្នកពិតជាចង់ផ្ទេរ',
-            style: TextStyle(fontSize: 16, color: Colors.grey[600]),
+            'are_you_sure_transfer'.tr(),
+            style: TextStyle(
+              fontSize: 16,
+              color: Colors.grey[600],
+              fontFamily: localeCode == 'km' ? 'KhmerFont' : null,
+            ),
           ),
-          const SizedBox(height: 4),
+          const SizedBox(height: 10),
           Text(
-            '$points ពិន្ទុ',
+            '$points $pointsText',
             style: const TextStyle(
               fontSize: 24,
               fontWeight: FontWeight.bold,
               color: AppColors.primaryColor,
             ),
           ),
-          const SizedBox(height: 4),
+          const SizedBox(height: 10),
           Text(
-            'ទៅគណនី ${formatPhoneNumber(recipientPhone)} មែនឬទេ?',
-            style: TextStyle(fontSize: 16, color: Colors.grey[600]),
+            'confirm_transfer_to'.tr(
+              namedArgs: {'phoneNumber': formatPhoneNumber(recipientPhone)},
+            ),
+            style: TextStyle(
+              fontSize: 16,
+              color: Colors.grey[600],
+              fontFamily: localeCode == 'km' ? 'KhmerFont' : null,
+            ),
             textAlign: TextAlign.center,
           ),
         ],
@@ -98,8 +121,12 @@ class ConfirmTransferDialog extends StatelessWidget {
                 ),
                 onPressed: () => onConfirm(false),
                 child: Text(
-                  'បោះបង់',
-                  style: TextStyle(fontSize: 16, color: Colors.grey[700]),
+                  'cancle'.tr(),
+                  style: TextStyle(
+                    fontSize: 16,
+                    color: Colors.grey[700],
+                    fontFamily: localeCode == 'km' ? 'KhmerFont' : null,
+                  ),
                 ),
               ),
             ),
@@ -114,16 +141,22 @@ class ConfirmTransferDialog extends StatelessWidget {
                   ),
                   elevation: 0,
                 ),
+                // Then modify the ElevatedButton's onPressed:
                 onPressed: () async {
                   onConfirm(true);
-                  Navigator.of(context).pop(); // Close the confirmation dialog
-                  Navigator.of(context).push(
+                  Navigator.of(context).pop();
+
+                  final senderPhone =
+                      await _getSenderPhone(); // Get sender's phone
+
+                  await Navigator.of(context).push(
                     MaterialPageRoute(
                       builder:
                           (context) => TransferAnimation(
+                            companyCategoryName: companyCategoryName,
                             recipientPhone: recipientPhone,
                             onAnimationComplete: () {
-                              Navigator.of(context).push(
+                              Navigator.of(context).pushAndRemoveUntil(
                                 MaterialPageRoute(
                                   builder:
                                       (context) => TransactionDetail(
@@ -134,26 +167,39 @@ class ConfirmTransferDialog extends StatelessWidget {
                                         points: points,
                                         productName: productName,
                                         quantity: quantity,
-                                        onComplete: () {
-                                          Navigator.of(
-                                            context,
-                                          ).popUntil((route) => route.isFirst);
-                                        },
+                                        senderPhone: senderPhone,
                                       ),
                                 ),
+                                (route) => false,
                               );
                             },
                           ),
                     ),
                   );
                 },
-                child: const Text(
-                  'ផ្ទេរ',
-                  style: TextStyle(
-                    fontSize: 16,
-                    color: Colors.white,
-                    fontWeight: FontWeight.bold,
-                  ),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Text(
+                      'transfer'.tr(),
+                      style: TextStyle(
+                        fontSize: 16,
+                        color: Colors.white,
+                        fontWeight: FontWeight.bold,
+                        fontFamily: localeCode == 'km' ? 'KhmerFont' : null,
+                      ),
+                    ),
+                    const SizedBox(width: 4),
+                    // Rotated arrow ↗
+                    Transform.rotate(
+                      angle: 0.25, // ~45 degrees in radians
+                      child: Icon(
+                        Icons.arrow_upward,
+                        size: 20,
+                        color: Colors.white,
+                      ),
+                    ),
+                  ],
                 ),
               ),
             ),
@@ -164,4 +210,4 @@ class ConfirmTransferDialog extends StatelessWidget {
   }
 }
 
-//Correct with 162 line code changes
+//Correct with 213 line code changes

@@ -1,0 +1,177 @@
+[
+  {
+    "id": 1,
+    "type": 2,
+    "iso": "KH-1",
+    "name_en": "Banteay Meanchey",
+    "name_kh": "បន្ទាយមានជ័យ"
+  },
+  {
+    "id": 2,
+    "type": 2,
+    "iso": "KH-2",
+    "name_en": "Battambang",
+    "name_kh": "បាត់ដំបង"
+  },
+  {
+    "id": 3,
+    "type": 2,
+    "iso": "KH-3",
+    "name_en": "Kampong Cham",
+    "name_kh": "កំពង់ចាម"
+  },
+  {
+    "id": 4,
+    "type": 2,
+    "iso": "KH-4",
+    "name_en": "Kampong Chhnang",
+    "name_kh": "កំពង់ឆ្នាំង"
+  },
+  {
+    "id": 5,
+    "type": 2,
+    "iso": "KH-5",
+    "name_en": "Kampong Speu",
+    "name_kh": "កំពង់ស្ពឺ"
+  },
+  {
+    "id": 6,
+    "type": 2,
+    "iso": "KH-6",
+    "name_en": "Kampong Thom",
+    "name_kh": "កំពង់ធំ"
+  },
+  {
+    "id": 7,
+    "type": 2,
+    "iso": "KH-7",
+    "name_en": "Kampot",
+    "name_kh": "កំពត"
+  },
+  {
+    "id": 8,
+    "type": 2,
+    "iso": "KH-8",
+    "name_en": "Kandal",
+    "name_kh": "កណ្ដាល"
+  },
+  {
+    "id": 9,
+    "type": 2,
+    "iso": "KH-23",
+    "name_en": "Kep",
+    "name_kh": "កែប"
+  },
+  {
+    "id": 10,
+    "type": 2,
+    "iso": "KH-9",
+    "name_en": "Koh Kong",
+    "name_kh": "កោះកុង"
+  },
+  {
+    "id": 11,
+    "type": 2,
+    "iso": "KH-10",
+    "name_en": "Kratie",
+    "name_kh": "ក្រចេះ"
+  },
+  {
+    "id": 12,
+    "type": 2,
+    "iso": "KH-11",
+    "name_en": "Mondul Kiri",
+    "name_kh": "មណ្ឌលគិរី"
+  },
+  {
+    "id": 13,
+    "type": 2,
+    "iso": "KH-22",
+    "name_en": "Oddar Meanchey",
+    "name_kh": "ឧត្តរមានជ័យ"
+  },
+  {
+    "id": 14,
+    "type": 2,
+    "iso": "KH-24",
+    "name_en": "Pailin",
+    "name_kh": "ប៉ៃលិន"
+  },
+  {
+    "id": 15,
+    "type": 1,
+    "iso": "KH-12",
+    "name_en": "Phnom Penh",
+    "name_kh": "រាជធានីភ្នំពេញ"
+  },
+  {
+    "id": 16,
+    "type": 2,
+    "iso": "KH-18",
+    "name_en": "Preah Sihanouk",
+    "name_kh": "ព្រះសីហនុ"
+  },
+  {
+    "id": 17,
+    "type": 2,
+    "iso": "KH-13",
+    "name_en": "Preah Vihear",
+    "name_kh": "ព្រះវិហារ"
+  },
+  {
+    "id": 18,
+    "type": 2,
+    "iso": "KH-14",
+    "name_en": "Prey Veng",
+    "name_kh": "ព្រៃវែង"
+  },
+  {
+    "id": 19,
+    "type": 2,
+    "iso": "KH-15",
+    "name_en": "Pursat",
+    "name_kh": "ពោធិ៍សាត់"
+  },
+  {
+    "id": 20,
+    "type": 2,
+    "iso": "KH-16",
+    "name_en": "Ratanak Kiri",
+    "name_kh": "រតនគិរី"
+  },
+  {
+    "id": 21,
+    "type": 2,
+    "iso": "KH-17",
+    "name_en": "Siem Reap",
+    "name_kh": "សៀមរាប"
+  },
+  {
+    "id": 22,
+    "type": 2,
+    "iso": "KH-19",
+    "name_en": "Stung Treng",
+    "name_kh": "ស្ទឹងត្រែង"
+  },
+  {
+    "id": 23,
+    "type": 2,
+    "iso": "KH-20",
+    "name_en": "Svay Rieng",
+    "name_kh": "ស្វាយរៀង"
+  },
+  {
+    "id": 24,
+    "type": 2,
+    "iso": "KH-21",
+    "name_en": "Takeo",
+    "name_kh": "តាកែវ"
+  },
+  {
+    "id": 25,
+    "type": 2,
+    "iso": "KH-25",
+    "name_en": "Tboung Khmum",
+    "name_kh": "ត្បូងឃ្មុំ"
+  }
+]

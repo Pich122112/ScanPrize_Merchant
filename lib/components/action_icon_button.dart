@@ -1,5 +1,6 @@
 // In components/action_icon_button.dart
 
+import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
 
 class ActionIconButton extends StatelessWidget {
@@ -32,11 +33,12 @@ class ActionIconButton extends StatelessWidget {
         ),
         const SizedBox(height: 8),
         Text(
-          label,
+          label.tr(),
           style: const TextStyle(
             fontSize: 14,
             color: Colors.white,
             fontWeight: FontWeight.w600,
+            fontFamily: 'KhmerFont',
           ),
         ),
       ],
