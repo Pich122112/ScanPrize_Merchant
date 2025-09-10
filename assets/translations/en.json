@@ -63,6 +63,8 @@
     "done": "Done",
     "diamond": "Diamond",
     "transfer": "Transfer",
+    "was_transfer_to": "Transfer To",
+    "receive_from": "Receive From",
     "are_you_sure_transfer": "Are you sure want to transfer",
     "confirm_transfer_to": "Transfer to account {phoneNumber}?",
     "insufficient_balance": "Insufficient points for {walletName} balance",
@@ -111,5 +113,6 @@
     "share_qr_message": "Hello, Here is my personal Ganzberg QR Code.",
     "share_qr_subject": "Ganzberg QR Code",
     "share_transaction_message": "Hello, here is my Ganzberg transaction details",
-    "share_transaction_subject": "Ganzberg Transaction"
+    "share_transaction_subject": "Ganzberg Transaction",
+    "please_wait": " Please Wait..."
 }

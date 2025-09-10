@@ -46,6 +46,7 @@
   "deduct_from": "កាត់ចេញពី",
   "balance": "សមតុល្យ",
   "transfer_now": "ផ្ទេរឥឡូវ",
+  "was_transfer_to": "បានផ្ទេរទៅ",
   "Please_enter_at_least_one": "សូមបញ្ចូលចំនួនយ៉ាងតិចមួយ",
   "transfer_to": "ផ្ទេរទៅ {phoneNumber}",
   "balance_with_points": "សមតុល្យ:   {points} {unit} {walletName}",
@@ -99,7 +100,7 @@
   "no_transactions": "អ្នកនៅមិនទាន់មានប្រតិបត្តិការណាមួយនៅឡើយទេ!",
   "transaction_details": "ព័ត៌មានលម្អិតអំពីប្រតិបត្តិការ",
   "type": "បានទទួលពី",
-  "wallet": "កាបូប",
+  "wallet": "គណនី",
   "amount": "ចំនួន",
   "date": "កាលបរិច្ឆេទ",
   "from": "ពី",
@@ -112,5 +113,7 @@
   "share_qr_message": "សួស្តី, នេះជាគណនី GANZBERG QR ផ្ទាល់ខ្លួនរបស់ខ្ញុំ ។",
   "share_qr_subject": "កូដ QR Ganzberg",
   "share_transaction_message": "សួស្តី នេះជាព័ត៌មានលម្អិតអំពីប្រតិបត្តិការរបស់ខ្ញុំនៅ Ganzberg",
-  "share_transaction_subject": "ប្រតិបត្តិការ Ganzberg"
+  "share_transaction_subject": "ប្រតិបត្តិការ Ganzberg",
+  "receive_from": "បានទទួលពី",
+  "please_wait": "សូមរង់ចាំ..."
 }

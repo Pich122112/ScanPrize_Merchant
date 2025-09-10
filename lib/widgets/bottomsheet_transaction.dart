@@ -468,8 +468,8 @@ class _TransactionDetailModalState extends State<TransactionDetailModal> {
                     _buildInvoiceRow(
                       context,
                       transactionType == 'transfer_out'
-                          ? 'Transfer To'
-                          : 'Receive from',
+                          ? 'was_transfer_to'.tr()
+                          : 'receive_from'.tr(),
                       transactionType == 'transfer_out'
                           ? (formattedToPhone.isNotEmpty
                               ? formattedToPhone
@@ -481,19 +481,19 @@ class _TransactionDetailModalState extends State<TransactionDetailModal> {
                     _buildDashedDivider(),
                     _buildInvoiceRow(
                       context,
-                      'Wallet',
+                      'wallet'.tr(),
                       _getFullWalletName(walletType),
                       valueColor: AppColors.primaryColor,
                     ),
                     _buildDashedDivider(),
                     _buildInvoiceRow(
                       context,
-                      'Amount',
+                      'amount'.tr(),
                       '${isCredit ? '+' : '-'}${amount.abs()} ${"score".tr()}',
                       valueColor: amountColor,
                     ),
                     _buildDashedDivider(),
-                    _buildInvoiceRow(context, 'Date', formattedDate),
+                    _buildInvoiceRow(context, 'date'.tr(), formattedDate),
 
                     if (_showBranding) ...[
                       const SizedBox(height: 20),
@@ -610,11 +610,14 @@ class _TransactionDetailModalState extends State<TransactionDetailModal> {
           Text(
             value,
             style: TextStyle(
-              fontSize: 16,
+              fontSize: 14,
               fontWeight: FontWeight.bold,
               color: valueColor ?? Colors.black,
               fontFamily: localeCode == 'km' ? 'KhmerFont' : null,
             ),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            textAlign: TextAlign.right, // optional if you want it aligned right
           ),
         ],
       ),

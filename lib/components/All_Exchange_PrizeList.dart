@@ -385,6 +385,9 @@ class AllExchangePrizeListState extends State<AllExchangePrizeList> {
     final isTablet = screenWidth > 600;
     final isDesktop = screenWidth > 1024;
     final localeCode = context.locale.languageCode;
+    final size = MediaQuery.of(context).size;
+    final width = size.width;
+    final double titleSize = width * 0.040; // scale font sizes
 
     int crossAxisCount = 2;
     if (isTablet) crossAxisCount = 3;
@@ -405,7 +408,7 @@ class AllExchangePrizeListState extends State<AllExchangePrizeList> {
                   'allexchangeprizelist'.tr(),
                   style: TextStyle(
                     fontWeight: FontWeight.bold,
-                    fontSize: isTablet ? 22 : 17.5,
+                    fontSize: titleSize,
                     color: Colors.grey,
                     fontFamily: localeCode == 'km' ? 'KhmerFont' : null,
                   ),

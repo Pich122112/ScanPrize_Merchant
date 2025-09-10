@@ -38,6 +38,10 @@ class ThreeBoxSectionState extends State<ThreeBoxSection> {
   Timer? _eyeColorResetTimer;
   bool _isUnlocked = false;
 
+  // NEW: cooldown timer and flag for the eye icon
+  bool _eyeCooldownActive = false;
+  Timer? _eyeCooldownTimer;
+
   final GlobalKey<RefreshIndicatorState> refreshIndicatorKey =
       GlobalKey<RefreshIndicatorState>();
   StreamSubscription<Map<String, dynamic>>? _balanceSubscription;
@@ -51,6 +55,8 @@ class ThreeBoxSectionState extends State<ThreeBoxSection> {
     _eyeAutoLockTimer?.cancel();
     _eyeExpireWatcher?.cancel();
     _eyeColorResetTimer?.cancel();
+    _eyeCooldownTimer?.cancel(); // <-- cancel new timer
+
     super.dispose();
   }
 
@@ -62,6 +68,31 @@ class ThreeBoxSectionState extends State<ThreeBoxSection> {
   }
 
   void _handleEyeIconPress() async {
+    // If cooldown active, ignore subsequent taps
+    if (_eyeCooldownActive) {
+      // Optional: give user feedback
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            backgroundColor: AppColors.primaryColor,
+            content: Text(
+              'please_wait'.tr(),
+              style: TextStyle(fontFamily: 'KhmerFont', fontSize: 16),
+            ), // add translation key if you want
+            duration: const Duration(milliseconds: 800),
+          ),
+        );
+      }
+      return;
+    }
+
+    // Activate cooldown for 3 seconds
+    _eyeCooldownActive = true;
+    _eyeCooldownTimer?.cancel();
+    _eyeCooldownTimer = Timer(const Duration(seconds: 3), () {
+      _eyeCooldownActive = false;
+    });
+
     // Check user status first
     final userStatus = await _getUserStatus();
     if (userStatus == 2) {

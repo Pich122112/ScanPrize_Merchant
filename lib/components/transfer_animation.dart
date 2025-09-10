@@ -178,7 +178,7 @@ class _TransferAnimationState extends State<TransferAnimation>
       case 'gb':
         return Image.asset('assets/images/logo.png', width: 45, height: 45);
       case 'bs':
-        return Image.asset('assets/images/bstrong.png', width: 45, height: 45);
+        return Image.asset('assets/images/newbslogo.png', width: 45, height: 45);
       case 'id':
         return Image.asset('assets/images/idollogo.png', width: 45, height: 45);
       case 'dm':

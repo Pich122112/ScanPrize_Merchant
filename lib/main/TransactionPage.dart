@@ -555,6 +555,8 @@ class _NotificationPageState extends State<NotificationPage> {
                             Shadow(color: Colors.black26, blurRadius: 3),
                           ],
                         ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
                       ),
                     ],
                   ),
