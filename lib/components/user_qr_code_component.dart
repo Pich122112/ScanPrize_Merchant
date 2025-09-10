@@ -373,6 +373,7 @@ import 'dart:convert';
 
 import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
+import 'package:gb_merchant/utils/qr_share_service.dart';
 import 'package:qr_flutter/qr_flutter.dart';
 import 'package:gb_merchant/utils/constants.dart';
 import '../components/action_icon_button.dart';
@@ -751,7 +752,53 @@ class UserQrCodeComponent extends StatelessWidget {
                     ActionIconButton(
                       icon: Icons.qr_code,
                       label: 'shareqr',
-                      onPressed: () {},
+                      onPressed: () async {
+                        final scaffoldMessenger = ScaffoldMessenger.of(context);
+                        final messenger =
+                            scaffoldMessenger..hideCurrentSnackBar();
+
+                        messenger.showSnackBar(
+                          const SnackBar(
+                            content: Row(
+                              children: [
+                                CircularProgressIndicator(),
+                                SizedBox(width: 10),
+                                Text('Preparing QR code for sharing...'),
+                              ],
+                            ),
+                            duration: Duration(seconds: 2),
+                          ),
+                        );
+
+                        try {
+                          await QrShareService.shareQrCode(qrKey, phoneNumber);
+
+                          messenger.hideCurrentSnackBar();
+                          messenger.showSnackBar(
+                            SnackBar(
+                              backgroundColor: Colors.green,
+                              content: Text(
+                                'QR code shared successfully!',
+                                style: TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 16,
+                                ),
+                                textAlign: TextAlign.center,
+                              ),
+                            ),
+                          );
+                        } catch (e) {
+                          messenger.hideCurrentSnackBar();
+                          messenger.showSnackBar(
+                            SnackBar(
+                              backgroundColor: Colors.red,
+                              content: Text(
+                                'Failed to share QR code: ${e.toString()}',
+                              ),
+                            ),
+                          );
+                        }
+                      },
                     ),
                   ],
                 ),
@@ -764,4 +811,4 @@ class UserQrCodeComponent extends StatelessWidget {
   }
 }
 
-//Correct with 753 line code changes
+//Correct with 814 line code changes

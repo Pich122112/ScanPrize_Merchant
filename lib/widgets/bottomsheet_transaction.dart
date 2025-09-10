@@ -5,6 +5,7 @@ import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter/services.dart';
+import 'package:gb_merchant/utils/transaction_share_service.dart';
 import 'package:media_scanner/media_scanner.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:permission_handler/permission_handler.dart';
@@ -140,6 +141,33 @@ class _TransactionDetailModalState extends State<TransactionDetailModal> {
     }
   }
 */
+  Future<void> _shareTransaction() async {
+    setState(() {
+      _showBranding = true; // Show branding for sharing
+    });
+
+    try {
+      await Future.delayed(
+        const Duration(milliseconds: 100),
+      ); // Allow UI to update
+
+      await TransactionShareService.shareTransaction(
+        _receiptKey,
+        widget.transaction,
+      );
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          backgroundColor: Colors.red,
+          content: Text('Failed to share transaction: ${e.toString()}'),
+        ),
+      );
+    } finally {
+      setState(() {
+        _showBranding = false; // Hide branding after sharing
+      });
+    }
+  }
 
   Future<void> _saveTransactionAsImage() async {
     setState(() {
@@ -348,205 +376,212 @@ class _TransactionDetailModalState extends State<TransactionDetailModal> {
           ),
         ],
       ),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          // Top bar
-          Container(
-            width: 40,
-            height: 4,
-            padding: const EdgeInsets.symmetric(
-              horizontal: 40,
-              vertical: 26,
-            ), // 👈 add spacing
-            decoration: BoxDecoration(
-              color: Colors.grey[300],
-              borderRadius: BorderRadius.circular(2),
-            ),
-          ),
-          const SizedBox(height: 30),
-          // ✅ Capture-only area
-          RepaintBoundary(
-            key: _receiptKey,
-            child: Container(
-              margin:
-                  _showBranding
-                      ? const EdgeInsets.symmetric(horizontal: 20, vertical: 20)
-                      : EdgeInsets.zero, // ← Margin only when saving
+      child: SingleChildScrollView(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            // Top bar
+            Container(
+              width: 40,
+              height: 4,
+              padding: const EdgeInsets.symmetric(
+                horizontal: 40,
+                vertical: 26,
+              ), // 👈 add spacing
               decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(18),
-                color: const ui.Color.fromARGB(255, 255, 255, 255),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black26,
-                    blurRadius: 12,
-                    offset: Offset(0, 6),
-                  ),
-                ],
+                color: Colors.grey[300],
+                borderRadius: BorderRadius.circular(2),
               ),
-              padding: const EdgeInsets.all(20), // 👈 space around card
-              child: Column(
-                children: [
-                  const SizedBox(height: 10),
+            ),
+            const SizedBox(height: 30),
+            // ✅ Capture-only area
+            RepaintBoundary(
+              key: _receiptKey,
+              child: Container(
+                margin:
+                    _showBranding
+                        ? const EdgeInsets.symmetric(
+                          horizontal: 20,
+                          vertical: 20,
+                        )
+                        : EdgeInsets.zero, // ← Margin only when saving
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(18),
+                  color: const ui.Color.fromARGB(255, 255, 255, 255),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black26,
+                      blurRadius: 12,
+                      offset: Offset(0, 6),
+                    ),
+                  ],
+                ),
+                padding: const EdgeInsets.all(20), // 👈 space around card
+                child: Column(
+                  children: [
+                    const SizedBox(height: 10),
 
-                  // Header row
-                  Row(
-                    children: [
-                      CircleAvatar(
-                        radius: 28,
-                        backgroundColor: Colors.yellow[700],
-                        child: Text(
-                          _avatarText(title),
-                          style: const TextStyle(
-                            fontWeight: FontWeight.bold,
-                            fontSize: 16,
-                            color: Colors.white,
-                          ),
-                        ),
-                      ),
-                      const SizedBox(width: 16),
-                      Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            title,
-                            style: TextStyle(
+                    // Header row
+                    Row(
+                      children: [
+                        CircleAvatar(
+                          radius: 28,
+                          backgroundColor: Colors.yellow[700],
+                          child: Text(
+                            _avatarText(title),
+                            style: const TextStyle(
                               fontWeight: FontWeight.bold,
-                              fontSize: 18,
-                              fontFamily:
-                                  localeCode == 'km' ? 'KhmerFont' : null,
+                              fontSize: 16,
+                              color: Colors.white,
                             ),
                           ),
+                        ),
+                        const SizedBox(width: 16),
+                        Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              title,
+                              style: TextStyle(
+                                fontWeight: FontWeight.bold,
+                                fontSize: 18,
+                                fontFamily:
+                                    localeCode == 'km' ? 'KhmerFont' : null,
+                              ),
+                            ),
+                            Text(
+                              '${isCredit ? '+' : '-'}${amount.abs()} ${"score".tr()}',
+                              style: TextStyle(
+                                fontWeight: FontWeight.w500,
+                                fontFamily: 'KhmerFont',
+                                fontSize: 20,
+                                color: amountColor,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+
+                    const SizedBox(height: 20),
+                    _buildDashedDivider(),
+                    _buildInvoiceRow(
+                      context,
+                      transactionType == 'transfer_out'
+                          ? 'Transfer To'
+                          : 'Receive from',
+                      transactionType == 'transfer_out'
+                          ? (formattedToPhone.isNotEmpty
+                              ? formattedToPhone
+                              : toUserName)
+                          : (formattedFromPhone.isNotEmpty
+                              ? formattedFromPhone
+                              : fromUserName),
+                    ),
+                    _buildDashedDivider(),
+                    _buildInvoiceRow(
+                      context,
+                      'Wallet',
+                      _getFullWalletName(walletType),
+                      valueColor: AppColors.primaryColor,
+                    ),
+                    _buildDashedDivider(),
+                    _buildInvoiceRow(
+                      context,
+                      'Amount',
+                      '${isCredit ? '+' : '-'}${amount.abs()} ${"score".tr()}',
+                      valueColor: amountColor,
+                    ),
+                    _buildDashedDivider(),
+                    _buildInvoiceRow(context, 'Date', formattedDate),
+
+                    if (_showBranding) ...[
+                      const SizedBox(height: 20),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.end,
+                        children: [
+                          Image.asset(
+                            'assets/images/logo.png', // ✅ replace with your logo path
+                            height: 40,
+                          ),
+                          const SizedBox(width: 6),
                           Text(
-                            '${isCredit ? '+' : '-'}${amount.abs()} ${"score".tr()}',
-                            style: TextStyle(
-                              fontWeight: FontWeight.w500,
+                            "GANZBERG", // ✅ your app name
+                            style: const TextStyle(
+                              fontSize: 14,
+                              fontWeight: FontWeight.w600,
+                              color: Colors.black54,
                               fontFamily: 'KhmerFont',
-                              fontSize: 20,
-                              color: amountColor,
                             ),
                           ),
                         ],
                       ),
                     ],
-                  ),
-
-                  const SizedBox(height: 20),
-                  _buildDashedDivider(),
-                  _buildInvoiceRow(
-                    context,
-                    transactionType == 'transfer_out'
-                        ? 'Transfer To'
-                        : 'Receive from',
-                    transactionType == 'transfer_out'
-                        ? (formattedToPhone.isNotEmpty
-                            ? formattedToPhone
-                            : toUserName)
-                        : (formattedFromPhone.isNotEmpty
-                            ? formattedFromPhone
-                            : fromUserName),
-                  ),
-                  _buildDashedDivider(),
-                  _buildInvoiceRow(
-                    context,
-                    'Wallet',
-                    _getFullWalletName(walletType),
-                    valueColor: AppColors.primaryColor,
-                  ),
-                  _buildDashedDivider(),
-                  _buildInvoiceRow(
-                    context,
-                    'Amount',
-                    '${isCredit ? '+' : '-'}${amount.abs()} ${"score".tr()}',
-                    valueColor: amountColor,
-                  ),
-                  _buildDashedDivider(),
-                  _buildInvoiceRow(context, 'Date', formattedDate),
-
-                  if (_showBranding) ...[
-                    const SizedBox(height: 20),
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.end,
-                      children: [
-                        Image.asset(
-                          'assets/images/logo.png', // ✅ replace with your logo path
-                          height: 40,
-                        ),
-                        const SizedBox(width: 6),
-                        Text(
-                          "GANZBERG", // ✅ your app name
-                          style: const TextStyle(
-                            fontSize: 14,
-                            fontWeight: FontWeight.w600,
-                            color: Colors.black54,
-                            fontFamily: 'KhmerFont',
-                          ),
-                        ),
-                      ],
-                    ),
                   ],
+                ),
+              ),
+            ),
+
+            const SizedBox(height: 20),
+
+            // ✅ Status outside capture
+            if (_isSaving)
+              Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  const CircularProgressIndicator(color: Colors.green),
+                  const SizedBox(width: 10),
+                  Text(
+                    'saving_transaction'.tr(),
+                    style: const TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.w600,
+                      color: Colors.green,
+                      fontFamily: 'KhmerFont',
+                    ),
+                  ),
+                ],
+              )
+            else if (_isSaved)
+              Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  const Icon(Icons.check, size: 20, color: Colors.green),
+                  const SizedBox(width: 6),
+                  Text(
+                    'transaction_saved'.tr(),
+                    style: const TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.green,
+                      fontFamily: 'KhmerFont',
+                    ),
+                  ),
                 ],
               ),
-            ),
-          ),
 
-          const SizedBox(height: 20),
+            const SizedBox(height: 20),
 
-          // ✅ Status outside capture
-          if (_isSaving)
+            // ✅ Buttons outside capture
             Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                const CircularProgressIndicator(color: Colors.green),
-                const SizedBox(width: 10),
-                Text(
-                  'saving_transaction'.tr(),
-                  style: const TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.w600,
-                    color: Colors.green,
-                    fontFamily: 'KhmerFont',
-                  ),
+                _buildIconButton(
+                  Icons.download_rounded,
+                  "save".tr(),
+                  _saveTransactionAsImage,
                 ),
-              ],
-            )
-          else if (_isSaved)
-            Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                const Icon(Icons.check, size: 20, color: Colors.green),
-                const SizedBox(width: 6),
-                Text(
-                  'transaction_saved'.tr(),
-                  style: const TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.green,
-                    fontFamily: 'KhmerFont',
-                  ),
+                const SizedBox(width: 30),
+                _buildIconButton(
+                  Icons.share_rounded,
+                  "share".tr(),
+                  _shareTransaction,
                 ),
               ],
             ),
-
-          const SizedBox(height: 20),
-
-          // ✅ Buttons outside capture
-          Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              _buildIconButton(
-                Icons.download_rounded,
-                "save".tr(),
-                _saveTransactionAsImage,
-              ),
-              const SizedBox(width: 30),
-              _buildIconButton(Icons.share_rounded, "share".tr(), () {
-                // TODO: implement share
-              }),
-            ],
-          ),
-          const SizedBox(height: 20),
-        ],
+            const SizedBox(height: 20),
+          ],
+        ),
       ),
     );
   }
@@ -640,4 +675,4 @@ class _TransactionDetailModalState extends State<TransactionDetailModal> {
   }
 }
 
-//Correct with 643 line code changes
+//Correct with 678 line code changes

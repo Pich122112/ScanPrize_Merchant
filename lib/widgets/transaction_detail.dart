@@ -10,6 +10,7 @@ import 'package:path_provider/path_provider.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:gb_merchant/app/bottomAppbar.dart';
 import 'package:gb_merchant/utils/constants.dart';
+import 'package:gb_merchant/utils/transaction_share_service.dart';
 
 const _channel = MethodChannel('qr_saver');
 
@@ -234,6 +235,62 @@ class _TransactionDetailState extends State<TransactionDetail> {
     }
   }
 */
+
+  Future<void> _shareTransaction() async {
+    setState(() => _isSaving = true);
+
+    final scaffoldMessenger = ScaffoldMessenger.of(context);
+    final localeCode = context.locale.languageCode;
+
+    try {
+      // Show loading
+      scaffoldMessenger.showSnackBar(
+        SnackBar(
+          backgroundColor: Colors.grey,
+          content: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              const CircularProgressIndicator(color: Colors.white),
+              const SizedBox(width: 10),
+              Text(
+                'preparing_share'.tr(),
+                style: TextStyle(
+                  fontSize: 16,
+                  color: Colors.white,
+                  fontWeight: FontWeight.w600,
+                  fontFamily: localeCode == 'km' ? 'KhmerFont' : null,
+                ),
+              ),
+            ],
+          ),
+          duration: const Duration(seconds: 2),
+        ),
+      );
+
+      // Use the separate service for sharing
+      await TransactionShareService.shareTransaction(_transactionKey, {
+        'receiverPhone': widget.receiverPhone,
+        'points': widget.points,
+        'company': widget.companyCategoryName,
+        'quantity': widget.quantity,
+        'productName': widget.productName,
+        'transactionDate': widget.transactionDate.toIso8601String(),
+      });
+
+      scaffoldMessenger.hideCurrentSnackBar();
+    } catch (e, stack) {
+      debugPrint("Share error: $e\n$stack");
+      scaffoldMessenger.hideCurrentSnackBar();
+      scaffoldMessenger.showSnackBar(
+        SnackBar(
+          backgroundColor: Colors.red,
+          content: Text('share_failed'.tr()),
+        ),
+      );
+    } finally {
+      setState(() => _isSaving = false);
+    }
+  }
 
   String formatPhoneNumber(String raw) {
     // Ensure we have a non-null string to work with
@@ -811,11 +868,20 @@ class _TransactionDetailState extends State<TransactionDetail> {
           Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              _buildIconButton(Icons.download_rounded, "save".tr()),
+              _buildIconButton(
+                Icons.download_rounded,
+                "save".tr(),
+                _saveTransactionAsImage,
+              ),
               const SizedBox(width: 40),
-              _buildIconButton(Icons.share_rounded, "share".tr()),
+              _buildIconButton(
+                Icons.share_rounded,
+                "share".tr(),
+                _shareTransaction,
+              ),
             ],
           ),
+
           const SizedBox(height: 20),
           // Done Button
           SizedBox(
@@ -856,7 +922,7 @@ class _TransactionDetailState extends State<TransactionDetail> {
     );
   }
 
-  Widget _buildIconButton(IconData icon, String text) {
+  Widget _buildIconButton(IconData icon, String text, VoidCallback onPressed) {
     return Column(
       children: [
         Container(
@@ -868,7 +934,7 @@ class _TransactionDetailState extends State<TransactionDetail> {
           ),
           child: IconButton(
             icon: Icon(icon, color: Colors.white),
-            onPressed: text == 'save'.tr() ? _saveTransactionAsImage : null,
+            onPressed: onPressed,
           ),
         ),
         const SizedBox(height: 8),
@@ -885,4 +951,4 @@ class _TransactionDetailState extends State<TransactionDetail> {
   }
 }
 
-//Correct with 888 line code changes
+//Correct with 954 line code changes

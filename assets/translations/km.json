@@ -108,5 +108,9 @@
   "spinning": "កំពុងបង្វិល...",
   "completed": "បានបញ្ចប់",
   "ok": "យល់ព្រម",
-  "you_received": "អ្នកទទួលបាន {}"
+  "you_received": "អ្នកទទួលបាន {}",
+  "share_qr_message": "សួស្តី, នេះជាគណនី GANZBERG QR ផ្ទាល់ខ្លួនរបស់ខ្ញុំ ។",
+  "share_qr_subject": "កូដ QR Ganzberg",
+  "share_transaction_message": "សួស្តី នេះជាព័ត៌មានលម្អិតអំពីប្រតិបត្តិការរបស់ខ្ញុំនៅ Ganzberg",
+  "share_transaction_subject": "ប្រតិបត្តិការ Ganzberg"
 }

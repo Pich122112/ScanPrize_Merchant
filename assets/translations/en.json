@@ -107,5 +107,9 @@
     "spinning": "Spinning...",
     "completed": "Completed",
     "ok": "OK",
-    "you_received": "You received {}"
+    "you_received": "You received {}",
+    "share_qr_message": "Hello, Here is my personal Ganzberg QR Code.",
+    "share_qr_subject": "Ganzberg QR Code",
+    "share_transaction_message": "Hello, here is my Ganzberg transaction details",
+    "share_transaction_subject": "Ganzberg Transaction"
 }
