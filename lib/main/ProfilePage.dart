@@ -1,3 +1,4 @@
+import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
 
@@ -29,9 +30,10 @@ class ContactUsPage extends StatelessWidget {
   Widget build(BuildContext context) {
     final screenWidth = MediaQuery.of(context).size.width;
     final isTablet = screenWidth > 600;
+    final localeCode = context.locale.languageCode;
 
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: Colors.grey.shade100,
       body: Center(
         child: Padding(
           padding: EdgeInsets.symmetric(horizontal: screenWidth * 0.1),
@@ -62,23 +64,25 @@ class ContactUsPage extends StatelessWidget {
 
               // Title
               Text(
-                "Contact Us",
+                "contact_us".tr(),
                 style: TextStyle(
                   fontSize: isTablet ? 24 : 20,
                   fontWeight: FontWeight.bold,
                   color: Colors.black87,
+                  fontFamily: localeCode == 'km' ? 'KhmerFont' : null,
                 ),
               ),
               const SizedBox(height: 12),
 
               // Subtitle
               Text(
-                "You can reach us anytime through any of the platforms below.",
+                "contact_platform".tr(),
                 textAlign: TextAlign.center,
                 style: TextStyle(
                   fontSize: isTablet ? 16 : 14,
                   color: Colors.grey[600],
                   height: 1.5,
+                  fontFamily: localeCode == 'km' ? 'KhmerFont' : null,
                 ),
               ),
               const SizedBox(height: 80),

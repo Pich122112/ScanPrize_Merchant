@@ -114,5 +114,8 @@
     "share_qr_subject": "Ganzberg QR Code",
     "share_transaction_message": "Hello, here is my Ganzberg transaction details",
     "share_transaction_subject": "Ganzberg Transaction",
-    "please_wait": " Please Wait..."
+    "please_wait": " Please Wait...",
+    "contact_us": "Contact Us",
+    "contact_platform": "You can reach us anytime through any of the platforms below. We stay to help you.",
+    "you_not_have_any_transaction": "You're not have any transaction yet !"
 }

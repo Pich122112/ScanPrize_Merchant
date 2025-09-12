@@ -6,6 +6,7 @@ import '../utils/balance_refresh_notifier.dart';
 
 class UserBalanceService {
   static const _balanceCacheKey = 'wallet_balances';
+  static const String appPackage = 'com.ganzberg.scanprizemerchantapp';
 
   // Get balance from cache (fast, local)
   static Future<Map<String, dynamic>> getBalancesFromCache() async {
@@ -75,6 +76,7 @@ class UserBalanceService {
           "Content-Type": "application/json",
           "Authorization": "Bearer $token",
           "Accept": "application/json",
+          "X-App-Package": appPackage,
         },
       );
 
@@ -191,6 +193,7 @@ class UserBalanceService {
           "Content-Type": "application/json",
           "Authorization": "Bearer $token",
           "Accept": "application/json",
+          "X-App-Package": appPackage,
         },
       );
 
@@ -226,4 +229,4 @@ class UserBalanceService {
   }
 }
 
-//Correct with 229 line code changes
+//Correct with 232 line code changes

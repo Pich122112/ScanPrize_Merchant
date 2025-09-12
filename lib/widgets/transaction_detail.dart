@@ -20,6 +20,7 @@ class TransactionDetail extends StatefulWidget {
   final String receiverPhone;
   final num points;
   final String? senderPhone;
+  final bool isPointTransfer; // Add this parameter
 
   final String productName;
   final int quantity;
@@ -32,6 +33,7 @@ class TransactionDetail extends StatefulWidget {
     required this.productName,
     required this.quantity,
     this.senderPhone,
+    this.isPointTransfer = false,
   });
 
   @override
@@ -530,57 +532,51 @@ class _TransactionDetailState extends State<TransactionDetail> {
     return Scaffold(
       backgroundColor: AppColors.primaryColor,
       body: SafeArea(
-        child: Column(
-          children: [
-            // Success Content
-            Expanded(
-              child: SingleChildScrollView(
-                physics: const BouncingScrollPhysics(),
-                child: Column(
-                  children: [
-                    const SizedBox(height: 24),
-                    // Success Animation/Icon
-                    Container(
-                      width: 60,
-                      height: 60,
-                      decoration: BoxDecoration(
-                        color: Colors.green,
-                        shape: BoxShape.circle,
-                      ),
-                      child: const Icon(
-                        Icons.check_rounded,
-                        size: 40,
-                        color: Colors.white,
-                      ),
-                    ),
-
-                    const SizedBox(height: 20),
-
-                    // Success Title
-                    Text(
-                      'done'.tr(),
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 28,
-                        fontWeight: FontWeight.bold,
-                        fontFamily: localeCode == 'km' ? 'KhmerFont' : null,
-                      ),
-                    ),
-
-                    SizedBox(
-                      height:
-                          MediaQuery.of(context).size.height *
-                          0.02, // 2% of screen height
-                    ),
-                    // Transaction Card
-                    _buildTransactionCard(),
-                  ],
+        child: SingleChildScrollView(
+          physics: const BouncingScrollPhysics(),
+          child: Column(
+            children: [
+              SizedBox(
+                height: MediaQuery.of(context).size.height * 0.03,
+              ), // Success Animation/Icon
+              Container(
+                width: 60,
+                height: 60,
+                decoration: BoxDecoration(
+                  color: Colors.green,
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(
+                  Icons.check_rounded,
+                  size: 40,
+                  color: Colors.white,
                 ),
               ),
-            ),
-            // Action Buttons
-            _buildActionButtons(context),
-          ],
+
+              const SizedBox(height: 20),
+
+              // Success Title
+              Text(
+                'done'.tr(),
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 28,
+                  fontWeight: FontWeight.bold,
+                  fontFamily: localeCode == 'km' ? 'KhmerFont' : null,
+                ),
+              ),
+
+              SizedBox(
+                height:
+                    MediaQuery.of(context).size.height *
+                    0.02, // 2% of screen height
+              ),
+              // Transaction Card
+              _buildTransactionCard(),
+
+              _buildActionButtons(context),
+            ],
+          ),
         ),
       ),
     );
@@ -693,16 +689,19 @@ class _TransactionDetailState extends State<TransactionDetail> {
                             fontFamily: localeCode == 'km' ? 'KhmerFont' : null,
                           ),
                         ),
-                        SizedBox(width: 12),
-                        Text(
-                          '( ${widget.quantity} ${_translateUnit('can')} )',
-                          style: TextStyle(
-                            color: Colors.black54,
-                            fontWeight: FontWeight.bold,
-                            fontSize: 18,
-                            fontFamily: localeCode == 'km' ? 'KhmerFont' : null,
+                        // Only show quantity if it's not a point transfer
+                        if (!widget.isPointTransfer) SizedBox(width: 12),
+                        if (!widget.isPointTransfer)
+                          Text(
+                            '( ${widget.quantity} ${_translateUnit('can')} )',
+                            style: TextStyle(
+                              color: Colors.black54,
+                              fontWeight: FontWeight.bold,
+                              fontSize: 18,
+                              fontFamily:
+                                  localeCode == 'km' ? 'KhmerFont' : null,
+                            ),
                           ),
-                        ),
                       ],
                     ),
                     Container(
@@ -721,8 +720,9 @@ class _TransactionDetailState extends State<TransactionDetail> {
               ],
             ),
 
-            const SizedBox(height: 30),
-            // Divider
+            SizedBox(
+              height: MediaQuery.of(context).size.height * 0.03,
+            ), // Divider
             SizedBox(
               height: 3,
               child: LayoutBuilder(
@@ -745,32 +745,36 @@ class _TransactionDetailState extends State<TransactionDetail> {
               ),
             ),
 
-            const SizedBox(height: 30),
-            // Transaction Details
+            SizedBox(
+              height: MediaQuery.of(context).size.height * 0.03,
+            ), // Transaction Details
             _buildDetailRow(
               Icons.calendar_today,
               "transaction_date".tr(),
               "${_formatDate(widget.transactionDate, context)} | ${_formatTime(widget.transactionDate)}",
             ),
-            const SizedBox(height: 34),
+            SizedBox(height: MediaQuery.of(context).size.height * 0.03),
             _buildDetailRow(
               Icons.remove_circle,
               "deduct_from".tr(),
               widget.companyCategoryName,
             ),
-            const SizedBox(height: 34),
-            _buildDetailRow(
-              Icons.card_giftcard,
-              "exchange_type".tr(),
-              "x ${widget.quantity} ${_translateUnit('can')}", // Changed from productName to unit
-            ),
-            const SizedBox(height: 34),
+            SizedBox(height: MediaQuery.of(context).size.height * 0.03),
+            // Only show exchange type if it's not a point transfer
+            if (!widget.isPointTransfer)
+              _buildDetailRow(
+                Icons.card_giftcard,
+                "exchange_type".tr(),
+                "x ${widget.quantity} ${_translateUnit('can')}",
+              ),
+            if (!widget.isPointTransfer)
+              SizedBox(height: MediaQuery.of(context).size.height * 0.03),
             _buildDetailRow(
               Icons.phone,
               "receiver".tr(),
               formatPhoneNumber(widget.receiverPhone),
             ),
-            const SizedBox(height: 34),
+            SizedBox(height: MediaQuery.of(context).size.height * 0.03),
             _buildDetailRow(
               Icons.star,
               "total_transfer".tr(),
@@ -848,7 +852,7 @@ class _TransactionDetailState extends State<TransactionDetail> {
           value,
           style: TextStyle(
             color: Colors.black54,
-            fontSize: 16,
+            fontSize: 14,
             fontWeight: FontWeight.bold,
             fontFamily: localeCode == 'km' ? 'KhmerFont' : null,
           ),
@@ -873,13 +877,13 @@ class _TransactionDetailState extends State<TransactionDetail> {
                 "save".tr(),
                 _saveTransactionAsImage,
               ),
-              const SizedBox(width: 40),
+              SizedBox(width: MediaQuery.of(context).size.height * 0.04),
               _buildIconButton(
                 Icons.share_rounded,
                 "share".tr(),
                 _shareTransaction,
               ),
-            ],
+            ], //998765566
           ),
 
           const SizedBox(height: 20),
@@ -951,4 +955,4 @@ class _TransactionDetailState extends State<TransactionDetail> {
   }
 }
 
-//Correct with 954 line code changes
+//Correct with 956 line code changes

@@ -1,4 +1,4 @@
-package com.example.gb_merchant
+package com.ganzberg.scanprizemerchantapp
 
 import android.os.Build
 import android.os.Bundle

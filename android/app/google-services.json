@@ -42,6 +42,44 @@
           "other_platform_oauth_client": []
         }
       }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:227002644924:android:48d1a61dae0cd7cbbcd3b9",
+        "android_client_info": {
+          "package_name": "com.ganzberg.scanprizefront"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCD59WNzu4bb097QhDZ-y-g8i_VkYHGgxk"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:227002644924:android:acb16d0c39bde3c6bcd3b9",
+        "android_client_info": {
+          "package_name": "com.ganzberg.scanprizemerchantapp"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCD59WNzu4bb097QhDZ-y-g8i_VkYHGgxk"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
     }
   ],
   "configuration_version": "1"

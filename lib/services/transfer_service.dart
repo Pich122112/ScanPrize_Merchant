@@ -120,7 +120,9 @@ class TransferService {
         throw TransferException('Authentication required. Please login again.');
       }
 
-      final url = Uri.parse('https://redeemapi-merchant.piikmall.com/api/v2/transfer');
+      final url = Uri.parse(
+        'https://redeemapi-merchant.piikmall.com/api/v2/transfer',
+      );
 
       // ✅ UPDATED: Only include prize-related fields if they're provided
       final requestBody = {
@@ -161,6 +163,7 @@ class TransferService {
               "Content-Type": "application/x-www-form-urlencoded",
               "Authorization": "Bearer $token",
               "Accept": "application/json",
+              "X-App-Package": "com.ganzberg.scanprizemerchantapp",
             },
             body: requestBody,
           )
@@ -244,6 +247,7 @@ class TransferService {
           "Content-Type": "application/json",
           "Authorization": "Bearer $token",
           "Accept": "application/json",
+          "X-App-Package": "com.ganzberg.scanprizemerchantapp",
         },
       );
 
@@ -287,4 +291,4 @@ class TransferException implements Exception {
   String toString() => message;
 }
 
-//Correct with 290 line code changes
+//Correct with 294 line code changes

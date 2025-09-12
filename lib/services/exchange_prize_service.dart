@@ -134,6 +134,7 @@ class ExchangePrizeService {
   static const String prizeListUrl =
       'https://redeemapi-merchant.piikmall.com/api/v2/redeem/prizes';
   static const String cacheKey = 'exchange_prize_cache_v2';
+  static const String appPackage = 'com.ganzberg.scanprizemerchantapp';
 
   Future<String?> getToken() async {
     try {
@@ -158,6 +159,7 @@ class ExchangePrizeService {
           'Content-Type': 'application/json',
           'Accept': 'application/json',
           'Authorization': 'Bearer $token',
+          'X-App-Package': appPackage,
         },
       );
 
@@ -205,6 +207,7 @@ class ExchangePrizeService {
           'Content-Type': 'application/json',
           'Accept': 'application/json',
           'Authorization': 'Bearer $token',
+          'X-App-Package': appPackage, 
         },
       );
 

@@ -715,6 +715,8 @@ class _EnterQuantityDialogState extends State<EnterQuantityDialog>
                                         : selectedProductName,
                                 quantity: selectedQuantity,
                                 senderPhone: senderPhone,
+                                isPointTransfer:
+                                    isWalletTransfer, // Set this flag
                               ),
                         ),
                         (route) => false,

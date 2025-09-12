@@ -386,7 +386,7 @@ class _ProfileDrawerState extends State<ProfileDrawer> {
     final localeCode = context.locale.languageCode; // 'km' or 'en'
 
     return Drawer(
-      backgroundColor: Colors.white,
+      backgroundColor: Colors.grey.shade100,
       child: Column(
         children: [
           // Profile Header

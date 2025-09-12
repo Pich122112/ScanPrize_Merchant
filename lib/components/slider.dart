@@ -17,6 +17,7 @@ class ImageSliderState extends State<ImageSlider> {
   Timer? _timer;
   List<SliderModel> slides = [];
   bool isLoading = true;
+  String? errorMessage;
 
   @override
   void initState() {
@@ -33,23 +34,38 @@ class ImageSliderState extends State<ImageSlider> {
   }
 
   Future<void> _fetchSliders({bool forceRefresh = false}) async {
+    if (mounted) {
+      setState(() {
+        isLoading = true;
+        errorMessage = null;
+      });
+    }
+
     try {
+      print('Starting to fetch sliders...');
       final fetchedSlides = await ApiService().getSliders(
         forceRefresh: forceRefresh,
       );
+
+      print('Successfully fetched ${fetchedSlides.length} slides');
+
       if (mounted) {
         setState(() {
           slides = fetchedSlides;
           isLoading = false;
+          errorMessage = null;
         });
       }
+
       if (slides.isNotEmpty) {
         _startAutoPlay();
       }
     } catch (e) {
+      print('Error in _fetchSliders: $e');
       if (mounted) {
         setState(() {
           isLoading = false;
+          errorMessage = e.toString();
         });
       }
     }
@@ -63,6 +79,7 @@ class ImageSliderState extends State<ImageSlider> {
   }
 
   void _startAutoPlay() {
+    _timer?.cancel();
     _timer = Timer.periodic(const Duration(seconds: 5), (Timer timer) {
       if (_currentPage < slides.length - 1) {
         _currentPage++;
@@ -72,7 +89,6 @@ class ImageSliderState extends State<ImageSlider> {
           curve: Curves.easeInOut,
         );
       } else {
-        // jump to first without animation (after fake slide)
         _pageController.jumpToPage(0);
         _currentPage = 0;
       }
@@ -93,22 +109,52 @@ class ImageSliderState extends State<ImageSlider> {
     final size = MediaQuery.of(context).size;
     final width = size.width;
     final height = size.height;
-
     final isDarkMode = Theme.of(context).brightness == Brightness.dark;
 
     // scale sizes based on screen width
-    final double slideHeight = height * 0.15; // ~28% of screen height
+    final double slideHeight =
+        height * 0.18; // Increased height for better visibility
     final double slideContainerWidth = width * 0.92;
     final double borderRadius = 22.0;
-    final double titleSize = width * 0.040; // scale font sizes
-    final double subtitleSize = width * 0.045;
+    final double titleSize = width * 0.045;
+    final double subtitleSize = width * 0.040;
     final double descSize = width * 0.04;
     final double cardImageSize = width * 0.32;
     final double dotSize = height * 0.011;
     final double dotSpacing = width * 0.012;
 
+    // Show error message
+    if (errorMessage != null) {
+      return Container(
+        height: slideHeight,
+        padding: EdgeInsets.all(16),
+        child: Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Text(
+                'Failed to load slider',
+                style: TextStyle(color: Colors.red),
+              ),
+              SizedBox(height: 8),
+              ElevatedButton(onPressed: _fetchSliders, child: Text('Retry')),
+            ],
+          ),
+        ),
+      );
+    }
+
+    // Show empty state
     if (slides.isEmpty) {
-      return const SizedBox();
+      return Container(
+        height: slideHeight,
+        child: Center(
+          child: Text(
+            'No announcements available',
+            style: TextStyle(color: isDarkMode ? Colors.white60 : Colors.grey),
+          ),
+        ),
+      );
     }
 
     return Container(
@@ -134,13 +180,12 @@ class ImageSliderState extends State<ImageSlider> {
               ),
             ),
           ),
-          SizedBox(height: MediaQuery.of(context).size.height * 0.006), // ~6px
+          SizedBox(height: height * 0.006),
           SizedBox(
             height: slideHeight,
             child: Stack(
               alignment: Alignment.center,
               children: [
-                // Slider
                 PageView.builder(
                   controller: _pageController,
                   onPageChanged: _onPageChanged,
@@ -164,7 +209,6 @@ class ImageSliderState extends State<ImageSlider> {
                     );
                   },
                 ),
-                // Dot Indicators
                 Positioned(
                   bottom: height * 0.010,
                   child: Row(
@@ -234,40 +278,14 @@ class ImageSliderState extends State<ImageSlider> {
               begin: Alignment.topLeft,
               end: Alignment.bottomRight,
               colors: [
-                const Color.fromARGB(255, 215, 90, 1), // bright orange
-                const Color.fromARGB(255, 251, 96, 0), // strong red
+                const Color.fromARGB(255, 215, 90, 1),
+                const Color.fromARGB(255, 251, 96, 0),
               ],
-              stops: [0.3, 1.0], // 30% for first, rest (70%) for second
+              stops: [0.3, 1.0],
             ),
           ),
           child: Stack(
             children: [
-              // Subtle circles in background (like the image)
-              // Positioned(
-              //   top: containerHeight * 0.07,
-              //   left: containerWidth * 0.06,
-              //   child: Container(
-              //     width: containerWidth * 0.28,
-              //     height: containerWidth * 0.28,
-              //     decoration: BoxDecoration(
-              //       shape: BoxShape.circle,
-              //       color: Colors.white.withOpacity(0.04),
-              //     ),
-              //   ),
-              // ),
-              // Positioned(
-              //   bottom: containerHeight * 0.12,
-              //   right: containerWidth * 0.03,
-              //   child: Container(
-              //     width: containerWidth * 0.18,
-              //     height: containerWidth * 0.18,
-              //     decoration: BoxDecoration(
-              //       shape: BoxShape.circle,
-              //       color: Colors.white.withOpacity(0.07),
-              //     ),
-              //   ),
-              // ),
-              // Main Row Content
               Padding(
                 padding: EdgeInsets.symmetric(
                   horizontal: containerWidth * 0.055,
@@ -275,85 +293,84 @@ class ImageSliderState extends State<ImageSlider> {
                 ),
                 child: Row(
                   children: [
-                    // Texts (title, subtitle, desc)
                     Expanded(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                          // Title
                           Text(
                             title,
                             style: TextStyle(
                               fontSize: titleSize,
                               fontWeight: FontWeight.bold,
-                              color: Colors.white60,
-                              fontFamily: 'KhmerFont',
+                              color: Colors.white,
+                              fontFamily:
+                                  localeCode == 'km' ? 'KhmerFont' : null,
                               letterSpacing: 0.5,
                               height: 1.18,
                             ),
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
                           ),
-                          SizedBox(height: containerHeight * 0.08),
-                          // Subtitle (yellow, bold)
+                          SizedBox(height: containerHeight * 0.15),
                           Text(
                             subtitle,
                             style: TextStyle(
                               fontSize: subtitleSize,
                               fontWeight: FontWeight.bold,
                               color: Colors.white70,
-                              fontFamily: 'KhmerFont',
+                              fontFamily:
+                                  localeCode == 'km' ? 'KhmerFont' : null,
                               height: 1.17,
                             ),
-                            maxLines: 1,
+                            maxLines: 2, // Increased to 2 lines
                             overflow: TextOverflow.ellipsis,
                           ),
-                          SizedBox(height: containerHeight * 0.03),
                         ],
                       ),
                     ),
                     SizedBox(width: containerWidth * 0.06),
-                    // Image
-                    ClipRRect(
-                      borderRadius: BorderRadius.circular(16),
-                      child: Image.network(
-                        imageUrl,
-                        height: cardImageSize,
-                        width: cardImageSize,
-                        fit: BoxFit.cover,
-                        loadingBuilder: (context, child, loadingProgress) {
-                          if (loadingProgress == null) return child;
-                          return Container(
-                            height: cardImageSize,
-                            width: cardImageSize,
-                            color: Colors.grey[200],
-                            child: Center(
-                              child: CircularProgressIndicator(
-                                value:
-                                    loadingProgress.expectedTotalBytes != null
-                                        ? loadingProgress
-                                                .cumulativeBytesLoaded /
-                                            loadingProgress.expectedTotalBytes!
-                                        : null,
+                    if (slider.imageUrls.isNotEmpty)
+                      ClipRRect(
+                        borderRadius: BorderRadius.circular(16),
+                        child: Image.network(
+                          slider.imageUrls[0],
+                          height: cardImageSize,
+                          width: cardImageSize,
+                          fit: BoxFit.cover,
+                          loadingBuilder: (context, child, loadingProgress) {
+                            if (loadingProgress == null) return child;
+                            return Container(
+                              height: cardImageSize,
+                              width: cardImageSize,
+                              color: Colors.grey[200],
+                              child: Center(
+                                child: CircularProgressIndicator(
+                                  value:
+                                      loadingProgress.expectedTotalBytes != null
+                                          ? loadingProgress
+                                                  .cumulativeBytesLoaded /
+                                              loadingProgress
+                                                  .expectedTotalBytes!
+                                          : null,
+                                ),
                               ),
-                            ),
-                          );
-                        },
-                        errorBuilder: (context, error, stackTrace) {
-                          return Container(
-                            height: cardImageSize,
-                            width: cardImageSize,
-                            color: Colors.grey[300],
-                            child: Icon(
-                              Icons.image_not_supported,
-                              size: cardImageSize * 0.4,
-                              color: Colors.grey[500],
-                            ),
-                          );
-                        },
+                            );
+                          },
+                          errorBuilder: (context, error, stackTrace) {
+                            return Container(
+                              height: cardImageSize,
+                              width: cardImageSize,
+                              color: Colors.grey[300],
+                              child: Icon(
+                                Icons.image_not_supported,
+                                size: cardImageSize * 0.4,
+                                color: Colors.grey[500],
+                              ),
+                            );
+                          },
+                        ),
                       ),
-                    ),
                   ],
                 ),
               ),
@@ -365,4 +382,4 @@ class ImageSliderState extends State<ImageSlider> {
   }
 }
 
-//Correct with 367 line code changes
+//Correct with 385 line code changes

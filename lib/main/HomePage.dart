@@ -274,6 +274,7 @@ import 'package:flutter/material.dart';
 import 'package:gb_merchant/components/All_Exchange_PrizeList.dart';
 import 'package:gb_merchant/components/Enter_Quantity.dart';
 import 'package:gb_merchant/components/transfer_prize_qr.dart';
+import 'package:gb_merchant/utils/constants.dart';
 import 'package:gb_merchant/utils/qr_code_parser.dart';
 import '../components/slider.dart';
 import '../components/user_dashboard.dart';
@@ -506,9 +507,10 @@ class _HomePageState extends State<HomePage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: Colors.grey.shade100,
       body: RefreshIndicator(
         onRefresh: _refreshData,
+        color: AppColors.primaryColor,
         child: LayoutBuilder(
           builder: (context, constraints) {
             return Stack(

@@ -41,7 +41,7 @@ class _BlogDetailPageState extends State<BlogDetailPage>
     allSlides = widget.allSlides;
 
     currentIndex = allSlides.indexWhere(
-      (slide) => slide.sliderID == currentSlider.sliderID,
+      (slide) => slide.id == currentSlider.id,
     );
 
     _slideController = AnimationController(

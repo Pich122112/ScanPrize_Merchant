@@ -115,5 +115,8 @@
   "share_transaction_message": "សួស្តី នេះជាព័ត៌មានលម្អិតអំពីប្រតិបត្តិការរបស់ខ្ញុំនៅ Ganzberg",
   "share_transaction_subject": "ប្រតិបត្តិការ Ganzberg",
   "receive_from": "បានទទួលពី",
-  "please_wait": "សូមរង់ចាំ..."
+  "please_wait": "សូមរង់ចាំ...",
+  "contact_us": "ទាក់ទងមកកាន់យើងខ្ញុំ",
+  "contact_platform": "អ្នក​អាច​ទាក់ទង​មក​យើង​បាន​គ្រប់​ពេល​តាម​រយៈ​ការផ្ញើរសារ​តាមFacebook Messengerខាងក្រោម​​។​ យើងរង់ចាំឆ្លើយតបអ្នកគ្រប់ពេល​។",
+  "you_not_have_any_transaction": "អ្នកនៅមិនទាន់មានប្រតិបត្តិការណ៍ទេ!"
 }

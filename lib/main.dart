@@ -15,7 +15,7 @@ Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
   await Firebase.initializeApp();
   await FirebaseService.incrementBadgeCount();
 
-  // Handle background message (can show notification, etc)
+  // Handle background message 855887776756 (can show notification, etc)
   print('Handling a background message: ${message.messageId}');
 }
 
@@ -53,6 +53,7 @@ Future<void> main() async {
       supportedLocales: const [Locale('en'), Locale('km')],
       path: 'assets/translations',
       fallbackLocale: const Locale('km'),
+      startLocale: const Locale('km'), // 👈 force Khmer when app starts
       child: const MyApp(),
     ),
   );

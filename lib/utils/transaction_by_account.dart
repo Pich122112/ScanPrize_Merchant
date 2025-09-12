@@ -78,6 +78,81 @@ class _TransactionByAccountState extends State<TransactionByAccount> {
     }
   }
 
+  // Add this helper method to _TransactionByAccountState class
+  // Update the _formatDateTime method to handle both ISO strings and formatted dates
+  // Update the _formatDateTime method to handle DD/MM/YYYY format
+  String _formatDateTime(String dateString, BuildContext context) {
+    try {
+      DateTime date;
+
+      if (dateString.contains('/')) {
+        // Parse DD/MM/YYYY format (common in many countries)
+        final parts = dateString.split('/');
+        if (parts.length == 3) {
+          final day = int.parse(parts[0]);
+          final month = int.parse(parts[1]);
+          final year = int.parse(parts[2]);
+          date = DateTime(year, month, day);
+        } else {
+          return dateString;
+        }
+      } else {
+        // Parse ISO date string
+        date = DateTime.parse(dateString).toLocal();
+      }
+
+      final localeCode = context.locale.languageCode;
+
+      if (localeCode == 'km') {
+        // Khmer date format
+        final months = [
+          "មករា",
+          "កុម្ភៈ",
+          "មីនា",
+          "មេសា",
+          "ឧសភា",
+          "មិថុនា",
+          "កក្កដា",
+          "សីហា",
+          "កញ្ញា",
+          "តុលា",
+          "វិច្ឆិកា",
+          "ធ្នូ",
+        ];
+
+        final month = months[date.month - 1];
+        final day = date.day;
+        final year = date.year;
+
+        return "$day $month $year";
+      } else {
+        // English date format
+        final months = [
+          "Jan",
+          "Feb",
+          "Mar",
+          "Apr",
+          "May",
+          "Jun",
+          "Jul",
+          "Aug",
+          "Sep",
+          "Oct",
+          "Nov",
+          "Dec",
+        ];
+
+        final month = months[date.month - 1];
+        final day = date.day;
+        final year = date.year;
+
+        return "$month $day, $year";
+      }
+    } catch (e) {
+      return dateString; // fallback if parsing fails
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final localeCode = context.locale.languageCode; // 'km' or 'en'
@@ -243,8 +318,8 @@ class _TransactionByAccountState extends State<TransactionByAccount> {
                                     color: Colors.grey.withOpacity(0.5),
                                   ),
                                   const SizedBox(height: 16),
-                                  const Text(
-                                    'អ្នកនៅមិនទាន់មានប្រតិបត្តិការណ៍ទេ!',
+                                  Text(
+                                    'you_not_have_any_transaction'.tr(),
                                     style: TextStyle(
                                       fontSize: 18,
                                       color: Colors.grey,
@@ -284,7 +359,10 @@ class _TransactionByAccountState extends State<TransactionByAccount> {
                               return Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
-                                  sectionTitle(dateLabel),
+                                  sectionTitle(
+                                    dateLabel,
+                                    context,
+                                  ), // Pass context here
                                   // Show ALL transactions in chronological order (newest first)
                                   ...filteredTransactions.map(
                                     (item) => transactionSummaryTile(
@@ -299,9 +377,7 @@ class _TransactionByAccountState extends State<TransactionByAccount> {
                                       points: item['Amount'],
                                       isIn: item['is_credit'] == true,
                                       account:
-                                          item['wallet_type'] ??
-                                          widget
-                                              .account, // ← USE THE ACTUAL WALLET TYPE
+                                          item['wallet_type'] ?? widget.account,
                                       transactionType: item['Type'],
                                       transactionData: item,
                                       context: context,
@@ -321,15 +397,19 @@ class _TransactionByAccountState extends State<TransactionByAccount> {
     );
   }
 
-  static Widget sectionTitle(String title) {
+  Widget sectionTitle(String title, BuildContext context) {
+    // Parse the date and format it based on locale
+    final formattedDate = _formatDateTime(title, context);
+
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 8),
       child: Text(
-        title,
-        style: const TextStyle(
+        formattedDate,
+        style: TextStyle(
           fontSize: 15,
           fontWeight: FontWeight.bold,
-          color: Color(0xFF333333),
+          color: const Color(0xFF333333),
+          fontFamily: context.locale.languageCode == 'km' ? 'KhmerFont' : null,
         ),
       ),
     );
@@ -346,7 +426,9 @@ class _TransactionByAccountState extends State<TransactionByAccount> {
     required BuildContext context,
   }) {
     final String unit = _getWalletUnitStatic(account);
-    final int qty = transactionData['qty'] ?? 1;
+    final dynamic qtyValue = transactionData['qty']; // Get the raw qty value
+    final bool showQuantity = qtyValue != null; // Only show if qty is not null
+
     final localeCode = Localizations.localeOf(context).languageCode;
 
     String formatPhoneNumber(String raw) {
@@ -495,16 +577,18 @@ class _TransactionByAccountState extends State<TransactionByAccount> {
                   fontFamily: 'KhmerFont',
                 ),
               ),
-              const SizedBox(height: 4),
-              Text(
-                'x $qty $quantityUnit',
-                style: TextStyle(
-                  fontSize: 12,
-                  color: Colors.grey[600],
-                  fontWeight: FontWeight.w600,
-                  fontFamily: 'KhmerFont',
+              // Only show quantity if it's not null
+              if (showQuantity) const SizedBox(height: 4),
+              if (showQuantity)
+                Text(
+                  'x $qtyValue $quantityUnit',
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: Colors.grey[600],
+                    fontWeight: FontWeight.w600,
+                    fontFamily: 'KhmerFont',
+                  ),
                 ),
-              ),
             ],
           ),
         ),
@@ -526,4 +610,4 @@ class _TransactionByAccountState extends State<TransactionByAccount> {
   }
 }
 
-//Correct with 511 line code changes
+//Correct with 533 line code changes

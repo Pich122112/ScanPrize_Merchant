@@ -552,6 +552,7 @@ class _RomlousAppState extends State<RomlousApp> {
     final isTablet = screenWidth > 600;
 
     return Scaffold(
+      backgroundColor: Colors.grey.shade100,
       key: _scaffoldKey,
       appBar: CustomAppBar(
         onMenuPressed: () {
@@ -656,7 +657,7 @@ class _RomlousAppState extends State<RomlousApp> {
             _buildNavItem(
               1,
               Icons.support_agent,
-              "Contact",
+              "contactus",
               screenWidth,
               isTablet,
             ),

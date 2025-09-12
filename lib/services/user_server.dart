@@ -205,7 +205,7 @@ import 'package:http/http.dart' as http;
 class ApiService {
   static const String baseUrl =
       'https://redeemapi-merchant.piikmall.com/api/v2';
-  static const String appPackage = 'com.example.gb_merchant';
+  static const String appPackage = 'com.ganzberg.scanprizemerchantapp';
 
   static Future<Map<String, dynamic>> uploadFcmToken({
     required String apiToken,
@@ -218,6 +218,7 @@ class ApiService {
       headers: {
         "Authorization": "Bearer $apiToken",
         "Accept": "application/json",
+        'X-App-Package': appPackage,
       },
       body: {"fcm_token": fcmToken},
     );
@@ -382,7 +383,7 @@ class ApiService {
     String phone,
     String otp,
     String deviceUuid, // Add device_uuid parameter
-    String fcmToken, // Add fcm_token parameter 
+    String fcmToken, // Add fcm_token parameter
   ) async {
     final url = Uri.parse('$baseUrl/auth/verify-otp');
     final response = await http.post(
@@ -533,4 +534,4 @@ class ApiService {
   }
 }
 
-//Correct with 514 line code changes
+//Correct with 537 line code changes

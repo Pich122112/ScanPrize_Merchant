@@ -4,7 +4,8 @@ import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 
 class UserTransactionService {
-  static const String baseUrl = 'https://redeemapi-merchant.piikmall.com/api/v2';
+  static const String baseUrl = 'https://redeemapi.piikmall.com/api/v2';
+  static const String appPackage = 'com.ganzberg.scanprizemerchantapp';
 
   static Future<List<Map<String, dynamic>>> fetchAllUserTransactions() async {
     try {
@@ -25,7 +26,7 @@ class UserTransactionService {
         headers: {
           'Authorization': 'Bearer $token',
           'Accept': 'application/json',
-          'x-app-secret': 'MySuperSecretKey123!@*',
+          'X-App-Package': appPackage,
         },
       );
 
@@ -46,29 +47,28 @@ class UserTransactionService {
             if (transactionType == 'transfer_in' ||
                 transactionType == 'transfer_out') {
               final dynamic qtyValue = transaction['qty'];
-              final int parsedQty;
+              final int? parsedQty; // Change to nullable int
 
               if (qtyValue == null) {
-                parsedQty = 1;
+                parsedQty = null; // Keep it as null instead of defaulting to 1
+                print('DEBUG: Qty is null, preserving null');
               } else if (qtyValue is int) {
                 parsedQty = qtyValue;
+                print('DEBUG: Qty is int: $parsedQty');
               } else if (qtyValue is String) {
+                // Handle empty string case
                 if (qtyValue.isEmpty) {
-                  final int amount =
-                      transaction['amount'] is int
-                          ? transaction['amount']
-                          : int.tryParse(transaction['amount'].toString()) ?? 0;
-
-                  if (amount % 10 == 0 && amount > 0) {
-                    parsedQty = amount ~/ 10;
-                  } else {
-                    parsedQty = 1;
-                  }
+                  parsedQty = null; // Also set to null for empty strings
+                  print('DEBUG: Qty is empty string, setting to null');
                 } else {
-                  parsedQty = int.tryParse(qtyValue) ?? 1;
+                  parsedQty = int.tryParse(qtyValue);
+                  print('DEBUG: Qty is String "$qtyValue", parsed: $parsedQty');
                 }
               } else {
-                parsedQty = 1;
+                parsedQty = null;
+                print(
+                  'DEBUG: Qty is unknown type ${qtyValue.runtimeType}, setting to null',
+                );
               }
 
               final Map<String, dynamic> formattedTransaction = {
@@ -82,7 +82,8 @@ class UserTransactionService {
                 'ToUserName': transaction['to_user_name'] ?? 'N/A',
                 'ToPhoneNumber': transaction['to_user_phone_number'] ?? '',
                 'transaction_type': transactionType,
-                'qty': parsedQty,
+                'qty':
+                    parsedQty, // This will now be null when backend returns null
                 'wallet_type': transaction['wallet_type'] ?? '',
               };
 
@@ -140,7 +141,7 @@ class UserTransactionService {
         headers: {
           'Authorization': 'Bearer $token',
           'Accept': 'application/json',
-          'x-app-secret': 'MySuperSecretKey123!@*',
+          'X-App-Package': appPackage,
         },
       );
 
@@ -194,42 +195,27 @@ class UserTransactionService {
             print('DEBUG: ------------------------------------');
 
             final dynamic qtyValue = transaction['qty'];
-            final int parsedQty;
+            final int? parsedQty; // Change to nullable int
 
             if (qtyValue == null) {
-              parsedQty = 1;
-              print('DEBUG: Qty is null, using default: 1');
+              parsedQty = null; // Keep it as null instead of defaulting to 1
+              print('DEBUG: Qty is null, preserving null');
             } else if (qtyValue is int) {
               parsedQty = qtyValue;
               print('DEBUG: Qty is int: $parsedQty');
             } else if (qtyValue is String) {
               // Handle empty string case
               if (qtyValue.isEmpty) {
-                // For empty strings, we need to determine the quantity based on amount
-                // This is a temporary fix until the API sends proper qty values
-                final int amount =
-                    transaction['amount'] is int
-                        ? transaction['amount']
-                        : int.tryParse(transaction['amount'].toString()) ?? 0;
-
-                // Assuming each item costs 10 points (adjust this based on your business logic)
-                // If amount is divisible by 10, then qty = amount / 10, otherwise default to 1
-                if (amount % 10 == 0 && amount > 0) {
-                  parsedQty = amount ~/ 10;
-                } else {
-                  parsedQty = 1;
-                }
-                print(
-                  'DEBUG: Qty is empty string, calculated from amount $amount: $parsedQty',
-                );
+                parsedQty = null; // Also set to null for empty strings
+                print('DEBUG: Qty is empty string, setting to null');
               } else {
-                parsedQty = int.tryParse(qtyValue) ?? 1;
+                parsedQty = int.tryParse(qtyValue);
                 print('DEBUG: Qty is String "$qtyValue", parsed: $parsedQty');
               }
             } else {
-              parsedQty = 1;
+              parsedQty = null;
               print(
-                'DEBUG: Qty is unknown type ${qtyValue.runtimeType}, using default: 1',
+                'DEBUG: Qty is unknown type ${qtyValue.runtimeType}, setting to null',
               );
             }
 
@@ -334,4 +320,4 @@ class UserTransactionService {
   }
 }
 
-//Correct with 337 line code changes
+//Correct with 323 line code changes

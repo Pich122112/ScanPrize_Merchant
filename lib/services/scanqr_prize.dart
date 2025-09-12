@@ -6,6 +6,7 @@ class Constants {
   static const String apiUrl = "https://redeemapi-merchant.piikmall.com/api/v2";
   static const String appSecret = "MySuperSecretKey123!@*";
   static const String wsUrl = 'scan-app-m1fx.onrender.com:8081';
+  static const String appPackage = 'com.ganzberg.scanprizemerchantapp';
 }
 
 Future<Map<String, dynamic>> fetchPrizeByCode(String code) async {
@@ -29,6 +30,7 @@ Future<Map<String, dynamic>> fetchPrizeByCode(String code) async {
         "Content-Type": "application/x-www-form-urlencoded",
         "Authorization": "Bearer $token",
         "Accept": "application/json",
+        "X-App-Package": Constants.appPackage,
       },
       body: {"code": code},
     );
