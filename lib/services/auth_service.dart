@@ -8,7 +8,7 @@ Future<void> uploadFcmToken(
 ) async {
   String? fcmToken = await FirebaseMessaging.instance.getToken();
   final url = Uri.parse(
-    'https://redeemapi.piikmall.com/api/v2/user/update-fcm-token',
+    'https://api-merchant.sandbox.gzb.app/api/v2/user/update-fcm-token',
   );
   await http.post(
     url,

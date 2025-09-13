@@ -7,7 +7,7 @@
 
 // class ExchangePrizeService {
 //   static const String prizeListUrl =
-//       'https://redeemapi-merchant.piikmall.com/api/v2/redeem/prizes';
+//       'https://api-merchant.sandbox.gzb.app/api/v2/redeem/prizes';
 //   static const String cacheKey = 'exchange_prize_cache_v2';
 
 //   Future<String?> getToken() async {
@@ -28,7 +28,7 @@
 //       if (token == null) throw Exception('No token available');
 
 //       final response = await http.get(
-//         Uri.parse('https://redeemapi-merchant.piikmall.com/api/v2/transfer'),
+//         Uri.parse('https://api-merchant.sandbox.gzb.app/api/v2/transfer'),
 //         headers: {
 //           'Content-Type': 'application/json',
 //           'Accept': 'application/json',
@@ -132,7 +132,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 class ExchangePrizeService {
   static const String prizeListUrl =
-      'https://redeemapi-merchant.piikmall.com/api/v2/redeem/prizes';
+      'https://api-merchant.sandbox.gzb.app/api/v2/redeem/prizes';
   static const String cacheKey = 'exchange_prize_cache_v2';
   static const String appPackage = 'com.ganzberg.scanprizemerchantapp';
 
@@ -154,7 +154,7 @@ class ExchangePrizeService {
       if (token == null) throw Exception('No token available');
 
       final response = await http.get(
-        Uri.parse('https://redeemapi-merchant.piikmall.com/api/v2/transfer'),
+        Uri.parse('https://api-merchant.sandbox.gzb.app/api/v2/transfer'),
         headers: {
           'Content-Type': 'application/json',
           'Accept': 'application/json',

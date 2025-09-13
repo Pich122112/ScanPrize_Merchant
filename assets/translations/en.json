@@ -91,7 +91,7 @@
     "error_occurred": "An error occurred",
     "transaction_saved": "Transaction was save to your phone",
     "saving_transaction": "Saving Transaction...",
-    "Invalid or already redeemed code": "Code invalid or already redeemed",
+    "Invalid or already redeemed code": "Code already scan",
     "no_internet_connection": "No internet connection, please check your network settings.",
     "transferred_to": "Transfered to {phoneNumber}",
     "received_from": "Received from {phoneNumber}",
@@ -107,7 +107,7 @@
     "to": "To",
     "congratulation": "Congratulation",
     "spinning": "Spinning...",
-    "completed": "Completed",
+    "completed": "Finished",
     "ok": "OK",
     "you_received": "You received {}",
     "share_qr_message": "Hello, Here is my personal Ganzberg QR Code.",
@@ -117,5 +117,6 @@
     "please_wait": " Please Wait...",
     "contact_us": "Contact Us",
     "contact_platform": "You can reach us anytime through any of the platforms below. We stay to help you.",
-    "you_not_have_any_transaction": "You're not have any transaction yet !"
+    "you_not_have_any_transaction": "You're not have any transaction yet !",
+    "incorrect_qr_code": "Incorrect QR Code"
 }

@@ -809,7 +809,17 @@ class _SignUpPageState extends State<SignUpPage> {
                                           contentPadding: EdgeInsets.symmetric(
                                             vertical: 16,
                                           ),
+                                          errorText: _nameErrorText,
+                                          errorStyle: const TextStyle(
+                                            fontFamily: 'KhmerFont',
+                                            fontSize: 14,
+                                            fontWeight:
+                                                FontWeight
+                                                    .w500, // ✅ makes it bold
+                                            color: Colors.red,
+                                          ),
                                         ),
+
                                         style: TextStyle(
                                           fontSize: 16,
                                           fontFamily: 'KhmerFont',
@@ -846,6 +856,14 @@ class _SignUpPageState extends State<SignUpPage> {
                                                 vertical: 16,
                                               ),
                                           errorText: _phoneErrorText,
+                                          errorStyle: const TextStyle(
+                                            fontFamily: 'KhmerFont',
+                                            fontSize: 14,
+                                            fontWeight:
+                                                FontWeight
+                                                    .w500, // ✅ makes it bold
+                                            color: Colors.red,
+                                          ),
                                         ),
                                         initialCountryCode: 'KH',
                                         disableLengthCheck: true,
@@ -897,7 +915,6 @@ class _SignUpPageState extends State<SignUpPage> {
                                       const SizedBox(height: 12),
 
                                       // 2. Four dropdown fields for location (simplified example, you need to provide the list and logic)
-                                      // Replace the province dropdown with this corrected version:
                                       DropdownButtonFormField<String>(
                                         dropdownColor: Colors.white,
                                         decoration: InputDecoration(
@@ -908,7 +925,14 @@ class _SignUpPageState extends State<SignUpPage> {
                                             color: Colors.grey[600],
                                           ),
                                           errorText: _provinceErrorText,
-
+                                          errorStyle: const TextStyle(
+                                            fontFamily: 'KhmerFont',
+                                            fontSize: 16,
+                                            fontWeight:
+                                                FontWeight
+                                                    .w500, // ✅ makes it bold
+                                            color: Colors.red,
+                                          ),
                                           border: OutlineInputBorder(
                                             borderRadius: BorderRadius.circular(
                                               10,
@@ -963,7 +987,14 @@ class _SignUpPageState extends State<SignUpPage> {
                                         dropdownColor: Colors.white,
                                         decoration: InputDecoration(
                                           errorText: _districtErrorText,
-
+                                          errorStyle: const TextStyle(
+                                            fontFamily: 'KhmerFont',
+                                            fontSize: 16,
+                                            fontWeight:
+                                                FontWeight
+                                                    .w500, // ✅ makes it bold
+                                            color: Colors.red,
+                                          ),
                                           filled: true,
                                           fillColor: Colors.grey[200],
                                           prefixIcon: Icon(
@@ -1021,7 +1052,14 @@ class _SignUpPageState extends State<SignUpPage> {
                                         dropdownColor: Colors.white,
                                         decoration: InputDecoration(
                                           errorText: _communeErrorText,
-
+                                          errorStyle: const TextStyle(
+                                            fontFamily: 'KhmerFont',
+                                            fontSize: 16,
+                                            fontWeight:
+                                                FontWeight
+                                                    .w500, // ✅ makes it bold
+                                            color: Colors.red,
+                                          ),
                                           filled: true,
                                           fillColor: Colors.grey[200],
                                           prefixIcon: Icon(
@@ -1078,7 +1116,14 @@ class _SignUpPageState extends State<SignUpPage> {
                                         dropdownColor: Colors.white,
                                         decoration: InputDecoration(
                                           errorText: _villageErrorText,
-
+                                          errorStyle: const TextStyle(
+                                            fontFamily: 'KhmerFont',
+                                            fontSize: 16,
+                                            fontWeight:
+                                                FontWeight
+                                                    .w500, // ✅ makes it bold
+                                            color: Colors.red,
+                                          ),
                                           filled: true,
                                           fillColor: Colors.grey[200],
                                           prefixIcon: Icon(
@@ -1107,23 +1152,53 @@ class _SignUpPageState extends State<SignUpPage> {
                                           // ស្រុកសៀមរាប
                                           DropdownMenuItem(
                                             value: 'sr_001',
-                                            child: Text('ភូមិស្វាយដង្គំ'),
+                                            child: Text(
+                                              'ភូមិស្វាយដង្គំ',
+                                              style: TextStyle(
+                                                fontFamily: 'KhmerFont',
+                                                fontWeight: FontWeight.w600,
+                                              ),
+                                            ),
                                           ),
                                           DropdownMenuItem(
                                             value: 'sr_002',
-                                            child: Text('ភូមិត្រពាំងគង'),
+                                            child: Text(
+                                              'ភូមិត្រពាំងគង',
+                                              style: TextStyle(
+                                                fontFamily: 'KhmerFont',
+                                                fontWeight: FontWeight.w600,
+                                              ),
+                                            ),
                                           ),
                                           DropdownMenuItem(
                                             value: 'sr_003',
-                                            child: Text('ភូមិចំបក់'),
+                                            child: Text(
+                                              'ភូមិចំបក់',
+                                              style: TextStyle(
+                                                fontFamily: 'KhmerFont',
+                                                fontWeight: FontWeight.w600,
+                                              ),
+                                            ),
                                           ),
                                           DropdownMenuItem(
                                             value: 'sr_004',
-                                            child: Text('ភូមិតាកែវ'),
+                                            child: Text(
+                                              'ភូមិតាកែវ',
+                                              style: TextStyle(
+                                                fontFamily: 'KhmerFont',
+                                                fontWeight: FontWeight.w600,
+                                              ),
+                                            ),
                                           ),
                                           DropdownMenuItem(
                                             value: 'sr_005',
-                                            child: Text('ភូមិព្រៃឆ្លាក់'),
+                                            child: Text(
+                                              'ភូមិព្រៃឆ្លាក់',
+                                              style: TextStyle(
+                                                fontFamily: 'KhmerFont',
+                                                fontWeight: FontWeight.w600,
+                                              ),
+                                            ),
                                           ),
                                         ],
                                         onChanged: (value) {
@@ -1147,7 +1222,14 @@ class _SignUpPageState extends State<SignUpPage> {
                                               decoration: InputDecoration(
                                                 errorText:
                                                     _nationalIdFrontErrorText,
-
+                                                errorStyle: const TextStyle(
+                                                  fontFamily: 'KhmerFont',
+                                                  fontSize: 16,
+                                                  fontWeight:
+                                                      FontWeight
+                                                          .w500, // ✅ makes it bold
+                                                  color: Colors.red,
+                                                ),
                                                 filled: true,
                                                 fillColor: Colors.grey[200],
                                                 hintText:
@@ -1155,6 +1237,10 @@ class _SignUpPageState extends State<SignUpPage> {
                                                             null
                                                         ? 'រូបភាព: ${_nationalIdFrontImage!.path.split('/').last}'
                                                         : 'បញ្ជូលរូបភាពស្នាមមុខអត្តសញ្ញាណ',
+                                                hintStyle: TextStyle(
+                                                  fontFamily: 'KhmerFont',
+                                                  fontWeight: FontWeight.w500,
+                                                ),
                                                 border: OutlineInputBorder(
                                                   borderRadius:
                                                       BorderRadius.circular(10),
@@ -1227,13 +1313,24 @@ class _SignUpPageState extends State<SignUpPage> {
                                               decoration: InputDecoration(
                                                 errorText:
                                                     _nationalIdBackErrorText,
-
+                                                errorStyle: const TextStyle(
+                                                  fontFamily: 'KhmerFont',
+                                                  fontSize: 16,
+                                                  fontWeight:
+                                                      FontWeight
+                                                          .w500, // ✅ makes it bold
+                                                  color: Colors.red,
+                                                ),
                                                 filled: true,
                                                 fillColor: Colors.grey[200],
                                                 hintText:
                                                     _nationalIdBackImage != null
                                                         ? 'រូបភាព: ${_nationalIdBackImage!.path.split('/').last}'
                                                         : 'បញ្ជូលរូបភាពខាងក្រោយអត្តសញ្ញាណ',
+                                                hintStyle: TextStyle(
+                                                  fontFamily: 'KhmerFont',
+                                                  fontWeight: FontWeight.w500,
+                                                ),
                                                 border: OutlineInputBorder(
                                                   borderRadius:
                                                       BorderRadius.circular(10),

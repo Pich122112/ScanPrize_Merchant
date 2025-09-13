@@ -4,6 +4,7 @@ import 'dart:io';
 import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
 import 'package:gb_merchant/utils/balance_refresh_notifier.dart';
+import 'package:gb_merchant/utils/qr_code_extractor.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:qr_code_scanner_plus/qr_code_scanner_plus.dart';
 import 'package:gb_merchant/components/transfer_prize_qr.dart';
@@ -189,28 +190,59 @@ class _OpenScanState extends State<OpenScan>
     await controller?.pauseCamera();
 
     try {
-      // First try to handle as prize QR
-      final prizeResponse = await fetchPrizeByCode(code);
+      // Check if this is the new URL format QR code
+      // In handleScanResult method:
+      if (QrCodeExtractor.isUrlFormat(code)) {
+        print("Detected URL format QR code: $code");
 
-      if (prizeResponse['success'] == true) {
-        await _handlePrizeQR(prizeResponse, code);
-      } else {
-        // Check if it's definitely a transfer QR
-        final isTransferQr = prizeResponse['isTransferQr'] == true;
-        final errorMessage =
-            prizeResponse['error']?.toString().toLowerCase() ?? '';
+        // First validate the signature locally
+        final isValid = QrCodeExtractor.isValidSignature(code);
 
-        if (isTransferQr) {
-          // This is definitely a transfer QR, process it normally
-          await _handleTransferQR(code, prizeResponse);
-        } else if (errorMessage.contains('already redeemed') ||
-            errorMessage.contains('already used') ||
-            errorMessage.contains('invalid or already')) {
-          // Handle already redeemed prize code specifically
-          _handleAlreadyRedeemedQR(code, prizeResponse);
+        if (!isValid) {
+          _handleInvalidQR({'error': 'incorrect_qr_code'.tr()}, code);
+          return;
+        }
+
+        // Send the FULL code to backend (not just natural part)
+        final prizeResponse = await fetchPrizeByNaturalCode(code);
+
+        if (prizeResponse['success'] == true) {
+          await _handlePrizeQR(prizeResponse, code);
         } else {
-          // For other errors with prize QR codes, show error
-          _handleInvalidQR(prizeResponse, code);
+          final errorMessage =
+              prizeResponse['error']?.toString().toLowerCase() ?? '';
+
+          if (errorMessage.contains('already redeemed') ||
+              errorMessage.contains('already used')) {
+            _handleAlreadyRedeemedQR(code, prizeResponse);
+          } else {
+            _handleInvalidQR(prizeResponse, code);
+          }
+        }
+      } else {
+        // Handle as regular QR code (existing logic)
+        final prizeResponse = await fetchPrizeByCode(code);
+
+        if (prizeResponse['success'] == true) {
+          await _handlePrizeQR(prizeResponse, code);
+        } else {
+          // Check if it's definitely a transfer QR
+          final isTransferQr = prizeResponse['isTransferQr'] == true;
+          final errorMessage =
+              prizeResponse['error']?.toString().toLowerCase() ?? '';
+
+          if (isTransferQr) {
+            // This is definitely a transfer QR, process it normally
+            await _handleTransferQR(code, prizeResponse);
+          } else if (errorMessage.contains('already redeemed') ||
+              errorMessage.contains('already used') ||
+              errorMessage.contains('invalid or already')) {
+            // Handle already redeemed prize code specifically
+            _handleAlreadyRedeemedQR(code, prizeResponse);
+          } else {
+            // For other errors with prize QR codes, show error
+            _handleInvalidQR(prizeResponse, code);
+          }
         }
       }
     } catch (e) {
@@ -226,42 +258,17 @@ class _OpenScanState extends State<OpenScan>
     String code,
     Map<String, dynamic> prizeResponse,
   ) {
-    // setState(() {
-    //   scanResults.add({"code": code, "result": "QR​ ត្រូវបានប្រើរួចហើយ"});
-    // });
-
     if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          backgroundColor: Colors.red,
-          content: Text(
-            'Invalid or already redeemed code'.tr(),
-            style: const TextStyle(
-              color: Colors.white,
-              fontSize: 16,
-              fontFamily: 'KhmerFont',
-            ),
-            textAlign: TextAlign.center,
-          ),
-          duration: const Duration(seconds: 4),
-        ),
-      );
+      _showModernErrorSnackBar('Invalid or already redeemed code'.tr());
     }
   }
 
   void _handleScanError(dynamic e) {
-    if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          backgroundColor: Colors.red,
-          content: Text(
-            'Error scanning QR code: ${e.toString()}',
-            style: const TextStyle(color: Colors.white, fontSize: 16),
-            textAlign: TextAlign.center,
-          ),
-        ),
-      );
+    if (e.toString().contains('TimeoutException')) {
+      _showModernErrorSnackBar('Network timeout, please try again.'.tr());
     }
+    // Ignore bad state and other technical errors.
+    debugPrint('QR scan error: $e');
   }
 
   Future<void> _handleTransferQR(
@@ -414,33 +421,53 @@ class _OpenScanState extends State<OpenScan>
     }
   }
 
+  void _showModernErrorSnackBar(String message) {
+    // Do NOT close previous error, just show again (Flutter replaces old one)
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        behavior: SnackBarBehavior.floating,
+        margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 20),
+        backgroundColor: Colors.red.shade700,
+        elevation: 10,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        content: Row(
+          children: [
+            const Icon(Icons.error_outline, color: Colors.white, size: 28),
+            const SizedBox(width: 16),
+            Expanded(
+              child: Text(
+                message,
+                style: const TextStyle(
+                  fontWeight: FontWeight.bold,
+                  fontSize: 16,
+                  color: Colors.white,
+                  fontFamily: 'KhmerFont', // or remove if not Khmer
+                ),
+                textAlign: TextAlign.left,
+              ),
+            ),
+          ],
+        ),
+        duration: const Duration(
+          seconds: 2,
+        ), // Short duration for responsiveness
+        dismissDirection: DismissDirection.horizontal,
+      ),
+    );
+  }
+
   // Also update your _handleInvalidQR method to be more specific
   void _handleInvalidQR(Map<String, dynamic> prizeResponse, String code) {
     final errorMessage = prizeResponse['error']?.toString().toLowerCase() ?? '';
-
     String resultText;
     if (errorMessage.contains('invalid') ||
         errorMessage.contains('not valid')) {
-      resultText = "QR​ មិនត្រឹមត្រូវ";
+      resultText = "incorrect_qr_code".tr();
     } else {
-      resultText = "QR​ នេះមិនមានទេ";
+      resultText = "incorrect_qr_code".tr();
     }
-
-    setState(() {
-      scanResults.add({"code": code, "result": resultText});
-    });
-
     if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          backgroundColor: Colors.red,
-          content: Text(
-            prizeResponse['error'] ?? 'QR code not valid',
-            style: const TextStyle(color: Colors.white, fontSize: 16),
-            textAlign: TextAlign.center,
-          ),
-        ),
-      );
+      _showModernErrorSnackBar(resultText);
     }
   }
 
@@ -928,4 +955,4 @@ class _OpenScanState extends State<OpenScan>
   }
 }
 
-//Correct with 931 line code changes
+//Correct with 958 line code changes

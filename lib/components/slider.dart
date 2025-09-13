@@ -319,8 +319,7 @@ class ImageSliderState extends State<ImageSlider> {
                               fontSize: subtitleSize,
                               fontWeight: FontWeight.bold,
                               color: Colors.white70,
-                              fontFamily:
-                                  localeCode == 'km' ? 'KhmerFont' : null,
+                              fontFamily: 'KhmerFont',
                               height: 1.17,
                             ),
                             maxLines: 2, // Increased to 2 lines

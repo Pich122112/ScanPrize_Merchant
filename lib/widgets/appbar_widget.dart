@@ -512,7 +512,7 @@ class _CustomAppBarState extends State<CustomAppBar> {
             },
           ),
           IconButton(
-            icon: const Icon(Icons.qr_code, color: Colors.white),
+            icon: const Icon(Icons.qr_code, color: Colors.white, size: 25),
             onPressed: () => _showQrCode(context),
           ),
         ],
@@ -525,7 +525,7 @@ class _CustomAppBarState extends State<CustomAppBar> {
       clipBehavior: Clip.none,
       children: [
         IconButton(
-          icon: const Icon(Icons.notifications, color: Colors.white),
+          icon: const Icon(Icons.notifications, color: Colors.white, size: 25),
           onPressed: () async {
             // Reset badge count when user views notifications
             await FirebaseService.resetBadgeCount();

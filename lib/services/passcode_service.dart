@@ -495,7 +495,7 @@ class PasscodeService {
         if (setExpiration) {
           final expires =
               DateTime.now()
-                  .add(const Duration(minutes: 5))
+                  .add(const Duration(minutes: 10))
                   .millisecondsSinceEpoch;
           await prefs.setInt('eye_window_expires_at', expires);
         }
@@ -620,7 +620,7 @@ class PasscodeService {
                 if (setExpiration) {
                   final expires =
                       DateTime.now()
-                          .add(const Duration(minutes: 5))
+                          .add(const Duration(minutes: 10))
                           .millisecondsSinceEpoch;
                   await prefs.setInt('passcode_unlock_at', expires);
                   await prefs.setInt('eye_window_expires_at', expires);

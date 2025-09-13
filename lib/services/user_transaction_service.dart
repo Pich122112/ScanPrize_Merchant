@@ -4,7 +4,7 @@ import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 
 class UserTransactionService {
-  static const String baseUrl = 'https://redeemapi.piikmall.com/api/v2';
+  static const String baseUrl = 'https://api-merchant.sandbox.gzb.app/api/v2';
   static const String appPackage = 'com.ganzberg.scanprizemerchantapp';
 
   static Future<List<Map<String, dynamic>>> fetchAllUserTransactions() async {

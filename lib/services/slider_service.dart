@@ -4,7 +4,7 @@ import '../models/slider_model.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class ApiService {
-  static const String baseUrl = 'https://redeemapi.piikmall.com/api/v2';
+  static const String baseUrl = 'https://api-merchant.sandbox.gzb.app/api/v2';
   static const String _cacheKey = 'slider_cache';
   static const String _cacheTimestampKey = 'slider_cache_timestamp';
   static const Duration _cacheDuration = Duration(hours: 1); // Cache for 1 hour

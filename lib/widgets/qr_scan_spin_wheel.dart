@@ -104,6 +104,7 @@ class _QrScanSpinWheelDialogState extends State<QrScanSpinWheelDialog> {
                         fontSize: 14,
                         fontWeight: FontWeight.bold,
                         color: Colors.white,
+                        fontFamily: 'KhmerFont'
                       ),
                     ),
                 ],
@@ -261,6 +262,7 @@ class _QrScanSpinWheelDialogState extends State<QrScanSpinWheelDialog> {
                         fontSize: 18,
                         fontWeight: FontWeight.w600,
                         letterSpacing: 1.1,
+                        fontFamily: 'KhmerFont'
                       ),
                     ),
                   ),

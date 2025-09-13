@@ -1,12 +1,82 @@
+import 'package:gb_merchant/utils/qr_code_extractor.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class Constants {
-  static const String apiUrl = "https://redeemapi-merchant.piikmall.com/api/v2";
+  static const String apiUrl = "https://api-merchant.sandbox.gzb.app/api/v2";
   static const String appSecret = "MySuperSecretKey123!@*";
   static const String wsUrl = 'scan-app-m1fx.onrender.com:8081';
   static const String appPackage = 'com.ganzberg.scanprizemerchantapp';
+}
+
+Future<Map<String, dynamic>> fetchPrizeByNaturalCode(String fullCode) async {
+  final prefs = await SharedPreferences.getInstance();
+  final token = prefs.getString('token') ?? '';
+
+  if (token.isEmpty) {
+    return {
+      "success": false,
+      "error": "Authentication required. Please login again.",
+    };
+  }
+
+  // This ensures both the natural code and signature are sent.
+  final codeToSend = QrCodeExtractor.extractFullCode(fullCode);
+
+  final url = "https://api-merchant.sandbox.gzb.app/api/v2/redeem/scan";
+  print('Validating full code: $codeToSend');
+
+  try {
+    final response = await http.post(
+      Uri.parse(url),
+      headers: {
+        "Content-Type": "application/x-www-form-urlencoded",
+        "Authorization": "Bearer $token",
+        "Accept": "application/json",
+        'X-App-Package': Constants.appPackage,
+      },
+      body: {"code": codeToSend}, // <-- Send the full code with signature!
+    );
+
+    print('Full code API response status: ${response.statusCode}');
+    print('Full code API response body: ${response.body}');
+
+    if (response.statusCode == 200) {
+      final data = json.decode(response.body);
+
+      if (data['success'] == true) {
+        final responseData = data['data'] ?? {};
+        return {
+          "success": true,
+          "issuer": responseData["issuer"] ?? "",
+          "amount": responseData["amount"] ?? 0,
+          "wallet_id": responseData["wallet_id"] ?? 0,
+          "wallet_name": responseData["wallet_name"] ?? "",
+          "new_amount": responseData["new_amount"] ?? 0,
+          "message": data["message"] ?? "Code redeemed successfully.",
+        };
+      } else {
+        return {
+          "success": false,
+          "error": data["message"] ?? "Invalid or already redeemed code",
+        };
+      }
+    } else {
+      String? message;
+      try {
+        final body = json.decode(response.body);
+        message = body['message'] ?? body['error'];
+      } catch (_) {
+        message = "Server error: ${response.statusCode}";
+      }
+
+      return {"success": false, "error": message ?? "Invalid or used code"};
+    }
+  } catch (e) {
+    print('Full code API error: $e');
+    return {"success": false, "error": "Network error: ${e.toString()}"};
+  }
 }
 
 Future<Map<String, dynamic>> fetchPrizeByCode(String code) async {
@@ -20,7 +90,7 @@ Future<Map<String, dynamic>> fetchPrizeByCode(String code) async {
     };
   }
 
-  final url = "https://redeemapi-merchant.piikmall.com/api/v2/redeem/scan";
+  final url = "https://api-merchant.sandbox.gzb.app/api/v2/redeem/scan";
   print('Scanning code: $code');
 
   try {

@@ -71,25 +71,25 @@ class ThreeBoxSectionState extends State<ThreeBoxSection> {
     // If cooldown active, ignore subsequent taps
     if (_eyeCooldownActive) {
       // Optional: give user feedback
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            backgroundColor: AppColors.primaryColor,
-            content: Text(
-              'please_wait'.tr(),
-              style: TextStyle(fontFamily: 'KhmerFont', fontSize: 16),
-            ), // add translation key if you want
-            duration: const Duration(milliseconds: 800),
-          ),
-        );
-      }
+      // if (mounted) {
+      //   ScaffoldMessenger.of(context).showSnackBar(
+      //     SnackBar(
+      //       backgroundColor: AppColors.primaryColor,
+      //       content: Text(
+      //         'please_wait'.tr(),
+      //         style: TextStyle(fontFamily: 'KhmerFont', fontSize: 16),
+      //       ), // add translation key if you want
+      //       duration: const Duration(milliseconds: 800),
+      //     ),
+      //   );
+      // }
       return;
     }
 
     // Activate cooldown for 3 seconds
     _eyeCooldownActive = true;
     _eyeCooldownTimer?.cancel();
-    _eyeCooldownTimer = Timer(const Duration(seconds: 3), () {
+    _eyeCooldownTimer = Timer(const Duration(seconds: 1), () {
       _eyeCooldownActive = false;
     });
 

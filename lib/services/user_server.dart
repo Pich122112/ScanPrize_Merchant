@@ -2,7 +2,7 @@
 // import 'package:http/http.dart' as http;
 
 // class ApiService {
-//   static const String baseUrl = 'https://redeemapi-merchant.piikmall.com/api/v2';
+//   static const String baseUrl = 'https://api-merchant.sandbox.gzb.app/api/v2';
 
 //   static Future<Map<String, dynamic>> signUp({
 //     required String name,
@@ -15,7 +15,7 @@
 //   }) async {
 //     try {
 //       final url = Uri.parse(
-//         'https://redeemapi-merchant.piikmall.com/api/v2/auth/signup',
+//         'https://api-merchant.sandbox.gzb.app/api/v2/auth/signup',
 //       );
 
 //       // Debug the request data
@@ -80,7 +80,7 @@
 //   static Future<Map<String, dynamic>> getUserProfile(String token) async {
 //     try {
 //       final url = Uri.parse(
-//         'https://redeemapi-merchant.piikmall.com/api/v2/user/profile?force=1',
+//         'https://api-merchant.sandbox.gzb.app/api/v2/user/profile?force=1',
 //       );
 
 //       final response = await http.get(
@@ -125,7 +125,7 @@
 //   ) async {
 //     try {
 //       final response = await http.post(
-//         Uri.parse('https://redeemapi-merchant.piikmall.com/api/v2/user/passcode'),
+//         Uri.parse('https://api-merchant.sandbox.gzb.app/api/v2/user/passcode'),
 //         headers: {
 //           'Authorization': 'Bearer $token',
 //           'Accept': 'application/json',
@@ -154,7 +154,7 @@
 //   ) async {
 //     try {
 //       final response = await http.post(
-//         Uri.parse('https://redeemapi-merchant.piikmall.com/api/v2/user/passcode/verify'),
+//         Uri.parse('https://api-merchant.sandbox.gzb.app/api/v2/user/passcode/verify'),
 //         headers: {
 //           'Authorization': 'Bearer $token',
 //           'Accept': 'application/json',
@@ -180,7 +180,7 @@
 //   ) async {
 //     try {
 //       final response = await http.post(
-//         Uri.parse('https://redeemapi-merchant.piikmall.com/api/v2/redeem/scan'),
+//         Uri.parse('https://api-merchant.sandbox.gzb.app/api/v2/redeem/scan'),
 //         headers: {
 //           'Authorization': 'Bearer $token',
 //           'Accept': 'application/json',
@@ -204,7 +204,7 @@ import 'package:http/http.dart' as http;
 
 class ApiService {
   static const String baseUrl =
-      'https://redeemapi-merchant.piikmall.com/api/v2';
+      'https://api-merchant.sandbox.gzb.app/api/v2';
   static const String appPackage = 'com.ganzberg.scanprizemerchantapp';
 
   static Future<Map<String, dynamic>> uploadFcmToken({
@@ -250,7 +250,7 @@ class ApiService {
   }) async {
     try {
       final url = Uri.parse(
-        'https://redeemapi-merchant.piikmall.com/api/v2/auth/signup',
+        'https://api-merchant.sandbox.gzb.app/api/v2/auth/signup',
       );
 
       // Debug the request data
@@ -415,7 +415,7 @@ class ApiService {
   static Future<Map<String, dynamic>> getUserProfile(String token) async {
     try {
       final url = Uri.parse(
-        'https://redeemapi-merchant.piikmall.com/api/v2/user/profile?force=1',
+        'https://api-merchant.sandbox.gzb.app/api/v2/user/profile?force=1',
       );
 
       final response = await http.get(
@@ -459,7 +459,7 @@ class ApiService {
     try {
       final response = await http.post(
         Uri.parse(
-          'https://redeemapi-merchant.piikmall.com/api/v2/user/passcode',
+          'https://api-merchant.sandbox.gzb.app/api/v2/user/passcode',
         ),
         headers: {
           'Authorization': 'Bearer $token',
@@ -490,7 +490,7 @@ class ApiService {
     try {
       final response = await http.post(
         Uri.parse(
-          'https://redeemapi-merchant.piikmall.com/api/v2/user/passcode/verify',
+          'https://api-merchant.sandbox.gzb.app/api/v2/user/passcode/verify',
         ),
         headers: {
           'Authorization': 'Bearer $token',
@@ -517,7 +517,7 @@ class ApiService {
   ) async {
     try {
       final response = await http.post(
-        Uri.parse('https://redeemapi-merchant.piikmall.com/api/v2/redeem/scan'),
+        Uri.parse('https://api-merchant.sandbox.gzb.app/api/v2/redeem/scan'),
         headers: {
           'Authorization': 'Bearer $token',
           'Accept': 'application/json',

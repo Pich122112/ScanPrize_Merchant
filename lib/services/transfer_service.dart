@@ -26,7 +26,7 @@ class TransferService {
   //     }
 
   //     // ✅ Use the correct API format
-  //     final url = Uri.parse('https://redeemapi-merchant.piikmall.com/api/v2/transfer');
+  //     final url = Uri.parse('https://api-merchant.sandbox.gzb.app/api/v2/transfer');
 
   //     // ✅ UPDATED request body format - include new fields
   //     final requestBody = {
@@ -121,7 +121,7 @@ class TransferService {
       }
 
       final url = Uri.parse(
-        'https://redeemapi-merchant.piikmall.com/api/v2/transfer',
+        'https://api-merchant.sandbox.gzb.app/api/v2/transfer',
       );
 
       // ✅ UPDATED: Only include prize-related fields if they're provided
@@ -236,7 +236,7 @@ class TransferService {
       }
 
       final url = Uri.parse(
-        'https://redeemapi-merchant.piikmall.com/api/v2/transfer/receiver-check?phone_number=$cleanPhone',
+        'https://api-merchant.sandbox.gzb.app/api/v2/transfer/receiver-check?phone_number=$cleanPhone',
       );
 
       print('🔍 Verify receiver - URL: $url');

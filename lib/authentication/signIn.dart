@@ -202,6 +202,21 @@ class _SignUpPageState extends State<SignInPage> {
         if (message.contains("Validation failed (Account inactive)")) {
           // Show dialog instead of snackbar
           _showAccountInactiveDialog();
+        } else if (message.contains("User not yet register")) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(
+                'អ្នកមិនទាន់បានចុះឈ្មោះទេ សូមចុះឈ្មោះជាមុនសិន។',
+                style: TextStyle(
+                  fontFamily: 'KhmerFont',
+                  fontSize: 16,
+                  fontWeight: FontWeight.w600,
+                ),
+                textAlign: TextAlign.center,
+              ),
+              backgroundColor: Colors.red,
+            ),
+          );
         } else {
           final match = RegExp(r'(\d+)').firstMatch(message);
           if (match != null) {
@@ -523,6 +538,14 @@ class _SignUpPageState extends State<SignInPage> {
                                                 vertical: 16,
                                               ),
                                           errorText: _phoneErrorText,
+                                          errorStyle: const TextStyle(
+                                            fontFamily: 'KhmerFont',
+                                            fontSize: 14,
+                                            fontWeight:
+                                                FontWeight
+                                                    .bold, // ✅ makes it bold
+                                            color: Colors.red,
+                                          ),
                                         ),
                                         initialCountryCode: 'KH',
                                         disableLengthCheck: true,
@@ -581,6 +604,7 @@ class _SignUpPageState extends State<SignInPage> {
                                             color: Colors.grey[600],
                                             fontSize: 16,
                                             fontFamily: 'KhmerFont',
+                                            fontWeight: FontWeight.w600
                                           ),
                                           counterText: '',
                                           filled: true,

@@ -68,7 +68,7 @@ class UserBalanceService {
 
     try {
       final url = Uri.parse(
-        'https://redeemapi-merchant.piikmall.com/api/v2/user/profile',
+        'https://api-merchant.sandbox.gzb.app/api/v2/user/profile',
       );
       final response = await http.get(
         url,
@@ -185,7 +185,7 @@ class UserBalanceService {
 
     try {
       final url = Uri.parse(
-        'https://redeemapi-merchant.piikmall.com/api/v2/user/profile',
+        'https://api-merchant.sandbox.gzb.app/api/v2/user/profile',
       );
       final response = await http.get(
         url,

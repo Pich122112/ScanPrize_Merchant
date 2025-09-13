@@ -91,7 +91,7 @@
   "error_occurred": "មានកំហុសកើតឡើង",
   "transaction_saved": "ប្រតិបត្តិការត្រូវបានរក្សាទុកក្នុងទូរស័ព្ទរបស់អ្នក",
   "saving_transaction": "កំពុងរក្សាទុកប្រតិបត្តិការ",
-  "Invalid or already redeemed code": "កូដមិនត្រឹមត្រូវ ឬត្រូវបានប្រើរួចហើយ",
+  "Invalid or already redeemed code": "QR កូដនេះត្រូវបានប្រើរួចហើយ",
   "no_internet_connection": "គ្មានការតភ្ជាប់អ៊ីនធឺណិត សូមពិនិត្យការកំណត់បណ្ដាញរបស់អ្នក។",
   "transferred_to": "បានផ្ទេរទៅ {phoneNumber}",
   "received_from": "បានទទួលពី {phoneNumber}",
@@ -118,5 +118,6 @@
   "please_wait": "សូមរង់ចាំ...",
   "contact_us": "ទាក់ទងមកកាន់យើងខ្ញុំ",
   "contact_platform": "អ្នក​អាច​ទាក់ទង​មក​យើង​បាន​គ្រប់​ពេល​តាម​រយៈ​ការផ្ញើរសារ​តាមFacebook Messengerខាងក្រោម​​។​ យើងរង់ចាំឆ្លើយតបអ្នកគ្រប់ពេល​។",
-  "you_not_have_any_transaction": "អ្នកនៅមិនទាន់មានប្រតិបត្តិការណ៍ទេ!"
+  "you_not_have_any_transaction": "អ្នកនៅមិនទាន់មានប្រតិបត្តិការណ៍ទេ!",
+  "incorrect_qr_code": "QR Codeមិនត្រឹមត្រូវ"
 }
