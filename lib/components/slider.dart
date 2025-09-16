@@ -299,7 +299,7 @@ class ImageSliderState extends State<ImageSlider> {
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
                           Text(
-                            title,
+                            title.toUpperCase(),
                             style: TextStyle(
                               fontSize: titleSize,
                               fontWeight: FontWeight.bold,

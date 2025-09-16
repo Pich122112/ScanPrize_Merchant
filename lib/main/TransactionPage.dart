@@ -145,7 +145,12 @@ class _NotificationPageState extends State<NotificationPage> {
       return Center(
         child: Text(
           'no_transactions'.tr(),
-          style: const TextStyle(color: Colors.white, fontSize: 24),
+          style: const TextStyle(
+            color: Colors.white,
+            fontSize: 24,
+            fontFamily: 'KhmerFont',
+            fontWeight: FontWeight.w500,
+          ),
           textAlign: TextAlign.center,
         ),
       );

@@ -806,5 +806,869 @@
         "geocode": "1104",
         "name_en": "Pech Chreada",
         "name_kh": "ពេជ្រាដា"
+    },
+    {
+        "id": 102,
+        "type": 4,
+        "province_id": 12,
+        "geocode": "1105",
+        "name_en": "Saen Monourom",
+        "name_kh": "សែនមនោរម្យ"
+    },
+    {
+        "id": 103,
+        "type": 3,
+        "province_id": 13,
+        "geocode": "2201",
+        "name_en": "Anlong Veaeng",
+        "name_kh": "អន្លង់វែង"
+    },
+    {
+        "id": 104,
+        "type": 3,
+        "province_id": 13,
+        "geocode": "2202",
+        "name_en": "Banteay Ampil",
+        "name_kh": "បន្ទាយអំពិល"
+    },
+    {
+        "id": 105,
+        "type": 3,
+        "province_id": 13,
+        "geocode": "2203",
+        "name_en": "Chong Kal",
+        "name_kh": "ចុងកាល់"
+    },
+    {
+        "id": 106,
+        "type": 4,
+        "province_id": 13,
+        "geocode": "2204",
+        "name_en": "Samraong",
+        "name_kh": "សំរោង"
+    },
+    {
+        "id": 107,
+        "type": 3,
+        "province_id": 13,
+        "geocode": "2205",
+        "name_en": "Trapeang Prasat",
+        "name_kh": "ត្រពាំងប្រាសាទ"
+    },
+    {
+        "id": 108,
+        "type": 4,
+        "province_id": 14,
+        "geocode": "2401",
+        "name_en": "Pailin",
+        "name_kh": "ប៉ៃលិន"
+    },
+    {
+        "id": 109,
+        "type": 3,
+        "province_id": 14,
+        "geocode": "2402",
+        "name_en": "Sala Krau",
+        "name_kh": "សាលាក្រៅ"
+    },
+    {
+        "id": 110,
+        "type": 5,
+        "province_id": 15,
+        "geocode": "1201",
+        "name_en": "Chamkar Mon",
+        "name_kh": "ចំការមន"
+    },
+    {
+        "id": 111,
+        "type": 5,
+        "province_id": 15,
+        "geocode": "1202",
+        "name_en": "Doun Penh",
+        "name_kh": "ដូនពេញ"
+    },
+    {
+        "id": 112,
+        "type": 5,
+        "province_id": 15,
+        "geocode": "1203",
+        "name_en": "Prampir Meakkakra",
+        "name_kh": "៧មករា"
+    },
+    {
+        "id": 113,
+        "type": 5,
+        "province_id": 15,
+        "geocode": "1204",
+        "name_en": "Tuol Kouk",
+        "name_kh": "ទួលគោក"
+    },
+    {
+        "id": 114,
+        "type": 5,
+        "province_id": 15,
+        "geocode": "1205",
+        "name_en": "Dangkao",
+        "name_kh": "ដង្កោ"
+    },
+    {
+        "id": 115,
+        "type": 5,
+        "province_id": 15,
+        "geocode": "1206",
+        "name_en": "Mean Chey",
+        "name_kh": "មានជ័យ"
+    },
+    {
+        "id": 116,
+        "type": 5,
+        "province_id": 15,
+        "geocode": "1207",
+        "name_en": "Russey Keo",
+        "name_kh": "ឫស្សីកែវ"
+    },
+    {
+        "id": 117,
+        "type": 5,
+        "province_id": 15,
+        "geocode": "1208",
+        "name_en": "Saensokh",
+        "name_kh": "សែនសុខ"
+    },
+    {
+        "id": 118,
+        "type": 5,
+        "province_id": 15,
+        "geocode": "1209",
+        "name_en": "Pur SenChey",
+        "name_kh": "ពោធិ៍សែនជ័យ"
+    },
+    {
+        "id": 119,
+        "type": 5,
+        "province_id": 15,
+        "geocode": "1210",
+        "name_en": "Chrouy Changvar",
+        "name_kh": "ជ្រោយចង្វារ"
+    },
+    {
+        "id": 120,
+        "type": 5,
+        "province_id": 15,
+        "geocode": "1211",
+        "name_en": "Praek Pnov",
+        "name_kh": "ព្រែកព្នៅ"
+    },
+    {
+        "id": 121,
+        "type": 5,
+        "province_id": 15,
+        "geocode": "1212",
+        "name_en": "Chbar Ampov",
+        "name_kh": "ច្បារអំពៅ"
+    },
+    {
+        "id": 122,
+        "type": 5,
+        "province_id": 15,
+        "geocode": "1213",
+        "name_en": "Boeng Keng Kang",
+        "name_kh": "បឹងកេងកង"
+    },
+    {
+        "id": 123,
+        "type": 5,
+        "province_id": 15,
+        "geocode": "1214",
+        "name_en": "Kamboul",
+        "name_kh": "កំបូល"
+    },
+    {
+        "id": 124,
+        "type": 4,
+        "province_id": 16,
+        "geocode": "1801",
+        "name_en": "Preah Sihanouk",
+        "name_kh": "ព្រះសីហនុ"
+    },
+    {
+        "id": 125,
+        "type": 3,
+        "province_id": 16,
+        "geocode": "1802",
+        "name_en": "Prey Nob",
+        "name_kh": "ព្រៃនប់"
+    },
+    {
+        "id": 126,
+        "type": 3,
+        "province_id": 16,
+        "geocode": "1803",
+        "name_en": "Stueng Hav",
+        "name_kh": "ស្ទឹងហាវ"
+    },
+    {
+        "id": 127,
+        "type": 3,
+        "province_id": 16,
+        "geocode": "1804",
+        "name_en": "Kampong Seila",
+        "name_kh": "កំពង់សីលា"
+    },
+    {
+        "id": 128,
+        "type": 4,
+        "province_id": 16,
+        "geocode": "1805",
+        "name_en": "Kaoh Rung",
+        "name_kh": "កោះរ៉ុង"
+    },
+    {
+        "id": 129,
+        "type": 3,
+        "province_id": 17,
+        "geocode": "1301",
+        "name_en": "Chey Saen",
+        "name_kh": "ជ័យសែន"
+    },
+    {
+        "id": 130,
+        "type": 3,
+        "province_id": 17,
+        "geocode": "1302",
+        "name_en": "Chhaeb",
+        "name_kh": "ឆែប"
+    },
+    {
+        "id": 131,
+        "type": 3,
+        "province_id": 17,
+        "geocode": "1303",
+        "name_en": "Choam Ksant",
+        "name_kh": "ជាំក្សាន្ដ"
+    },
+    {
+        "id": 132,
+        "type": 3,
+        "province_id": 17,
+        "geocode": "1304",
+        "name_en": "Kuleaen",
+        "name_kh": "គូលែន"
+    },
+    {
+        "id": 133,
+        "type": 3,
+        "province_id": 17,
+        "geocode": "1305",
+        "name_en": "Rovieng",
+        "name_kh": "រវៀង"
+    },
+    {
+        "id": 134,
+        "type": 3,
+        "province_id": 17,
+        "geocode": "1306",
+        "name_en": "Sangkum Thmei",
+        "name_kh": "សង្គមថ្មី"
+    },
+    {
+        "id": 135,
+        "type": 3,
+        "province_id": 17,
+        "geocode": "1307",
+        "name_en": "Tbaeng Mean Chey",
+        "name_kh": "ត្បែងមានជ័យ"
+    },
+    {
+        "id": 136,
+        "type": 4,
+        "province_id": 17,
+        "geocode": "1308",
+        "name_en": "Preah Vihear",
+        "name_kh": "ព្រះវិហារ"
+    },
+    {
+        "id": 137,
+        "type": 3,
+        "province_id": 18,
+        "geocode": "1401",
+        "name_en": "Ba Phnum",
+        "name_kh": "បាភ្នំ"
+    },
+    {
+        "id": 138,
+        "type": 3,
+        "province_id": 18,
+        "geocode": "1402",
+        "name_en": "Kamchay Mear",
+        "name_kh": "កំចាយមារ"
+    },
+    {
+        "id": 139,
+        "type": 3,
+        "province_id": 18,
+        "geocode": "1403",
+        "name_en": "Kampong Trabaek",
+        "name_kh": "កំពង់ត្របែក"
+    },
+    {
+        "id": 140,
+        "type": 3,
+        "province_id": 18,
+        "geocode": "1404",
+        "name_en": "Kanhchriech",
+        "name_kh": "កញ្ជ្រៀច"
+    },
+    {
+        "id": 141,
+        "type": 3,
+        "province_id": 18,
+        "geocode": "1405",
+        "name_en": "Me Sang",
+        "name_kh": "មេសាង"
+    },
+    {
+        "id": 142,
+        "type": 3,
+        "province_id": 18,
+        "geocode": "1406",
+        "name_en": "Peam Chor",
+        "name_kh": "ពាមជរ"
+    },
+    {
+        "id": 143,
+        "type": 3,
+        "province_id": 18,
+        "geocode": "1407",
+        "name_en": "Peam Ro",
+        "name_kh": "ពាមរក៍"
+    },
+    {
+        "id": 144,
+        "type": 3,
+        "province_id": 18,
+        "geocode": "1408",
+        "name_en": "Pea Reang",
+        "name_kh": "ពារាំង"
+    },
+    {
+        "id": 145,
+        "type": 3,
+        "province_id": 18,
+        "geocode": "1409",
+        "name_en": "Preah Sdach",
+        "name_kh": "ព្រះស្ដេច"
+    },
+    {
+        "id": 146,
+        "type": 4,
+        "province_id": 18,
+        "geocode": "1410",
+        "name_en": "Prey Veng",
+        "name_kh": "ព្រៃវែង"
+    },
+    {
+        "id": 147,
+        "type": 3,
+        "province_id": 18,
+        "geocode": "1411",
+        "name_en": "Pur Rieng",
+        "name_kh": "ពោធិ៍រៀង"
+    },
+    {
+        "id": 148,
+        "type": 3,
+        "province_id": 18,
+        "geocode": "1412",
+        "name_en": "Sithor Kandal",
+        "name_kh": "ស៊ីធរកណ្ដាល"
+    },
+    {
+        "id": 149,
+        "type": 3,
+        "province_id": 18,
+        "geocode": "1413",
+        "name_en": "Svay Antor",
+        "name_kh": "ស្វាយអន្ទរ"
+    },
+    {
+        "id": 150,
+        "type": 3,
+        "province_id": 19,
+        "geocode": "1501",
+        "name_en": "Bakan",
+        "name_kh": "បាកាន"
+    },
+    {
+        "id": 151,
+        "type": 3,
+        "province_id": 19,
+        "geocode": "1502",
+        "name_en": "Kandieng",
+        "name_kh": "កណ្ដៀង"
+    },
+    {
+        "id": 152,
+        "type": 3,
+        "province_id": 19,
+        "geocode": "1503",
+        "name_en": "Krakor",
+        "name_kh": "ក្រគរ"
+    },
+    {
+        "id": 153,
+        "type": 3,
+        "province_id": 19,
+        "geocode": "1504",
+        "name_en": "Phnum Kravanh",
+        "name_kh": "ភ្នំក្រវ៉ាញ"
+    },
+    {
+        "id": 154,
+        "type": 4,
+        "province_id": 19,
+        "geocode": "1505",
+        "name_en": "Pursat",
+        "name_kh": "ពោធិ៍សាត់"
+    },
+    {
+        "id": 155,
+        "type": 3,
+        "province_id": 19,
+        "geocode": "1506",
+        "name_en": "Veal Veaeng",
+        "name_kh": "វាលវែង"
+    },
+    {
+        "id": 156,
+        "type": 3,
+        "province_id": 19,
+        "geocode": "1507",
+        "name_en": "Ta Lou Senchey",
+        "name_kh": "តាលោសែនជ័យ"
+    },
+    {
+        "id": 157,
+        "type": 3,
+        "province_id": 20,
+        "geocode": "1601",
+        "name_en": "Andoung Meas",
+        "name_kh": "អណ្ដូងមាស"
+    },
+    {
+        "id": 158,
+        "type": 4,
+        "province_id": 20,
+        "geocode": "1602",
+        "name_en": "Ban Lung",
+        "name_kh": "បានលុង"
+    },
+    {
+        "id": 159,
+        "type": 3,
+        "province_id": 20,
+        "geocode": "1603",
+        "name_en": "Bar Kaev",
+        "name_kh": "បរកែវ"
+    },
+    {
+        "id": 160,
+        "type": 3,
+        "province_id": 20,
+        "geocode": "1604",
+        "name_en": "Koun Mom",
+        "name_kh": "កូនមុំ"
+    },
+    {
+        "id": 161,
+        "type": 3,
+        "province_id": 20,
+        "geocode": "1605",
+        "name_en": "Lumphat",
+        "name_kh": "លំផាត់"
+    },
+    {
+        "id": 162,
+        "type": 3,
+        "province_id": 20,
+        "geocode": "1606",
+        "name_en": "Ou Chum",
+        "name_kh": "អូរជុំ"
+    },
+    {
+        "id": 163,
+        "type": 3,
+        "province_id": 20,
+        "geocode": "1607",
+        "name_en": "Ou Ya Dav",
+        "name_kh": "អូរយ៉ាដាវ"
+    },
+    {
+        "id": 164,
+        "type": 3,
+        "province_id": 20,
+        "geocode": "1608",
+        "name_en": "Ta Veaeng",
+        "name_kh": "តាវែង"
+    },
+    {
+        "id": 165,
+        "type": 3,
+        "province_id": 20,
+        "geocode": "1609",
+        "name_en": "Veun Sai",
+        "name_kh": "វើនសៃ"
+    },
+    {
+        "id": 166,
+        "type": 3,
+        "province_id": 21,
+        "geocode": "1701",
+        "name_en": "Angkor Chum",
+        "name_kh": "អង្គរជុំ"
+    },
+    {
+        "id": 167,
+        "type": 3,
+        "province_id": 21,
+        "geocode": "1702",
+        "name_en": "Angkor Thum",
+        "name_kh": "អង្គរធំ"
+    },
+    {
+        "id": 168,
+        "type": 3,
+        "province_id": 21,
+        "geocode": "1703",
+        "name_en": "Banteay Srei",
+        "name_kh": "បន្ទាយស្រី"
+    },
+    {
+        "id": 169,
+        "type": 3,
+        "province_id": 21,
+        "geocode": "1704",
+        "name_en": "Chi Kraeng",
+        "name_kh": "ជីក្រែង"
+    },
+    {
+        "id": 170,
+        "type": 3,
+        "province_id": 21,
+        "geocode": "1706",
+        "name_en": "Kralanh",
+        "name_kh": "ក្រឡាញ់"
+    },
+    {
+        "id": 171,
+        "type": 3,
+        "province_id": 21,
+        "geocode": "1707",
+        "name_en": "Puok",
+        "name_kh": "ពួក"
+    },
+    {
+        "id": 172,
+        "type": 3,
+        "province_id": 21,
+        "geocode": "1709",
+        "name_en": "Prasat Bakong",
+        "name_kh": "ប្រាសាទបាគង"
+    },
+    {
+        "id": 173,
+        "type": 4,
+        "province_id": 21,
+        "geocode": "1710",
+        "name_en": "Siem Reap",
+        "name_kh": "សៀមរាប"
+    },
+    {
+        "id": 174,
+        "type": 3,
+        "province_id": 21,
+        "geocode": "1711",
+        "name_en": "Soutr Nikom",
+        "name_kh": "សូទ្រនិគម"
+    },
+    {
+        "id": 175,
+        "type": 3,
+        "province_id": 21,
+        "geocode": "1712",
+        "name_en": "Srei Snam",
+        "name_kh": "ស្រីស្នំ"
+    },
+    {
+        "id": 176,
+        "type": 3,
+        "province_id": 21,
+        "geocode": "1713",
+        "name_en": "Svay Leu",
+        "name_kh": "ស្វាយលើ"
+    },
+    {
+        "id": 177,
+        "type": 3,
+        "province_id": 21,
+        "geocode": "1714",
+        "name_en": "Varin",
+        "name_kh": "វ៉ារិន"
+    },
+    {
+        "id": 178,
+        "type": 4,
+        "province_id": 21,
+        "geocode": "1715",
+        "name_en": "Run Ta Aek Techo Sen",
+        "name_kh": "រុនតាឯកតេជោសែន"
+    },
+    {
+        "id": 179,
+        "type": 3,
+        "province_id": 22,
+        "geocode": "1901",
+        "name_en": "Sesan",
+        "name_kh": "សេសាន"
+    },
+    {
+        "id": 180,
+        "type": 3,
+        "province_id": 22,
+        "geocode": "1902",
+        "name_en": "Siem Bouk",
+        "name_kh": "សៀមបូក"
+    },
+    {
+        "id": 181,
+        "type": 3,
+        "province_id": 22,
+        "geocode": "1903",
+        "name_en": "Siem Pang",
+        "name_kh": "សៀមប៉ាង"
+    },
+    {
+        "id": 182,
+        "type": 4,
+        "province_id": 22,
+        "geocode": "1904",
+        "name_en": "Stueng Traeng",
+        "name_kh": "ស្ទឹងត្រែង"
+    },
+    {
+        "id": 183,
+        "type": 3,
+        "province_id": 22,
+        "geocode": "1905",
+        "name_en": "Thala Barivat",
+        "name_kh": "ថាឡាបរិវ៉ាត់"
+    },
+    {
+        "id": 184,
+        "type": 3,
+        "province_id": 22,
+        "geocode": "1906",
+        "name_en": "Borei Ou Svay Senchey",
+        "name_kh": "បុរីអូរស្វាយសែនជ័យ"
+    },
+    {
+        "id": 185,
+        "type": 3,
+        "province_id": 23,
+        "geocode": "2001",
+        "name_en": "Chantrea",
+        "name_kh": "ចន្ទ្រា"
+    },
+    {
+        "id": 186,
+        "type": 3,
+        "province_id": 23,
+        "geocode": "2002",
+        "name_en": "Kampong Rou",
+        "name_kh": "កំពង់រោទិ៍"
+    },
+    {
+        "id": 187,
+        "type": 3,
+        "province_id": 23,
+        "geocode": "2003",
+        "name_en": "Rumduol",
+        "name_kh": "រំដួល"
+    },
+    {
+        "id": 188,
+        "type": 3,
+        "province_id": 23,
+        "geocode": "2004",
+        "name_en": "Romeas Haek",
+        "name_kh": "រមាសហែក"
+    },
+    {
+        "id": 189,
+        "type": 3,
+        "province_id": 23,
+        "geocode": "2005",
+        "name_en": "Svay Chrum",
+        "name_kh": "ស្វាយជ្រំ"
+    },
+    {
+        "id": 190,
+        "type": 4,
+        "province_id": 23,
+        "geocode": "2006",
+        "name_en": "Svay Rieng",
+        "name_kh": "ស្វាយរៀង"
+    },
+    {
+        "id": 191,
+        "type": 3,
+        "province_id": 23,
+        "geocode": "2007",
+        "name_en": "Svay Teab",
+        "name_kh": "ស្វាយទាប"
+    },
+    {
+        "id": 192,
+        "type": 4,
+        "province_id": 23,
+        "geocode": "2008",
+        "name_en": "Bavet",
+        "name_kh": "បាវិត"
+    },
+    {
+        "id": 193,
+        "type": 3,
+        "province_id": 24,
+        "geocode": "2101",
+        "name_en": "Angkor Borei",
+        "name_kh": "អង្គរបូរី"
+    },
+    {
+        "id": 194,
+        "type": 3,
+        "province_id": 24,
+        "geocode": "2102",
+        "name_en": "Bati",
+        "name_kh": "បាទី"
+    },
+    {
+        "id": 195,
+        "type": 3,
+        "province_id": 24,
+        "geocode": "2103",
+        "name_en": "Borei Cholsar",
+        "name_kh": "បូរីជលសារ"
+    },
+    {
+        "id": 196,
+        "type": 3,
+        "province_id": 24,
+        "geocode": "2104",
+        "name_en": "Kiri Vong",
+        "name_kh": "គីរីវង់"
+    },
+    {
+        "id": 197,
+        "type": 3,
+        "province_id": 24,
+        "geocode": "2105",
+        "name_en": "Kaoh Andaet",
+        "name_kh": "កោះអណ្ដែត"
+    },
+    {
+        "id": 198,
+        "type": 3,
+        "province_id": 24,
+        "geocode": "2106",
+        "name_en": "Prey Kabbas",
+        "name_kh": "ព្រៃកប្បាស"
+    },
+    {
+        "id": 199,
+        "type": 3,
+        "province_id": 24,
+        "geocode": "2107",
+        "name_en": "Samraong",
+        "name_kh": "សំរោង"
+    },
+    {
+        "id": 200,
+        "type": 4,
+        "province_id": 24,
+        "geocode": "2108",
+        "name_en": "Doun Kaev",
+        "name_kh": "ដូនកែវ"
+    },
+    {
+        "id": 201,
+        "type": 3,
+        "province_id": 24,
+        "geocode": "2109",
+        "name_en": "Tram Kak",
+        "name_kh": "ត្រាំកក់"
+    },
+    {
+        "id": 202,
+        "type": 3,
+        "province_id": 24,
+        "geocode": "2110",
+        "name_en": "Treang",
+        "name_kh": "ទ្រាំង"
+    },
+    {
+        "id": 203,
+        "type": 3,
+        "province_id": 25,
+        "geocode": "2501",
+        "name_en": "Dambae",
+        "name_kh": "តំបែរ"
+    },
+    {
+        "id": 204,
+        "type": 3,
+        "province_id": 25,
+        "geocode": "2502",
+        "name_en": "Krouch Chhmar",
+        "name_kh": "ក្រូចឆ្មារ"
+    },
+    {
+        "id": 205,
+        "type": 3,
+        "province_id": 25,
+        "geocode": "2503",
+        "name_en": "Memot",
+        "name_kh": "មេមត់"
+    },
+    {
+        "id": 206,
+        "type": 3,
+        "province_id": 25,
+        "geocode": "2504",
+        "name_en": "Ou Reang Ov",
+        "name_kh": "អូររាំងឪ"
+    },
+    {
+        "id": 207,
+        "type": 3,
+        "province_id": 25,
+        "geocode": "2505",
+        "name_en": "Ponhea Kraek",
+        "name_kh": "ពញាក្រែក"
+    },
+    {
+        "id": 208,
+        "type": 4,
+        "province_id": 25,
+        "geocode": "2506",
+        "name_en": "Suong",
+        "name_kh": "សួង"
+    },
+    {
+        "id": 209,
+        "type": 3,
+        "province_id": 25,
+        "geocode": "2507",
+        "name_en": "Tboung Khmum",
+        "name_kh": "ត្បូងឃ្មុំ"
     }
 ]
