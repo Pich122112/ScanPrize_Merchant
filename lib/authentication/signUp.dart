@@ -1156,7 +1156,7 @@ class _SignUpPageState extends State<SignUpPage> {
                                               'ភូមិស្វាយដង្គំ',
                                               style: TextStyle(
                                                 fontFamily: 'KhmerFont',
-                                                fontWeight: FontWeight.w600,
+                                                fontWeight: FontWeight.w500,
                                               ),
                                             ),
                                           ),
@@ -1166,7 +1166,7 @@ class _SignUpPageState extends State<SignUpPage> {
                                               'ភូមិត្រពាំងគង',
                                               style: TextStyle(
                                                 fontFamily: 'KhmerFont',
-                                                fontWeight: FontWeight.w600,
+                                                fontWeight: FontWeight.w500,
                                               ),
                                             ),
                                           ),
@@ -1176,7 +1176,7 @@ class _SignUpPageState extends State<SignUpPage> {
                                               'ភូមិចំបក់',
                                               style: TextStyle(
                                                 fontFamily: 'KhmerFont',
-                                                fontWeight: FontWeight.w600,
+                                                fontWeight: FontWeight.w500,
                                               ),
                                             ),
                                           ),
@@ -1186,7 +1186,7 @@ class _SignUpPageState extends State<SignUpPage> {
                                               'ភូមិតាកែវ',
                                               style: TextStyle(
                                                 fontFamily: 'KhmerFont',
-                                                fontWeight: FontWeight.w600,
+                                                fontWeight: FontWeight.w500,
                                               ),
                                             ),
                                           ),
@@ -1196,7 +1196,7 @@ class _SignUpPageState extends State<SignUpPage> {
                                               'ភូមិព្រៃឆ្លាក់',
                                               style: TextStyle(
                                                 fontFamily: 'KhmerFont',
-                                                fontWeight: FontWeight.w600,
+                                                fontWeight: FontWeight.w500,
                                               ),
                                             ),
                                           ),

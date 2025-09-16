@@ -415,6 +415,7 @@ class _SignUpPageState extends State<SignInPage> {
                       fontSize: 18,
                       fontWeight: FontWeight.bold,
                       color: Colors.green,
+                      fontFamily: 'KhmerFont'
                     ),
                   ),
                 ],
@@ -604,7 +605,7 @@ class _SignUpPageState extends State<SignInPage> {
                                             color: Colors.grey[600],
                                             fontSize: 16,
                                             fontFamily: 'KhmerFont',
-                                            fontWeight: FontWeight.w600
+                                            fontWeight: FontWeight.w500
                                           ),
                                           counterText: '',
                                           filled: true,
