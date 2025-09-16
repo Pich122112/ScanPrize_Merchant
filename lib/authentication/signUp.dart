@@ -1,17 +1,19 @@
 import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
+
+import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
+import 'package:flutter/material.dart';
 import 'package:gb_merchant/merchant/json_service.dart';
 import 'package:gb_merchant/merchant/open_camera_identity.dart';
 import 'package:gb_merchant/merchant/welcome_screen.dart';
 import 'package:gb_merchant/services/firebase_service.dart';
 import 'package:gb_merchant/utils/constants.dart';
-import 'package:flutter/material.dart';
 import 'package:gb_merchant/utils/device_uuid.dart';
 import 'package:intl_phone_field/intl_phone_field.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:connectivity_plus/connectivity_plus.dart';
+
 import '../services/user_server.dart';
 
 class SignUpPage extends StatefulWidget {
@@ -22,6 +24,7 @@ class SignUpPage extends StatefulWidget {
 }
 
 class _SignUpPageState extends State<SignUpPage> {
+  final FirebaseMessaging _messaging = FirebaseMessaging.instance;
   final _formKey = GlobalKey<FormState>();
   final _phoneController = TextEditingController();
   final _otpController = TextEditingController();
@@ -517,7 +520,23 @@ class _SignUpPageState extends State<SignUpPage> {
         final validatedVillage = validateId(_selectedVillageId);
         // Get device UUID and FCM token
         final deviceUuid = await DeviceUUID.getUUID();
-        final fcmToken = await FirebaseMessaging.instance.getToken() ?? '';
+        // final fcmToken = await FirebaseMessaging.instance.getToken() ?? '';
+        String? fcmToken = await _messaging.getToken();
+
+        // ⬇️ Try fallback if null
+        if (fcmToken == null) {
+          // Make sure APNs is linked to FCM
+          String? apnsToken = await _messaging.getAPNSToken();
+          print('📱 APNs Token: $apnsToken');
+
+          fcmToken = await _messaging.getToken();
+        }
+
+        if (fcmToken == null) {
+          print('❌ Still no FCM token, continue without sending to backend.');
+        } else {
+          print('🔥 Got FCM token: $fcmToken');
+        }
 
         final signupResult = await ApiService.signUp(
           name: _nameController.text.trim(),
@@ -528,7 +547,7 @@ class _SignUpPageState extends State<SignUpPage> {
           commune: validatedCommune,
           village: validatedVillage,
           deviceUuid: deviceUuid, // Add device UUID
-          fcmToken: fcmToken, // Add FCM token
+          fcmToken: fcmToken!, // Add FCM token
         );
         if (signupResult['success'] == true && signupResult['data'] != null) {
           final token =
