@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 // import 'package:flutter/material.dart';
 // import 'package:easy_localization/easy_localization.dart';
 // import 'package:gb_merchant/screens/firstScreen.dart';
@@ -100,18 +101,23 @@
 // //Correct with 94 line code changes
 
 import 'package:flutter/material.dart';
+=======
+>>>>>>> e381b28ee433bb20987e97ef7f9a092c23062537
 import 'package:easy_localization/easy_localization.dart';
-import 'package:gb_merchant/screens/firstScreen.dart';
-import 'package:gb_merchant/utils/device_uuid.dart';
-import 'package:shared_preferences/shared_preferences.dart';
-import '../app/bottomAppbar.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
+import 'package:flutter/material.dart';
 import 'package:gb_merchant/main/TransactionPage.dart';
+import 'package:gb_merchant/screens/firstScreen.dart';
 import 'package:gb_merchant/services/firebase_service.dart';
+import 'package:gb_merchant/utils/device_uuid.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+
+import '../app/bottomAppbar.dart';
 
 final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
 
+<<<<<<< HEAD
 // Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
 //   await Firebase.initializeApp();
 //   await FirebaseService.incrementBadgeCount();
@@ -119,18 +125,41 @@ final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
 //   // Handle background message 855887776756 (can show notification, etc)
 //   print('Handling a background message: ${message.messageId}');
 // }
+=======
+Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
+  WidgetsFlutterBinding.ensureInitialized();
+  await Firebase.initializeApp();
+  await FirebaseService.incrementBadgeCount();
+
+  print('Handling a background message: ${message.messageId}');
+}
+>>>>>>> e381b28ee433bb20987e97ef7f9a092c23062537
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
+
+  // 🔹 Init EasyLocalization before runApp
   await EasyLocalization.ensureInitialized();
+
+  // 🔹 Initialize Firebase once here
   await Firebase.initializeApp();
+<<<<<<< HEAD
 
   FirebaseMessaging.onBackgroundMessage(firebaseMessagingBackgroundHandler);
 
   await FirebaseService.init(navigatorKey);
+=======
 
+  // 🔹 Initialize your service
+  await FirebaseService.init(navigatorKey);
+
+  // 🔹 Register background handler early
+  FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
+>>>>>>> e381b28ee433bb20987e97ef7f9a092c23062537
+
+  // Debug printer
   debugPrint = (String? message, {int? wrapWidth}) {
-    print(message);
+    if (message != null) print(message);
   };
 
   // Debug printer

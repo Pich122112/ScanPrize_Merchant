@@ -200,11 +200,11 @@
 
 import 'dart:convert';
 import 'dart:io';
+
 import 'package:http/http.dart' as http;
 
 class ApiService {
-  static const String baseUrl =
-      'https://api-merchant.sandbox.gzb.app/api/v2';
+  static const String baseUrl = 'https://api-merchant.sandbox.gzb.app/api/v2';
   static const String appPackage = 'com.ganzberg.scanprizemerchantapp';
 
   static Future<Map<String, dynamic>> uploadFcmToken({
@@ -248,51 +248,51 @@ class ApiService {
     required String deviceUuid, // Add device_uuid parameter
     required String fcmToken, // Add fcm_token parameter
   }) async {
-    try {
-      final url = Uri.parse(
-        'https://api-merchant.sandbox.gzb.app/api/v2/auth/signup',
-      );
+    // try {
+    final url = Uri.parse(
+      'https://api-merchant.sandbox.gzb.app/api/v2/auth/signup',
+    );
 
-      // Debug the request data
-      print('🔐 SIGNUP REQUEST DATA:');
-      print('Name: $name');
-      print('Phone: $phone');
-      print('OTP: $otp');
-      print('Province: $provinceId');
-      print('District: $district');
-      print('Commune: $commune');
-      print('Village: $village');
-      print('Device UUID: $deviceUuid'); // Add debug for device UUID
-      print('FCM Token: $fcmToken'); // Add debug for FCM token
+    // Debug the request data
+    print('🔐 SIGNUP REQUEST DATA:');
+    print('Name: $name');
+    print('Phone: $phone');
+    print('OTP: $otp');
+    print('Province: $provinceId');
+    print('District: $district');
+    print('Commune: $commune');
+    print('Village: $village');
+    print('Device UUID: $deviceUuid'); // Add debug for device UUID
+    print('FCM Token: $fcmToken'); // Add debug for FCM token
 
-      final response = await http.post(
-        url,
-        headers: {
-          'Accept': 'application/json',
-          'X-App-Package': appPackage, // Add X-App-Package header
-        },
-        body: {
-          'name': name,
-          'phone': phone,
-          'otp': otp,
-          'province': provinceId,
-          'district': district,
-          'commune': commune,
-          'village': village,
-          'device_uuid': deviceUuid, // Add device_uuid to request body
-          'fcm_token': fcmToken, // Add fcm_token to request body
-        },
-      );
+    final response = await http.post(
+      url,
+      headers: {
+        'Accept': 'application/json',
+        'X-App-Package': appPackage, // Add X-App-Package header
+      },
+      body: {
+        'name': name,
+        'phone': phone,
+        'otp': otp,
+        'province': provinceId,
+        'district': district,
+        'commune': commune,
+        'village': village,
+        'device_uuid': deviceUuid, // Add device_uuid to request body
+        'fcm_token': fcmToken, // Add fcm_token to request body
+      },
+    );
 
-      print('🔐 SIGNUP API RESPONSE:');
-      print('Status: ${response.statusCode}');
-      print('Body: ${response.body}');
+    print('🔐 SIGNUP API RESPONSE:');
+    print('Status: ${response.statusCode}');
+    print('Body: ${response.body}');
 
-      return json.decode(response.body);
-    } catch (e) {
-      print('❌ SIGNUP ERROR: $e');
-      return {'success': false, 'message': 'Network error: $e'};
-    }
+    return json.decode(response.body);
+    // } catch (e) {
+    //   print('❌ SIGNUP ERROR: $e');
+    //   return {'success': false, 'message': 'Network error: $e'};
+    // }
   }
 
   static Future<Map<String, dynamic>> uploadIdentityDocuments({
@@ -458,9 +458,7 @@ class ApiService {
   ) async {
     try {
       final response = await http.post(
-        Uri.parse(
-          'https://api-merchant.sandbox.gzb.app/api/v2/user/passcode',
-        ),
+        Uri.parse('https://api-merchant.sandbox.gzb.app/api/v2/user/passcode'),
         headers: {
           'Authorization': 'Bearer $token',
           'Accept': 'application/json',
