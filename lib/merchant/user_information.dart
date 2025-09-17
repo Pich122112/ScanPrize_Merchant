@@ -1,6 +1,8 @@
 import 'dart:convert';
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:gb_merchant/utils/constants.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class UserInformation extends StatefulWidget {
@@ -52,26 +54,117 @@ class _UserInformationState extends State<UserInformation> {
   }
 
   String formatPhoneNumber(String raw) {
+    if (raw.isEmpty) return '';
     String digits = raw.replaceAll(RegExp(r'\D'), '');
+    if (!digits.startsWith('855')) digits = '855$digits';
+    final localPart = digits.substring(3);
+    return '+855 $localPart';
+  }
 
-    // Remove any leading country code if it exists
-    if (digits.startsWith('+855')) {
-      digits = digits.substring(3);
+  Future<void> _pickImage() async {
+    final picker = ImagePicker();
+    final pickedFile = await picker.pickImage(source: ImageSource.gallery);
+
+    if (pickedFile != null) {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString('profileImagePath', pickedFile.path);
+      setState(() {});
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Profile image updated successfully')),
+      );
     }
+  }
 
-    // Format as "855 9xxxxxxxxx" (assuming 9 digits after country code)
-    if (digits.length >= 9) {
-      return '+855 ${digits.substring(0, 9)}';
+  Future<void> _showFullImage() async {
+    final prefs = await SharedPreferences.getInstance();
+    final profileImagePath = prefs.getString('profileImagePath');
+
+    if (profileImagePath != null) {
+      showGeneralDialog(
+        context: context,
+        barrierDismissible: true,
+        barrierLabel: "ProfileImage",
+        transitionDuration: const Duration(milliseconds: 300),
+        pageBuilder: (context, animation, secondaryAnimation) {
+          return Scaffold(
+            backgroundColor: Colors.black.withOpacity(0.95),
+            body: SafeArea(
+              child: Stack(
+                children: [
+                  Center(
+                    child: Hero(
+                      tag: "profileImage",
+                      child: InteractiveViewer(
+                        child: Image.file(
+                          File(profileImagePath),
+                          fit: BoxFit.contain,
+                        ),
+                      ),
+                    ),
+                  ),
+                  Positioned(
+                    top: 20,
+                    right: 20,
+                    child: Row(
+                      children: [
+                        _buildActionButton(
+                          icon: Icons.delete,
+                          color: Colors.red,
+                          onTap: () {
+                            Navigator.pop(context);
+                            _removeProfileImage();
+                          },
+                        ),
+                        const SizedBox(width: 12),
+                        _buildActionButton(
+                          icon: Icons.close,
+                          color: Colors.white,
+                          onTap: () => Navigator.pop(context),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          );
+        },
+      );
     }
+  }
 
-    // Fallback: return the raw digits with country code
-    return '+855 $digits';
+  Future<void> _removeProfileImage() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.remove('profileImagePath');
+    setState(() {});
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(const SnackBar(content: Text('Profile image removed')));
+  }
+
+  Widget _buildActionButton({
+    required IconData icon,
+    required Color color,
+    required VoidCallback onTap,
+  }) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.all(10),
+        decoration: BoxDecoration(
+          color: Colors.black.withOpacity(0.4),
+          shape: BoxShape.circle,
+          border: Border.all(color: Colors.white24, width: 1),
+        ),
+        child: Icon(icon, color: color, size: 26),
+      ),
+    );
   }
 
   @override
   Widget build(BuildContext context) {
     return Dialog(
-      insetPadding: EdgeInsets.zero, // remove default margin
+      insetPadding: EdgeInsets.zero,
       backgroundColor: AppColors.primaryColor,
       child: Scaffold(
         backgroundColor: AppColors.primaryColor,
@@ -107,22 +200,59 @@ class _UserInformationState extends State<UserInformation> {
                       Stack(
                         alignment: Alignment.bottomRight,
                         children: [
-                          CircleAvatar(
-                            radius: 80,
-                            backgroundImage: AssetImage(
-                              'assets/images/user.png',
+                          GestureDetector(
+                            onTap: _showFullImage,
+                            child: FutureBuilder(
+                              future: SharedPreferences.getInstance(),
+                              builder: (context, snapshot) {
+                                if (snapshot.hasData) {
+                                  final prefs = snapshot.data!;
+                                  final profileImagePath = prefs.getString(
+                                    'profileImagePath',
+                                  );
+                                  return CircleAvatar(
+                                    radius: 80,
+                                    backgroundImage:
+                                        profileImagePath != null
+                                            ? FileImage(File(profileImagePath))
+                                            : const AssetImage(
+                                                  'assets/images/user.png',
+                                                )
+                                                as ImageProvider,
+                                  );
+                                }
+                                return const CircleAvatar(
+                                  radius: 80,
+                                  backgroundImage: AssetImage(
+                                    'assets/images/user.png',
+                                  ),
+                                );
+                              },
                             ),
                           ),
-                          Container(
-                            decoration: const BoxDecoration(
-                              shape: BoxShape.circle,
-                            ),
-                            child: IconButton(
-                              onPressed: () {},
-                              icon: const Icon(
-                                Icons.camera_alt,
-                                size: 25,
-                                color: Colors.black,
+                          Positioned(
+                            bottom: 0,
+                            right: 20,
+                            child: GestureDetector(
+                              onTap: _pickImage,
+                              child: Container(
+                                padding: const EdgeInsets.all(6),
+                                decoration: BoxDecoration(
+                                  color: Colors.white,
+                                  shape: BoxShape.circle,
+                                  boxShadow: [
+                                    BoxShadow(
+                                      color: Colors.black26,
+                                      blurRadius: 4,
+                                      offset: Offset(0, 2),
+                                    ),
+                                  ],
+                                ),
+                                child: Icon(
+                                  Icons.camera_alt,
+                                  size: 18,
+                                  color: AppColors.primaryColor,
+                                ),
                               ),
                             ),
                           ),
@@ -239,7 +369,7 @@ class _UserInformationState extends State<UserInformation> {
 
     showDialog(
       context: context,
-      barrierDismissible: false, // prevent closing by tapping outside
+      barrierDismissible: false,
       builder: (context) {
         return AlertDialog(
           backgroundColor: Colors.white,
@@ -312,7 +442,7 @@ class _UserInformationState extends State<UserInformation> {
               onPressed: () {
                 String updatedValue = controller.text.trim();
                 Navigator.pop(context, updatedValue);
-                // TODO: handle updated value (e.g., update state or DB)
+                // TODO: update state or save to SharedPreferences
               },
               icon: const Icon(Icons.check, color: Colors.white),
               label: const Text(
@@ -326,5 +456,3 @@ class _UserInformationState extends State<UserInformation> {
     );
   }
 }
-
-//Correct with 330 line code changes

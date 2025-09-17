@@ -1,11 +1,17 @@
+// import 'dart:convert';
+
 // import 'package:firebase_core/firebase_core.dart';
 // import 'package:firebase_messaging/firebase_messaging.dart';
 // import 'package:flutter/foundation.dart' show defaultTargetPlatform;
-// import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 // import 'package:flutter/material.dart';
+// import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 // import 'package:gb_merchant/main/TransactionPage.dart';
-// import 'package:shared_preferences/shared_preferences.dart';
+// import 'package:gb_merchant/services/user_balance_service.dart';
+// import 'package:gb_merchant/utils/balance_refresh_notifier.dart';
 // import 'package:permission_handler/permission_handler.dart';
+// import 'package:shared_preferences/shared_preferences.dart';
+
+// import '../services/user_server.dart';
 
 // class FirebaseService {
 //   static final FirebaseMessaging _messaging = FirebaseMessaging.instance;
@@ -16,6 +22,28 @@
 //   static ValueNotifier<int> badgeCountNotifier = ValueNotifier<int>(0);
 //   // ignore: unused_field
 //   static bool _permissionsRequested = false;
+
+//   static Future<void> sendFcmTokenToBackend({required String apiToken}) async {
+//     String? fcmToken = await FirebaseMessaging.instance.getToken();
+//     if (fcmToken != null) {
+//       try {
+//         final result = await ApiService.uploadFcmToken(
+//           apiToken: apiToken,
+//           fcmToken: fcmToken,
+//         );
+//         print('✅ FCM token upload response: $result');
+//         if (result['success'] == true || result['result'] == 123) {
+//           print('✅ FCM token sent to backend successfully!');
+//         } else {
+//           print('❌ FCM token upload failed: ${result['message'] ?? result}');
+//         }
+//       } catch (e) {
+//         print('❌ Exception during FCM token upload: $e');
+//       }
+//     } else {
+//       print('❌ FCM token is null, not sent to backend.');
+//     }
+//   }
 
 //   /// 📌 Add this method here
 //   static Future<void> incrementBadgeCount() async {
@@ -59,7 +87,7 @@
 //     return _requestNotificationPermissions();
 //   }
 
-//   // Call this in main.dart after Firebase.initializeApp()
+//   /*
 //   static Future<void> init(GlobalKey<NavigatorState> navKey) async {
 //     navigatorKey = navKey;
 
@@ -67,13 +95,30 @@
 //     await _requestNotificationPermissions();
 
 //     // Get device FCM token
-//     String? token = await _messaging.getToken();
-//     print('FCM Token: $token');
-//     // TODO: Upload this token to your backend associated with the logged-in user
+//     String? fcmToken = await _messaging.getToken();
+//     print('FCM Token: $fcmToken');
+
+//     // Upload initial FCM token to backend if user is authenticated
+//     final prefs = await SharedPreferences.getInstance();
+//     final apiToken = prefs.getString('token');
+//     if (fcmToken != null && apiToken != null) {
+//       await sendFcmTokenToBackend(apiToken: apiToken);
+//     }
+
+//     // Listen for FCM token refresh events and upload new token
+//     FirebaseMessaging.instance.onTokenRefresh.listen((newToken) async {
+//       final prefs = await SharedPreferences.getInstance();
+//       final userId = prefs.getString('userId');
+//       final apiToken = prefs.getString('token');
+//       if (userId != null && apiToken != null) {
+//         await sendFcmTokenToBackend(apiToken: apiToken);
+//       }
+//     });
 
 //     // Android initialization
 //     const AndroidInitializationSettings androidSettings =
-//         AndroidInitializationSettings('@mipmap/ic_launcher');
+//         AndroidInitializationSettings('@drawable/ic_notification');
+
 //     // iOS initialization
 //     const DarwinInitializationSettings iosSettings =
 //         DarwinInitializationSettings(
@@ -86,26 +131,37 @@
 //         InitializationSettings(android: androidSettings, iOS: iosSettings);
 
 //     // Initialize local notification plugin
+//     // Initialize local notification plugin
 //     await _localNotifications.initialize(
 //       initializationSettings,
-//       // Optional: handle tap on notification
-//       onDidReceiveNotificationResponse: (response) {
-//         // Navigate to the Notification page
+//       onDidReceiveNotificationResponse: (response) async {
+//         // Parse payload data
+//         if (response.payload != null) {
+//           try {
+//             final data = jsonDecode(response.payload!);
+//             await handleNotificationData(Map<String, dynamic>.from(data));
+//           } catch (e) {
+//             print('Error parsing notification payload: $e');
+//           }
+//         }
+
 //         navigatorKey.currentState?.push(
 //           MaterialPageRoute(builder: (context) => NotificationPage()),
 //         );
-//         // You can navigate or handle notification tap here
-//         print('Notification tapped with payload: ${response.payload}');
 //       },
 //     );
 
 //     // Handle foreground messages
+//     // Handle foreground messages
 //     FirebaseMessaging.onMessage.listen((RemoteMessage message) async {
 //       String? title = message.notification?.title ?? 'Notification';
 //       String? body = message.notification?.body ?? '';
-//       String? payload = message.data.toString();
-//       // ✅ Use the static method you just created
+//       Map<String, dynamic> data = message.data;
+
 //       await incrementBadgeCount();
+
+//       // Handle notification data for balance updates
+//       await handleNotificationData(data);
 
 //       await _localNotifications.show(
 //         message.notification.hashCode,
@@ -113,43 +169,225 @@
 //         body,
 //         NotificationDetails(
 //           android: AndroidNotificationDetails(
-//             'default_channel', // Channel id
-//             'Default', // Channel name
-//             icon: '@drawable/ic_notification', // ✅ Custom icon
+//             'default_channel',
+//             'Default',
+//             icon: '@drawable/ic_notification',
+//             largeIcon: const DrawableResourceAndroidBitmap('ic_launcher'),
 //             importance: Importance.max,
 //             priority: Priority.high,
 //             channelShowBadge: true,
 //           ),
 //           iOS: DarwinNotificationDetails(badgeNumber: badgeCountNotifier.value),
 //         ),
-//         payload: payload,
+//         payload: jsonEncode(data), // Send data as payload
 //       );
 //     });
 
-//     // OPTIONAL: Handle background and terminated state
 //     FirebaseMessaging.onMessageOpenedApp.listen((message) {
 //       navigatorKey.currentState?.push(
 //         MaterialPageRoute(builder: (context) => NotificationPage()),
 //       );
-//       // Handle navigation when user taps notification from background
+//       // Add this:
+//       BalanceRefreshNotifier().refreshBalances();
 //       print("Notification opened from background: ${message.data}");
 //     });
 
-//     // For background messages (outside app lifecycle)
 //     FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
+//   }
+// */
+
+//   /// Init FCM + Local Notifications
+//   static Future<void> init(GlobalKey<NavigatorState> navKey) async {
+//     navigatorKey = navKey;
+
+//     await _requestNotificationPermissions();
+
+//     // ✅ Get token (wait for APNs on iOS)
+//     String? fcmToken;
+//     if (defaultTargetPlatform == TargetPlatform.iOS) {
+//       final apnsToken = await _messaging.getAPNSToken();
+//       print("📱 APNS Token: $apnsToken");
+//       if (apnsToken != null) {
+//         fcmToken = await _messaging.getToken();
+//       }
+//     } else {
+//       fcmToken = await _messaging.getToken();
+//     }
+//     print("🔥 FCM Token: $fcmToken");
+
+//     // Upload token if user logged in
+//     final prefs = await SharedPreferences.getInstance();
+//     final apiToken = prefs.getString('token');
+//     if (fcmToken != null && apiToken != null) {
+//       await sendFcmTokenToBackend(apiToken: apiToken);
+//     }
+
+//     // Token refresh listener
+//     _messaging.onTokenRefresh.listen((newToken) async {
+//       print("🔑 Refreshed FCM token: $newToken");
+//       final prefs = await SharedPreferences.getInstance();
+//       final apiToken = prefs.getString('token');
+//       if (apiToken != null) {
+//         await sendFcmTokenToBackend(apiToken: apiToken);
+//       }
+//     });
+
+//     // Init local notifications
+//     const AndroidInitializationSettings androidSettings =
+//         AndroidInitializationSettings('@drawable/ic_notification');
+//     const DarwinInitializationSettings iosSettings =
+//         DarwinInitializationSettings(
+//           requestAlertPermission: true,
+//           requestBadgePermission: true,
+//           requestSoundPermission: true,
+//         );
+//     const InitializationSettings initSettings = InitializationSettings(
+//       android: androidSettings,
+//       iOS: iosSettings,
+//     );
+
+//     await _localNotifications.initialize(
+//       initSettings,
+//       onDidReceiveNotificationResponse: (response) async {
+//         print("📩 Notification tapped with payload: ${response.payload}");
+//         if (response.payload != null) {
+//           try {
+//             final data = jsonDecode(response.payload!);
+//             await handleNotificationData(Map<String, dynamic>.from(data));
+//           } catch (e) {
+//             print('❌ Error parsing notification payload: $e');
+//           }
+//         }
+
+//         navigatorKey.currentState?.push(
+//           MaterialPageRoute(builder: (context) => NotificationPage()),
+//         );
+//       },
+//     );
+
+//     // Foreground notifications → force banner/sound on iOS
+//     FirebaseMessaging.onMessage.listen((RemoteMessage message) async {
+//       final title = message.notification?.title ?? 'Notification';
+//       final body = message.notification?.body ?? '';
+//       final data = message.data;
+
+//       await incrementBadgeCount();
+//       await handleNotificationData(data);
+//       print("📩 Foreground notification received: $data");
+//       await _localNotifications.show(
+//         message.notification.hashCode,
+//         title,
+//         body,
+//         NotificationDetails(
+//           android: AndroidNotificationDetails(
+//             'default_channel',
+//             'Default',
+//             icon: '@drawable/ic_notification',
+//             importance: Importance.max,
+//             priority: Priority.high,
+//             channelShowBadge: true,
+//           ),
+//           iOS: DarwinNotificationDetails(
+//             badgeNumber: badgeCountNotifier.value,
+//             presentAlert: true,
+//             presentBadge: true,
+//             presentSound: true,
+//             threadIdentifier: "default_thread",
+//           ),
+//         ),
+//         payload: jsonEncode(data),
+//       );
+//     });
+
+//     // Background/terminated opened
+//     FirebaseMessaging.onMessageOpenedApp.listen((message) {
+//       navigatorKey.currentState?.push(
+//         MaterialPageRoute(builder: (context) => NotificationPage()),
+//       );
+//       BalanceRefreshNotifier().refreshBalances();
+//       print("📩 Notification opened from background: ${message.data}");
+//     });
+
+//     // Background handler
+//     FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
+
+//     print("✅ FirebaseService initialized successfully!");
+//   }
+
+//   // static Future<void> handleNotificationData(Map<String, dynamic> data) async {
+//   //   print('📲 Handling notification data: $data');
+
+//   //   // Check if this is a balance-related notification
+//   //   if (data.containsKey('type') && data['type'] == 'balance_update') {
+//   //     print('💰 Balance update notification received');
+
+//   //     // Force refresh balances
+//   //     try {
+//   //       final prefs = await SharedPreferences.getInstance();
+//   //       final token = prefs.getString('token');
+
+//   //       if (token != null) {
+//   //         // Force fetch fresh user profile with balance
+//   //         final userProfile = await ApiService.getUserProfile(token);
+
+//   //         if (userProfile['success'] == true && userProfile['data'] != null) {
+//   //           // Update balances in cache
+//   //           final balances = UserBalanceService.parseWalletsFromUserDetail(
+//   //             userProfile,
+//   //           );
+//   //           await UserBalanceService.setBalancesToCache(balances);
+
+//   //           // Notify all listeners about the balance update
+//   //           BalanceRefreshNotifier().refreshBalances();
+
+//   //           print('✅ Balances updated from notification: $balances');
+//   //         }
+//   //       }
+//   //     } catch (e) {
+//   //       print('❌ Error updating balances from notification: $e');
+//   //     }
+//   //   }
+//   // }
+
+//   static Future<void> handleNotificationData(Map<String, dynamic> data) async {
+//     print('📲 Handling notification data: $data');
+
+//     // Always refresh, regardless of data payload
+//     try {
+//       final prefs = await SharedPreferences.getInstance();
+//       final token = prefs.getString('token');
+
+//       if (token != null) {
+//         final userProfile = await ApiService.getUserProfile(token);
+
+//         if (userProfile['success'] == true && userProfile['data'] != null) {
+//           final balances = UserBalanceService.parseWalletsFromUserDetail(
+//             userProfile,
+//           );
+//           await UserBalanceService.setBalancesToCache(balances);
+//           BalanceRefreshNotifier().refreshBalances();
+//           print('✅ Balances updated from notification: $balances');
+//         }
+//       }
+//     } catch (e) {
+//       print('❌ Error updating balances from notification: $e');
+//     }
 //   }
 // }
 
 // // Top-level handler for background messages
 // Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
-//   await Firebase.initializeApp(); // Required in background isolate
-//   await FirebaseService.incrementBadgeCount(); // ✅ This will update the badge
-//   // You must call Firebase.initializeApp() here if not already done
+//   await Firebase.initializeApp();
+//   await FirebaseService.incrementBadgeCount();
+
+//   // Handle notification data for balance updates
+//   await FirebaseService.handleNotificationData(message.data);
+
 //   print('Handling a background message: ${message.messageId}');
-//   // Optionally show local notification, update local storage, etc.
 // }
 
-// //Correct with 152 line code changes
+// //Correct with 389 line code changes
+
 import 'dart:convert';
 
 import 'package:firebase_core/firebase_core.dart';
@@ -194,6 +432,34 @@ class FirebaseService {
       }
     } else {
       print('❌ FCM token is null, not sent to backend.');
+    }
+  }
+
+  /// Force refresh balances + reset badge when app is reopened
+  static Future<void> forceRefreshOnReopen() async {
+    print("🔄 Force refreshing notification data on app reopen...");
+
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final token = prefs.getString('token');
+
+      if (token != null) {
+        // Fetch latest user profile from server
+        final userProfile = await ApiService.getUserProfile(token);
+        if (userProfile['success'] == true && userProfile['data'] != null) {
+          final balances = UserBalanceService.parseWalletsFromUserDetail(
+            userProfile,
+          );
+          await UserBalanceService.setBalancesToCache(balances);
+          BalanceRefreshNotifier().refreshBalances();
+          print("✅ Balances force-updated on app reopen: $balances");
+        }
+      }
+
+      // Reset badge count so app starts clean
+      // await resetBadgeCount();
+    } catch (e) {
+      print("❌ Error during force refresh on reopen: $e");
     }
   }
 
@@ -411,6 +677,9 @@ class FirebaseService {
           }
         }
 
+        // ✅ reset badge here only when tapped
+        await resetBadgeCount();
+
         navigatorKey.currentState?.push(
           MaterialPageRoute(builder: (context) => NotificationPage()),
         );
@@ -452,7 +721,10 @@ class FirebaseService {
     });
 
     // Background/terminated opened
-    FirebaseMessaging.onMessageOpenedApp.listen((message) {
+    FirebaseMessaging.onMessageOpenedApp.listen((message) async {
+      // ✅ reset badge when opened from notification tap
+      await resetBadgeCount();
+
       navigatorKey.currentState?.push(
         MaterialPageRoute(builder: (context) => NotificationPage()),
       );
@@ -461,7 +733,7 @@ class FirebaseService {
     });
 
     // Background handler
-    FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
+    FirebaseMessaging.onBackgroundMessage(firebaseMessagingBackgroundHandler);
 
     print("✅ FirebaseService initialized successfully!");
   }
@@ -527,15 +799,55 @@ class FirebaseService {
   }
 }
 
-// Top-level handler for background messages
-Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
+@pragma('vm:entry-point') // required for background isolate
+Future<void> firebaseMessagingBackgroundHandler(RemoteMessage message) async {
+  WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp();
-  await FirebaseService.incrementBadgeCount();
 
-  // Handle notification data for balance updates
+  await FirebaseService.incrementBadgeCount();
   await FirebaseService.handleNotificationData(message.data);
 
-  print('Handling a background message: ${message.messageId}');
+  print('📩 Handling a background message: ${message.messageId}');
+
+  // ✅ Show a local notification while app is in background
+  final FlutterLocalNotificationsPlugin localNotifications =
+      FlutterLocalNotificationsPlugin();
+
+  const AndroidInitializationSettings androidSettings =
+      AndroidInitializationSettings('@drawable/ic_notification');
+  const DarwinInitializationSettings iosSettings =
+      DarwinInitializationSettings();
+  const InitializationSettings initSettings = InitializationSettings(
+    android: androidSettings,
+    iOS: iosSettings,
+  );
+
+  await localNotifications.initialize(initSettings);
+
+  final title = message.notification?.title ?? 'Notification';
+  final body = message.notification?.body ?? '';
+  final data = message.data;
+
+  await localNotifications.show(
+    message.hashCode,
+    title,
+    body,
+    NotificationDetails(
+      android: AndroidNotificationDetails(
+        'default_channel',
+        'Default',
+        icon: '@drawable/ic_notification',
+        importance: Importance.max,
+        priority: Priority.high,
+      ),
+      iOS: const DarwinNotificationDetails(
+        presentAlert: true,
+        presentBadge: true,
+        presentSound: true,
+      ),
+    ),
+    payload: jsonEncode(data),
+  );
 }
 
-//Correct with 269 line code changes
+//Correct with 853 line code changes

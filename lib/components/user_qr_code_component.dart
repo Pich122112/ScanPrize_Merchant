@@ -67,7 +67,7 @@ class UserQrCodeComponent extends StatelessWidget {
     final double logoSize = 30;
     final double padding = 16;
     final double fontSizeTitle = 24;
-    final double fontSizePhone = 14;
+    final double fontSizePhone = 16;
     return FutureBuilder<String?>(
       future: _getUserName(),
       builder: (context, snapshot) {

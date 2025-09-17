@@ -22,6 +22,7 @@ class _SignUpPageState extends State<SignInPage> {
   final _formKey = GlobalKey<FormState>();
   final _phoneController = TextEditingController();
   final _otpController = TextEditingController();
+  bool _isRequestingOtp = false;
 
   String _countryCode = '855'; // Default to Cambodia
   String? _phoneErrorText;
@@ -35,6 +36,7 @@ class _SignUpPageState extends State<SignInPage> {
   bool _isBlackButton = false;
   bool _isVerifyingOtp = false;
   StreamSubscription<List<ConnectivityResult>>? _connectivitySubscription;
+  String _currentLanguage = 'km'; // or 'en' - set based on your app/user
 
   @override
   void initState() {
@@ -151,24 +153,31 @@ class _SignUpPageState extends State<SignInPage> {
   }
 
   Future<void> _onRequestOtp() async {
+    // Prevent multiple simultaneous requests
+    if (_isRequestingOtp) return;
+
     _setButtonBlackTemporarily();
+    setState(() => _isRequestingOtp = true);
 
     final phone = _countryCode + _phoneController.text.trim();
     if (_phoneController.text.trim().isEmpty) {
       setState(() {
         _phoneErrorText = 'សូមបញ្ចូលលេខទូរស័ព្ទ';
+        _isRequestingOtp = false;
       });
       return;
     }
     if (_phoneController.text.length < 8) {
       setState(() {
         _phoneErrorText = 'លេខទូរស័ព្ទមិនត្រឹមត្រូវ';
+        _isRequestingOtp = false;
       });
       return;
     }
     if (_phoneController.text.startsWith('0')) {
       setState(() {
         _phoneErrorText = 'លេខទូរស័ព្ទមិនអាចចាប់ផ្តើមដោយ 0';
+        _isRequestingOtp = false;
       });
       return;
     }
@@ -184,6 +193,7 @@ class _SignUpPageState extends State<SignInPage> {
         });
         _formKey.currentState?.validate();
         _startTimer();
+        ScaffoldMessenger.of(context).hideCurrentSnackBar();
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(
@@ -199,10 +209,15 @@ class _SignUpPageState extends State<SignInPage> {
         final message = result['message'] ?? 'មានបញ្ហា!';
 
         // Check if the message is "Validation failed (Account inactive)"
-        if (message.contains("Validation failed (Account inactive)")) {
-          // Show dialog instead of snackbar
+        if (message.contains("Validation failed (Account inactive)") ||
+            message.contains("ការផ្ទៀងផ្ទាត់បរាជ័យ (គណនីមិនសកម្ម)") ||
+            message.contains(
+              "ការផ្ទៀងផ្ទាត់បរាជ័យ (គណនីរបស់អ្នកនៅមិនទាន់អនុញ្ញាតិទេ)",
+            )) {
           _showAccountInactiveDialog();
+          return;
         } else if (message.contains("User not yet register")) {
+          ScaffoldMessenger.of(context).hideCurrentSnackBar();
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
               content: Text(
@@ -227,6 +242,7 @@ class _SignUpPageState extends State<SignInPage> {
             });
             _startTimer();
           }
+          ScaffoldMessenger.of(context).hideCurrentSnackBar();
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
               content: Center(
@@ -243,6 +259,7 @@ class _SignUpPageState extends State<SignInPage> {
         }
       }
     } catch (e) {
+      ScaffoldMessenger.of(context).hideCurrentSnackBar();
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(
@@ -253,7 +270,10 @@ class _SignUpPageState extends State<SignInPage> {
         ),
       );
     } finally {
-      setState(() => _isLoading = false);
+      setState(() {
+        _isLoading = false;
+        _isRequestingOtp = false;
+      });
     }
   }
 
@@ -357,9 +377,13 @@ class _SignUpPageState extends State<SignInPage> {
             SnackBar(content: Text(message), backgroundColor: Colors.red),
           );
           // Check if the message is "Validation failed (Account inactive)"
-          if (message.contains("Validation failed (Account inactive)")) {
-            // Show dialog instead of snackbar
+          if (message.contains("Validation failed (Account inactive)") ||
+              message.contains("ការផ្ទៀងផ្ទាត់បរាជ័យ (គណនីមិនសកម្ម)") ||
+              message.contains(
+                "ការផ្ទៀងផ្ទាត់បរាជ័យ (គណនីរបស់អ្នកនៅមិនទាន់អនុញ្ញាតិទេ)",
+              )) {
             _showAccountInactiveDialog();
+            return;
           } else {
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(content: Text(message), backgroundColor: Colors.red),
@@ -415,7 +439,7 @@ class _SignUpPageState extends State<SignInPage> {
                       fontSize: 18,
                       fontWeight: FontWeight.bold,
                       color: Colors.green,
-                      fontFamily: 'KhmerFont'
+                      fontFamily: 'KhmerFont',
                     ),
                   ),
                 ],
@@ -605,7 +629,7 @@ class _SignUpPageState extends State<SignInPage> {
                                             color: Colors.grey[600],
                                             fontSize: 16,
                                             fontFamily: 'KhmerFont',
-                                            fontWeight: FontWeight.w500
+                                            fontWeight: FontWeight.w500,
                                           ),
                                           counterText: '',
                                           filled: true,
@@ -783,4 +807,4 @@ class _SignUpPageState extends State<SignInPage> {
   }
 }
 
-//Correct with 745 line code changes
+//Correct with 802 line code changes

@@ -46,16 +46,16 @@ class QrCodeExtractor {
     return signature.substring(0, 7);
   }
 
-  // Extract natural code from URL format: https://gbz.app/t/GAC000D232A08heEiW
+  // Extract natural code from URL format: https://web.sandbox.gzb.app/t/GAC000D232A08heEiW
   static String extractNaturalCode(String fullUrl) {
     try {
       // Handle different URL formats
       String codePart;
 
-      if (fullUrl.contains('https://gbz.app/t/')) {
-        codePart = fullUrl.split('https://gbz.app/t/').last;
-      } else if (fullUrl.contains('https://gbz.app/t=')) {
-        codePart = fullUrl.split('https://gbz.app/t=').last;
+      if (fullUrl.contains('https://web.sandbox.gzb.app/t/')) {
+        codePart = fullUrl.split('https://web.sandbox.gzb.app/t/').last;
+      } else if (fullUrl.contains('https://web.sandbox.gzb.app/t=')) {
+        codePart = fullUrl.split('https://web.sandbox.gzb.app/t=').last;
       } else {
         // If it's not a URL, assume it's already the code part
         codePart = fullUrl;
@@ -84,10 +84,10 @@ class QrCodeExtractor {
   static String extractFullCode(String fullUrl) {
     try {
       String codePart;
-      if (fullUrl.contains('https://gbz.app/t/')) {
-        codePart = fullUrl.split('https://gbz.app/t/').last;
-      } else if (fullUrl.contains('https://gbz.app/t=')) {
-        codePart = fullUrl.split('https://gbz.app/t=').last;
+      if (fullUrl.contains('https://web.sandbox.gzb.app/t/')) {
+        codePart = fullUrl.split('https://web.sandbox.gzb.app/t/').last;
+      } else if (fullUrl.contains('https://web.sandbox.gzb.app/t=')) {
+        codePart = fullUrl.split('https://web.sandbox.gzb.app/t=').last;
       } else {
         codePart = fullUrl;
       }
@@ -107,10 +107,10 @@ class QrCodeExtractor {
     try {
       String codePart;
 
-      if (fullUrl.contains('https://gbz.app/t/')) {
-        codePart = fullUrl.split('https://gbz.app/t/').last;
-      } else if (fullUrl.contains('https://gbz.app/t=')) {
-        codePart = fullUrl.split('https://gbz.app/t=').last;
+      if (fullUrl.contains('https://web.sandbox.gzb.app/t/')) {
+        codePart = fullUrl.split('https://web.sandbox.gzb.app/t/').last;
+      } else if (fullUrl.contains('https://web.sandbox.gzb.app/t=')) {
+        codePart = fullUrl.split('https://web.sandbox.gzb.app/t=').last;
       } else {
         codePart = fullUrl;
       }
@@ -134,8 +134,8 @@ class QrCodeExtractor {
 
   // Check if the scanned code is in the new URL format
   static bool isUrlFormat(String code) {
-    return code.contains('https://gbz.app/t/') ||
-        code.contains('https://gbz.app/t=');
+    return code.contains('https://web.sandbox.gzb.app/t/') ||
+        code.contains('https://web.sandbox.gzb.app/t=');
   }
 }
 
