@@ -1,5 +1,6 @@
 import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
+import 'package:gb_merchant/utils/constants.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 class ContactUsPage extends StatelessWidget {
@@ -33,7 +34,7 @@ class ContactUsPage extends StatelessWidget {
     final localeCode = context.locale.languageCode;
 
     return Scaffold(
-      backgroundColor: Colors.grey.shade100,
+      backgroundColor: AppColors.primaryColor,
       body: Center(
         child: Padding(
           padding: EdgeInsets.symmetric(horizontal: screenWidth * 0.1),
@@ -41,13 +42,14 @@ class ContactUsPage extends StatelessWidget {
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               // Circle with soft shadow
+              // Circle with soft shadow
               Container(
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
                   color: Colors.grey.shade100,
                   boxShadow: [
                     BoxShadow(
-                      color: Colors.black.withOpacity(0.06),
+                      color: Colors.white.withOpacity(0.06),
                       blurRadius: 12,
                       offset: const Offset(0, 4),
                     ),
@@ -68,19 +70,19 @@ class ContactUsPage extends StatelessWidget {
                 style: TextStyle(
                   fontSize: isTablet ? 24 : 20,
                   fontWeight: FontWeight.bold,
-                  color: Colors.black87,
+                  color: Colors.white,
                   fontFamily: localeCode == 'km' ? 'KhmerFont' : null,
                 ),
               ),
-              const SizedBox(height: 12),
+              const SizedBox(height: 24),
 
               // Subtitle
               Text(
                 "contact_platform".tr(),
                 textAlign: TextAlign.center,
                 style: TextStyle(
-                  fontSize: isTablet ? 16 : 14,
-                  color: Colors.grey[600],
+                  fontSize: isTablet ? 16 : 16,
+                  color: Colors.white,
                   height: 1.5,
                   fontFamily: localeCode == 'km' ? 'KhmerFont' : null,
                 ),
@@ -96,7 +98,7 @@ class ContactUsPage extends StatelessWidget {
                     "assets/images/messengerlogo.png",
                     height: 28,
                     width: 28,
-                    color: Colors.white,
+                    color: Colors.black,
                   ),
                   label: const Padding(
                     padding: EdgeInsets.only(left: 8.0),
@@ -105,18 +107,18 @@ class ContactUsPage extends StatelessWidget {
                       style: TextStyle(
                         fontSize: 16,
                         fontWeight: FontWeight.w600,
-                        color: Colors.white,
+                        color: Colors.black,
                       ),
                     ),
                   ),
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.deepOrange,
+                    backgroundColor: Colors.white,
                     padding: const EdgeInsets.symmetric(vertical: 16),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(8),
                     ),
                     elevation: 4,
-                    shadowColor: Colors.deepOrange.withOpacity(0.4),
+                    shadowColor: Colors.white.withOpacity(0.4),
                   ),
                 ),
               ),

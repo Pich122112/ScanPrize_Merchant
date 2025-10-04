@@ -85,6 +85,10 @@ class UserTransactionService {
                 'qty':
                     parsedQty, // This will now be null when backend returns null
                 'wallet_type': transaction['wallet_type'] ?? '',
+                'remarks': transaction['remarks'] ?? '', // ADD THIS LINE
+                'reference_id': transaction['reference_id'] ?? '', // Optional
+                'unit': transaction['unit'] ?? '', // <--- ADD THIS LINE
+
               };
 
               transferTransactions.add(formattedTransaction);
@@ -231,6 +235,9 @@ class UserTransactionService {
               'ToPhoneNumber': transaction['to_user_phone_number'] ?? '',
               'transaction_type': transaction['transaction_type'],
               'qty': parsedQty,
+              'remarks': transaction['remarks'] ?? '', // ADD THIS LINE
+              'reference_id': transaction['reference_id'] ?? '', // Optional
+              'unit': transaction['unit'] ?? '', // <--- ADD THIS LINE
             };
 
             groupedByDate[date]!.add(formattedTransaction);

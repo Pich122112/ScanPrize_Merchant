@@ -17,7 +17,9 @@ class _ModernImageSliderState extends State<ModernImageSlider> {
   int activeIndex = 0;
   final CarouselController _controller = CarouselController();
 
-  void _showFullScreenImage(String imageUrl) {
+  void _showFullScreenImage(int initialIndex) {
+    PageController pageController = PageController(initialPage: initialIndex);
+
     showGeneralDialog(
       context: context,
       barrierDismissible: true,
@@ -25,33 +27,35 @@ class _ModernImageSliderState extends State<ModernImageSlider> {
       transitionDuration: const Duration(milliseconds: 300),
       pageBuilder: (context, animation, secondaryAnimation) {
         return Scaffold(
-          backgroundColor: Colors.black.withOpacity(0.85),
+          backgroundColor: Colors.black.withOpacity(0.95),
           body: SafeArea(
             child: Stack(
               children: [
-                // Fullscreen image (no rounded shape)
-                Center(
-                  child: InteractiveViewer(
-                    boundaryMargin: const EdgeInsets.all(double.infinity),
-                    minScale: 0.1,
-                    maxScale: 5.0,
-                    child: Image.network(
-                      imageUrl,
-                      fit: BoxFit.contain,
-                      errorBuilder: (context, error, stackTrace) {
-                        return Container(
-                          color: Colors.black,
-                          child: const Center(
-                            child: Icon(
-                              Icons.broken_image,
-                              color: Colors.white,
-                              size: 50,
-                            ),
-                          ),
-                        );
-                      },
-                    ),
-                  ),
+                // Fullscreen swipeable + zoomable images
+                PageView.builder(
+                  controller: pageController,
+                  itemCount: widget.imageUrls.length,
+                  itemBuilder: (context, index) {
+                    return InteractiveViewer(
+                      minScale: 0.5,
+                      maxScale: 5.0,
+                      child: Center(
+                        child: Image.network(
+                          widget.imageUrls[index],
+                          fit: BoxFit.contain,
+                          errorBuilder: (context, error, stackTrace) {
+                            return const Center(
+                              child: Icon(
+                                Icons.broken_image,
+                                color: Colors.white,
+                                size: 60,
+                              ),
+                            );
+                          },
+                        ),
+                      ),
+                    );
+                  },
                 ),
 
                 // Close button
@@ -110,7 +114,10 @@ class _ModernImageSliderState extends State<ModernImageSlider> {
                   items:
                       widget.imageUrls.map((url) {
                         return GestureDetector(
-                          onTap: () => _showFullScreenImage(url),
+                          onTap:
+                              () => _showFullScreenImage(
+                                widget.imageUrls.indexOf(url),
+                              ),
                           child: ClipRRect(
                             borderRadius: BorderRadius.circular(22),
                             child: Stack(

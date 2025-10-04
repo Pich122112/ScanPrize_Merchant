@@ -507,7 +507,7 @@ class _HomePageState extends State<HomePage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.grey.shade100,
+      backgroundColor: AppColors.primaryColor,
       body: RefreshIndicator(
         onRefresh: _refreshData,
         color: AppColors.primaryColor,

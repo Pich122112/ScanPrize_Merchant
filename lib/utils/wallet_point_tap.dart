@@ -200,7 +200,25 @@ class WalletPointsTab extends StatelessWidget {
           ),
           child: Row(
             children: [
-              Image.asset(image, width: 50, height: 50, fit: BoxFit.contain),
+              Container(
+                width: 60,
+                height: 60,
+                decoration: BoxDecoration(
+                  color: Colors.white, // background color for the box
+                  shape: BoxShape.circle,
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.25),
+                      blurRadius: 6,
+                      offset: const Offset(0, 0),
+                    ),
+                  ],
+                ),
+                padding: const EdgeInsets.all(
+                  8,
+                ), // space between border and image
+                child: Image.asset(image, fit: BoxFit.contain),
+              ),
               SizedBox(width: 16),
               Expanded(
                 child: Column(
@@ -217,13 +235,12 @@ class WalletPointsTab extends StatelessWidget {
                     ),
                     SizedBox(height: 4),
                     Text(
-                      '$points $unit',
+                      '${'balance'.tr()} : $points $unit',
                       style: TextStyle(
-                        fontSize: 18,
+                        fontSize: 14,
                         fontWeight: FontWeight.bold,
                         fontFamily: 'KhmerFont',
-                        color:
-                            canTransfer ? AppColors.primaryColor : Colors.grey,
+                        color: canTransfer ? Colors.grey : Colors.grey,
                       ),
                     ),
                     if (!canTransfer)
@@ -244,7 +261,37 @@ class WalletPointsTab extends StatelessWidget {
                   size: 18,
                   color: canTransfer ? Colors.grey : Colors.grey[100],
                 ),
-                onPressed: canTransfer ? () {} : null,
+                onPressed:
+                    canTransfer
+                        ? () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder:
+                                  (context) => EnterQuantityDialog(
+                                    prize: ExchangePrize(
+                                      prizeId: 0,
+                                      prizeName: name,
+                                      brandId: 0,
+                                      brandName: '',
+                                      walletType: _getWalletTypeId(walletKey),
+                                      walletName: walletKey,
+                                      point: 1,
+                                      sku: '',
+                                      unit: 'unit',
+                                      thumbnail: '',
+                                      status: true,
+                                    ),
+                                    phoneNumber: phoneNumber,
+                                    scannedQr: scannedQr,
+                                    receiverId: userId,
+                                    walletId: _getWalletTypeId(walletKey),
+                                    fromWalletTab: true,
+                                  ),
+                            ),
+                          );
+                        }
+                        : null,
               ),
             ],
           ),
@@ -254,4 +301,4 @@ class WalletPointsTab extends StatelessWidget {
   }
 }
 
-//Correct with 255 line code changes
+//Correct with 304 line code changes

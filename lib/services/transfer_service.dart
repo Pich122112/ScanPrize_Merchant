@@ -110,6 +110,7 @@ class TransferService {
     String? prizeId, // ✅ Make prize_id optional
     int? prizePoint, // ✅ Make prize_point optional
     int? qty, // ✅ Make qty optional
+    String? remark, // <-- Add this line!
   }) async {
     try {
       // Get token from shared preferences
@@ -143,6 +144,10 @@ class TransferService {
 
       if (qty != null && qty > 0) {
         requestBody['qty'] = qty.toString();
+      }
+
+      if (remark != null && remark.isNotEmpty) {
+        requestBody['remark'] = remark;
       }
 
       print('🔄 ======= TRANSFER REQUEST DETAILS =======');

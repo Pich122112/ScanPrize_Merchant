@@ -5,10 +5,10 @@ import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter/services.dart';
-import 'package:gb_merchant/utils/transaction_share_service.dart';
 import 'package:media_scanner/media_scanner.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:permission_handler/permission_handler.dart';
+import 'package:gb_merchant/utils/transaction_share_service.dart';
 
 import '../utils/constants.dart';
 
@@ -141,33 +141,6 @@ class _TransactionDetailModalState extends State<TransactionDetailModal> {
     }
   }
 */
-  Future<void> _shareTransaction() async {
-    setState(() {
-      _showBranding = true; // Show branding for sharing
-    });
-
-    try {
-      await Future.delayed(
-        const Duration(milliseconds: 100),
-      ); // Allow UI to update
-
-      await TransactionShareService.shareTransaction(
-        _receiptKey,
-        widget.transaction,
-      );
-    } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          backgroundColor: Colors.red,
-          content: Text('Failed to share transaction: ${e.toString()}'),
-        ),
-      );
-    } finally {
-      setState(() {
-        _showBranding = false; // Hide branding after sharing
-      });
-    }
-  }
 
   Future<void> _saveTransactionAsImage() async {
     setState(() {
@@ -299,13 +272,123 @@ class _TransactionDetailModalState extends State<TransactionDetailModal> {
     return '?';
   }
 
+  Future<void> _shareTransaction() async {
+    setState(() {
+      _showBranding = true; // Show branding for sharing
+    });
+
+    try {
+      await Future.delayed(
+        const Duration(milliseconds: 100),
+      ); // Allow UI to update
+
+      await TransactionShareService.shareTransaction(
+        _receiptKey,
+        widget.transaction,
+      );
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          backgroundColor: Colors.red,
+          content: Text('Failed to share transaction: ${e.toString()}'),
+        ),
+      );
+    } finally {
+      setState(() {
+        _showBranding = false; // Hide branding after sharing
+      });
+    }
+  }
+
   String _formatDateTime(String dateTimeString) {
     try {
-      final dateTime = DateTime.parse(dateTimeString);
-      return DateFormat('dd / MMM / yyyy hh:mm a').format(dateTime);
-    } catch (_) {
-      return dateTimeString;
+      // Parse the date as UTC
+      DateTime parsedUtc = DateTime.parse(dateTimeString).toUtc();
+
+      // Convert to Cambodia time (UTC+7)
+      DateTime cambodiaTime = parsedUtc.add(const Duration(hours: 7));
+
+      final localeCode = context.locale.languageCode;
+      final months =
+          localeCode == 'km'
+              ? [
+                "មករា",
+                "កុម្ភៈ",
+                "មីនា",
+                "មេសា",
+                "ឧសភា",
+                "មិថុនា",
+                "កក្កដា",
+                "សីហា",
+                "កញ្ញា",
+                "តុលា",
+                "វិច្ឆិកា",
+                "ធ្នូ",
+              ]
+              : [
+                "Jan",
+                "Feb",
+                "Mar",
+                "Apr",
+                "May",
+                "Jun",
+                "Jul",
+                "Aug",
+                "Sep",
+                "Oct",
+                "Nov",
+                "Dec",
+              ];
+
+      final month = months[cambodiaTime.month - 1];
+      final day = cambodiaTime.day;
+      final year = cambodiaTime.year;
+
+      final hour = cambodiaTime.hour % 12 == 0 ? 12 : cambodiaTime.hour % 12;
+      final minute = cambodiaTime.minute.toString().padLeft(2, '0');
+      final period = cambodiaTime.hour < 12 ? 'AM' : 'PM';
+
+      return "$month $day, $year $hour:$minute $period";
+    } catch (e) {
+      return dateTimeString; // fallback if parsing fails
     }
+  }
+
+  String _translateUnit(String unit) {
+    final localeCode = context.locale.languageCode;
+    if (localeCode == 'km') {
+      switch (unit.toLowerCase()) {
+        case 'can':
+          return 'កំប៉ុង';
+        case 'case':
+          return 'កេស';
+        case 'bottle':
+          return 'ដប';
+        case 'shirt':
+          return 'អាវ';
+        case 'ball':
+          return 'បាល់';
+        case 'umbrella':
+          return 'ឆ័ត្រ';
+        case 'dolla':
+          return 'ដុល្លា';
+        case 'helmet':
+          return 'មួក';
+        case 'bucket':
+          return 'ធុងទឹកកក';
+        case 'motor':
+          return 'ម៉ូតូ';
+        case 'car':
+          return 'ឡាន';
+        case 'piece':
+          return 'ប្រអប់';
+        case 'pack':
+          return 'ប៉ាក';
+        default:
+          return unit;
+      }
+    }
+    return unit;
   }
 
   @override
@@ -325,6 +408,24 @@ class _TransactionDetailModalState extends State<TransactionDetailModal> {
             : int.tryParse(transaction['Amount'].toString()) ?? 0;
     final createdAt = transaction['created_at'] ?? '';
     final walletType = transaction['wallet_type'] ?? '';
+    // FIX: Use 'remarks' (plural) instead of 'remark' (singular)
+    final hasRemarks =
+        transaction['remarks'] != null &&
+        transaction['remarks'].toString().trim().isNotEmpty;
+
+    // Check if reference_id exists and is not empty
+    final hasReferenceId =
+        transaction['reference_id'] != null &&
+        transaction['reference_id'].toString().trim().isNotEmpty;
+    final String unit =
+        transaction['unit'] ?? ''; // Default to empty if not present
+    final String? qty = transaction['qty']?.toString();
+
+    print('DEBUG Transaction remark: ${transaction['remark']}');
+    print('DEBUG Has remarks: $hasRemarks');
+    print('DEBUG Transaction reference_id: ${transaction['reference_id']}');
+    print('DEBUG Has reference_id: $hasReferenceId');
+    print('DEBUG Has unit: $unit');
 
     String formatPhoneNumber(String phone) {
       if (phone.isEmpty) return '';
@@ -492,6 +593,44 @@ class _TransactionDetailModalState extends State<TransactionDetailModal> {
                       '${isCredit ? '+' : '-'}${amount.abs()} ${"score".tr()}',
                       valueColor: amountColor,
                     ),
+                    if ((unit.isNotEmpty) &&
+                        (qty != null && qty.isNotEmpty)) ...[
+                      _buildDashedDivider(),
+                      _buildInvoiceRow(
+                        context,
+                        'unit'.tr(),
+                        'x $qty ${_translateUnit(unit)}',
+                      ),
+                    ] else if (unit.isNotEmpty) ...[
+                      _buildDashedDivider(),
+                      _buildInvoiceRow(
+                        context,
+                        'unit'.tr(),
+                        _translateUnit(unit),
+                      ),
+                    ],
+                    // FIXED: This should now work correctly with 'remarks'
+                    if (hasRemarks) ...[
+                      _buildDashedDivider(),
+                      _buildInvoiceRow(
+                        context,
+                        'remark'.tr(),
+                        transaction['remarks'].toString(), // Use 'remarks' here
+                        valueColor: Colors.black87,
+                      ),
+                    ],
+                    // Conditionally show reference_id section only when reference_id exists
+                    // FIXED: Reference ID section
+                    if (hasReferenceId) ...[
+                      _buildDashedDivider(),
+                      _buildInvoiceRow(
+                        context,
+                        'Reference #',
+                        transaction['reference_id'].toString(),
+                        valueColor: Colors.blue,
+                      ),
+                    ],
+
                     _buildDashedDivider(),
                     _buildInvoiceRow(context, 'date'.tr(), formattedDate),
 
@@ -550,12 +689,16 @@ class _TransactionDetailModalState extends State<TransactionDetailModal> {
                   const SizedBox(width: 6),
                   Text(
                     'transaction_saved'.tr(),
-                    style: const TextStyle(
-                      fontSize: 18,
+                    style: TextStyle(
+                      fontSize:
+                          MediaQuery.of(context).size.width *
+                          0.045, // ~18 on phone
                       fontWeight: FontWeight.bold,
                       color: Colors.green,
                       fontFamily: 'KhmerFont',
                     ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
                   ),
                 ],
               ),
@@ -615,9 +758,6 @@ class _TransactionDetailModalState extends State<TransactionDetailModal> {
               color: valueColor ?? Colors.black,
               fontFamily: localeCode == 'km' ? 'KhmerFont' : null,
             ),
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            textAlign: TextAlign.right, // optional if you want it aligned right
           ),
         ],
       ),
@@ -678,4 +818,4 @@ class _TransactionDetailModalState extends State<TransactionDetailModal> {
   }
 }
 
-//Correct with 678 line code changes
+//Correct with 821 line code changes

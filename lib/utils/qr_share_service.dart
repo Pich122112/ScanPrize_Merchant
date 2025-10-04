@@ -1,5 +1,6 @@
 import 'dart:typed_data';
 
+import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:path_provider/path_provider.dart';
@@ -8,12 +9,11 @@ import 'dart:ui' as ui;
 import 'package:flutter/rendering.dart';
 
 class QrShareService {
-  static Future<void> shareQrCode(
+  static Future<bool> shareQrCode(
     GlobalKey globalKey,
     String phoneNumber,
   ) async {
     try {
-      // Capture the QR widget as an image
       final RenderRepaintBoundary boundary =
           globalKey.currentContext!.findRenderObject() as RenderRepaintBoundary;
       final ui.Image image = await boundary.toImage(pixelRatio: 3.0);
@@ -22,21 +22,23 @@ class QrShareService {
       );
       final Uint8List pngBytes = byteData!.buffer.asUint8List();
 
-      // Create temporary file
       final Directory tempDir = await getTemporaryDirectory();
       final File file = File('${tempDir.path}/qr_code_$phoneNumber.png');
       await file.writeAsBytes(pngBytes);
 
-      // Share the file
-      await Share.shareXFiles(
+      // 🔥 get result from share_plus
+      final result = await Share.shareXFiles(
         [XFile(file.path)],
-        text: 'Hello, Here is my personal Ganzberg QR Code',
-        subject: 'Ganzberg QR Code',
+        text: 'share_qr_message'.tr(),
+        subject: 'share_qr_subject'.tr(),
       );
+
+      return result.status ==
+          ShareResultStatus.success; // ✅ return true only if shared
     } catch (e) {
       throw Exception('Failed to share QR code: $e');
     }
   }
 }
 
-//Correct with 38 line code changes
+//Correct with 43 line code changes

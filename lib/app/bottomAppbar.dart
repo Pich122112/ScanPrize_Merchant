@@ -320,12 +320,14 @@ class RomlousApp extends StatefulWidget {
   State<RomlousApp> createState() => _RomlousAppState();
 }
 
-class _RomlousAppState extends State<RomlousApp> {
+class _RomlousAppState extends State<RomlousApp>
+    with SingleTickerProviderStateMixin {
   int _selectedIndex = 0;
   bool _centerButtonActive = false;
   final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
   final GlobalKey<NavigatorState> _navigatorKey = GlobalKey<NavigatorState>();
   String _phoneNumber = '';
+  late AnimationController _shimmerController;
 
   bool _noInternet = false;
   final GlobalKey<ThreeBoxSectionState> dashboardKey =
@@ -337,6 +339,10 @@ class _RomlousAppState extends State<RomlousApp> {
   @override
   void initState() {
     super.initState();
+    _shimmerController = AnimationController(
+      vsync: this,
+      duration: const Duration(seconds: 3),
+    )..repeat();
     _loadPhoneNumber();
     _refreshUserDataAndCheckStatus(); // Add this line
 
@@ -362,6 +368,12 @@ class _RomlousAppState extends State<RomlousApp> {
             results.every((r) => r == ConnectivityResult.none);
       });
     });
+  }
+
+  @override
+  void dispose() {
+    _shimmerController.dispose();
+    super.dispose();
   }
 
   // Add this method to check user status from SharedPreferences
@@ -552,7 +564,7 @@ class _RomlousAppState extends State<RomlousApp> {
     final isTablet = screenWidth > 600;
 
     return Scaffold(
-      backgroundColor: Colors.grey.shade100,
+      backgroundColor: AppColors.primaryColor,
       key: _scaffoldKey,
       appBar: CustomAppBar(
         onMenuPressed: () {
@@ -633,7 +645,8 @@ class _RomlousAppState extends State<RomlousApp> {
       bottomNavigationBar: Container(
         height: screenHeight * 0.085,
         margin: EdgeInsets.only(
-          bottom: screenHeight * 0.025,
+          top: screenHeight * 0.015,
+          bottom: screenHeight * 0.028,
           left: screenWidth * 0.04,
           right: screenWidth * 0.04,
         ),
@@ -642,9 +655,10 @@ class _RomlousAppState extends State<RomlousApp> {
           borderRadius: BorderRadius.circular(50),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(0.2),
-              blurRadius: 10,
-              offset: const Offset(0, 4),
+              color: const Color.fromARGB(229, 255, 255, 255),
+              blurRadius: 6,
+              spreadRadius: 2, // makes it expand in all directions
+              offset: Offset(0, 0), // no shift
             ),
           ],
         ),
@@ -683,7 +697,7 @@ class _RomlousAppState extends State<RomlousApp> {
         duration: const Duration(milliseconds: 300),
         padding: EdgeInsets.symmetric(
           horizontal: screenWidth * 0.04,
-          vertical: screenWidth * 0.015,
+          vertical: screenWidth * 0.020,
         ),
         decoration: BoxDecoration(
           color: isSelected ? Colors.black : Colors.transparent,
@@ -714,20 +728,58 @@ class _RomlousAppState extends State<RomlousApp> {
     final buttonSize = screenWidth * 0.18;
 
     return GestureDetector(
-      onTap: _onCenterButtonPressed, // Use the modified method
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 300),
+      onTap: _onCenterButtonPressed,
+      child: SizedBox(
         width: buttonSize,
         height: buttonSize,
-        decoration: BoxDecoration(
-          color: _centerButtonActive ? Colors.black : AppColors.primaryColor,
-          shape: BoxShape.circle,
-          border: Border.all(color: Colors.white, width: 3.5),
-        ),
-        child: Icon(
-          Icons.center_focus_strong,
-          color: Colors.white,
-          size: buttonSize * 0.55,
+        child: AnimatedBuilder(
+          animation: _shimmerController,
+          builder: (context, child) {
+            return Stack(
+              alignment: Alignment.center,
+              children: [
+                // Outer gradient shimmer border
+                Container(
+                  width: buttonSize,
+                  height: buttonSize,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    gradient: LinearGradient(
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                      colors: const [
+                        Colors.cyanAccent,
+                        Colors.pinkAccent,
+                        Colors.cyanAccent,
+                      ],
+                      stops: [
+                        (_shimmerController.value - 0.3).clamp(0.0, 1.0),
+                        _shimmerController.value,
+                        (_shimmerController.value + 0.3).clamp(0.0, 1.0),
+                      ],
+                    ),
+                  ),
+                ),
+                // Inner circle
+                Container(
+                  width: buttonSize - 7, // border width
+                  height: buttonSize - 7,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    color:
+                        _centerButtonActive
+                            ? Colors.black
+                            : AppColors.primaryColor,
+                  ),
+                  child: Icon(
+                    Icons.center_focus_strong,
+                    color: Colors.white,
+                    size: (buttonSize - 7) * 0.60,
+                  ),
+                ),
+              ],
+            );
+          },
         ),
       ),
     );

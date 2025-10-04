@@ -86,7 +86,7 @@ class _LockTimerDialogState extends State<LockTimerDialog> {
             ),
             const SizedBox(height: 30),
             Text(
-              'សូមរង់ចាំ $formattedTime វិនាទី',
+              'pleasewait'.tr(namedArgs: {'time': formattedTime}),
               style: TextStyle(
                 color: Colors.redAccent,
                 fontSize: 20,

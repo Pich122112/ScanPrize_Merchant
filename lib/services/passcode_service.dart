@@ -311,6 +311,7 @@ import 'package:flutter/material.dart';
 import 'package:gb_merchant/widgets/attemp_time.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../components/passcode.dart';
+// ignore: unused_import
 import '../widgets/Dialog_Success.dart';
 import '../utils/encryption.dart';
 import '../services/user_server.dart';
@@ -480,18 +481,29 @@ class PasscodeService {
       // Add this debug log to see what the API returns
       debugPrint('🌐 DEBUG: Create passcode API response: $createResult');
 
+      // if (createResult['success'] == true) {
+      //   showDialog(
+      //     context: context,
+      //     barrierDismissible: false,
+      //     builder:
+      //         (_) => const SuccessDialog(
+      //           message: "លេខសម្ងាត់របស់អ្នកបង្កើតបានជោគជ័យ!",
+      //         ),
+      //   );
+      //   Future.delayed(const Duration(seconds: 2), () {
+      //     Navigator.of(context, rootNavigator: true).pop();
+      //   });
+      //   if (setExpiration) {
+      //     final expires =
+      //         DateTime.now()
+      //             .add(const Duration(minutes: 10))
+      //             .millisecondsSinceEpoch;
+      //     await prefs.setInt('eye_window_expires_at', expires);
+      //   }
+      //   return true;
+      // }
       if (createResult['success'] == true) {
-        showDialog(
-          context: context,
-          barrierDismissible: false,
-          builder:
-              (_) => const SuccessDialog(
-                message: "លេខសម្ងាត់របស់អ្នកបង្កើតបានជោគជ័យ!",
-              ),
-        );
-        Future.delayed(const Duration(seconds: 2), () {
-          Navigator.of(context, rootNavigator: true).pop();
-        });
+        // Do NOT show dialog. Proceed immediately.
         if (setExpiration) {
           final expires =
               DateTime.now()
@@ -499,6 +511,7 @@ class PasscodeService {
                   .millisecondsSinceEpoch;
           await prefs.setInt('eye_window_expires_at', expires);
         }
+        // Return to unlock flow, caller will show transfer animation immediately
         return true;
       } else {
         // Add detailed error logging

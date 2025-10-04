@@ -352,9 +352,8 @@ class _CustomPasscodeDialogState extends State<CustomPasscodeDialog> {
                     mainAxisAlignment: MainAxisAlignment.spaceAround,
                     children: [
                       // Top Section: Cancel Button
-                      SizedBox(
-                        height: constraints.maxHeight * 0.025,
-                      ), // instead of 20
+                      SizedBox(height: 20),
+
                       Align(
                         alignment: Alignment.topLeft,
                         child: TextButton(
@@ -371,9 +370,8 @@ class _CustomPasscodeDialogState extends State<CustomPasscodeDialog> {
                           ),
                         ),
                       ),
-                      SizedBox(
-                        height: constraints.maxHeight * 0.025,
-                      ), // instead of 20
+                      SizedBox(height: 20),
+
                       // Middle Section: Lock Icon, Subtitle, and Input Indicators
                       Column(
                         mainAxisAlignment: MainAxisAlignment.center,
@@ -396,9 +394,8 @@ class _CustomPasscodeDialogState extends State<CustomPasscodeDialog> {
                             ),
                           ),
 
-                          SizedBox(
-                            height: constraints.maxHeight * 0.02,
-                          ), // instead of 15
+                          SizedBox(height: 20), // instead of 15
+
                           Text(
                             widget.subtitle,
                             textAlign: TextAlign.center,
@@ -423,20 +420,15 @@ class _CustomPasscodeDialogState extends State<CustomPasscodeDialog> {
                               ),
                             ),
                           ],
-                          SizedBox(
-                            height: constraints.maxHeight * 0.03,
-                          ), // instead of 30
+                          SizedBox(height: 30), // instead of 30
+
                           Row(
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: List.generate(widget.digits, (i) {
                               return Container(
-                                width:
-                                    constraints.maxWidth *
-                                    0.06, // responsive dot size
-                                height: constraints.maxWidth * 0.06,
-                                margin: EdgeInsets.symmetric(
-                                  horizontal: constraints.maxWidth * 0.02,
-                                ),
+                                width: 26, // or whatever fixed size you prefer
+                                height: 26,
+                                margin: EdgeInsets.symmetric(horizontal: 8),
                                 decoration: BoxDecoration(
                                   shape: BoxShape.circle,
                                   color:
@@ -455,7 +447,9 @@ class _CustomPasscodeDialogState extends State<CustomPasscodeDialog> {
                             }),
                           ),
 
-                          SizedBox(height: constraints.maxHeight * 0.05),
+                          SizedBox(
+                            height: 42,
+                          ), // or another fixed value you prefer
                           _buildKeypad(),
                         ],
                       ),
@@ -506,8 +500,7 @@ class _CustomPasscodeDialogState extends State<CustomPasscodeDialog> {
     IconData? icon;
     if (isDel) icon = Icons.backspace;
 
-    final screenWidth = MediaQuery.of(context).size.width;
-    final buttonSize = screenWidth * 0.18; // dynamic size for keypad
+    final buttonSize = 75.0;
 
     return GestureDetector(
       onTap: () => _onPressed(key),
@@ -539,7 +532,7 @@ class _CustomPasscodeDialogState extends State<CustomPasscodeDialog> {
                     key,
                     style: TextStyle(
                       color: Colors.white,
-                      fontSize: screenWidth * 0.08, // dynamic font size
+                      fontSize: 33,
                       fontWeight: FontWeight.w500,
                     ),
                   )
@@ -548,19 +541,15 @@ class _CustomPasscodeDialogState extends State<CustomPasscodeDialog> {
                     "C",
                     style: TextStyle(
                       color: AppColors.primaryColor,
-                      fontSize: screenWidth * 0.09,
+                      fontSize: 40,
                       fontWeight: FontWeight.bold,
                     ),
                   )
-                  : Icon(
-                    icon,
-                    color: AppColors.primaryColor,
-                    size: screenWidth * 0.08,
-                  ),
+                  : Icon(icon, color: AppColors.primaryColor, size: 33),
         ),
       ),
     );
   }
 }
 
-//Correct with 565 line code changes
+//Correct with 555 line code changes

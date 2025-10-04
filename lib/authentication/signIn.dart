@@ -333,11 +333,11 @@ class _SignUpPageState extends State<SignInPage> {
             final prefs = await SharedPreferences.getInstance();
 
             // Save whole profile as JSON
+            await prefs.setString('user_data', jsonEncode({'data': data}));
             await prefs.setString('userDetailData', jsonEncode(data));
             await prefs.setString('token', token);
             await prefs.setString('phoneNumber', data['phone_number'] ?? '');
             await prefs.setString('userId', data['id'].toString());
-            // ✅ ADD THIS LINE - Send FCM token to backend
             await FirebaseService.sendFcmTokenToBackend(apiToken: token);
 
             await prefs.setBool('isLoggedIn', true);
@@ -648,7 +648,12 @@ class _SignUpPageState extends State<SignInPage> {
                                             Icons.sms,
                                             color: Colors.grey[600],
                                           ),
-
+                                          errorStyle: const TextStyle(
+                                            fontFamily: 'KhmerFont',
+                                            fontSize: 14,
+                                            fontWeight: FontWeight.bold,
+                                            color: Colors.red,
+                                          ),
                                           // ✅ show countdown in OTP field
                                           suffixIcon:
                                               (_otpRequested && _timing)
@@ -807,4 +812,4 @@ class _SignUpPageState extends State<SignInPage> {
   }
 }
 
-//Correct with 802 line code changes
+//Correct with 815 line code changes

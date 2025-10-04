@@ -1,18 +1,20 @@
-import 'dart:io';
+import 'dart:convert';
+import 'dart:typed_data';
 
 import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
-import 'package:path_provider/path_provider.dart';
 import 'package:qr_code_scanner_plus/qr_code_scanner_plus.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:gb_merchant/components/qr_scan_action_button.dart';
 import 'package:gb_merchant/services/transfer_service.dart';
+import 'package:gb_merchant/utils/constants.dart';
 import 'package:gb_merchant/utils/qr_code_parser.dart';
 import 'package:zxing2/qrcode.dart';
 import 'package:image/image.dart' as img;
-import 'dart:typed_data';
 import 'package:qr_code_tools/qr_code_tools.dart';
 import './ExchangePrizeList.dart';
+import 'package:path_provider/path_provider.dart';
+import 'dart:io';
 
 String? getPhoneNumberFromQr(String qrPayload) {
   return null;
@@ -127,7 +129,7 @@ class TransferPrizeScan extends StatefulWidget {
 }
 
 class _TransferPrizeScanState extends State<TransferPrizeScan>
-    with SingleTickerProviderStateMixin {
+    with TickerProviderStateMixin {
   final GlobalKey qrKey = GlobalKey(debugLabel: 'QR');
   QRViewController? controller;
   bool isFlashOn = false;
@@ -139,17 +141,50 @@ class _TransferPrizeScanState extends State<TransferPrizeScan>
   late AnimationController _animationController;
   late Animation<double> _positionAnimation;
 
+  // Add for the border zoom animation
+  late AnimationController _zoomController;
+  late Animation<double> _zoomAnimation;
+  bool _isZooming = false;
+
+  Color _currentBorderColor = Colors.white;
+  late AnimationController _colorController;
+  late Animation<Color?> _colorAnimation;
+
   @override
   void initState() {
     super.initState();
     _animationController = AnimationController(
-      duration: const Duration(milliseconds: 1200),
+      duration: const Duration(milliseconds: 2000),
       vsync: this,
     )..repeat(reverse: true);
 
     _positionAnimation = Tween<double>(begin: 0, end: 1).animate(
       CurvedAnimation(parent: _animationController, curve: Curves.easeInOut),
     );
+    // For border zoom on correct scan
+    _zoomController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 500),
+    );
+    _zoomAnimation = Tween<double>(begin: 1, end: 0.6).animate(
+      CurvedAnimation(parent: _zoomController, curve: Curves.easeInOutBack),
+    );
+
+    _colorController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 400),
+    );
+
+    _colorAnimation = ColorTween(
+      begin: Colors.white,
+      end: Colors.white,
+    ).animate(_colorController);
+
+    _colorController.addListener(() {
+      setState(() {
+        _currentBorderColor = _colorAnimation.value ?? Colors.white;
+      });
+    });
   }
 
   @override
@@ -157,6 +192,9 @@ class _TransferPrizeScanState extends State<TransferPrizeScan>
     // Stop animation first
     _animationController.stop();
     _animationController.dispose();
+    _zoomController.dispose();
+    _isZooming = false;
+    _colorController.dispose();
 
     // Dispose camera controller safely
     if (controller != null) {
@@ -178,39 +216,53 @@ class _TransferPrizeScanState extends State<TransferPrizeScan>
           _isProcessing = true;
         });
 
-        // Validate QR format before proceeding
+        // Validate QR format
         final isValid = _validateQrFormat(scanData.code!);
-
         setState(() {
           _isValidQr = isValid;
         });
+        // Animate border color: green for correct, red for incorrect
+        _colorAnimation = ColorTween(
+          begin: Colors.white,
+          end: isValid ? AppColors.successCOlor : AppColors.primaryColor,
+        ).animate(_colorController);
 
-        // Only proceed if QR is valid TRANSFER code
+        _colorController.forward(from: 0);
+
+        // After a short delay, fade back to white
+        Future.delayed(const Duration(milliseconds: 700), () {
+          if (mounted) {
+            _colorAnimation = ColorTween(
+              begin: isValid ? AppColors.primaryColor : AppColors.primaryColor,
+              end: Colors.white,
+            ).animate(_colorController);
+            _colorController.forward(from: 0);
+          }
+        });
+
         if (isValid && mounted) {
           print("✅ Valid TRANSFER QR detected: ${scanData.code!}");
 
-          // Add slight delay for better UX
-          await Future.delayed(const Duration(milliseconds: 500));
+          // Start zoom animation
+          setState(() {
+            _isZooming = true;
+          });
+          _zoomController.forward();
+
+          // Wait for animation to finish, then proceed
+          await Future.delayed(_zoomController.duration!);
 
           if (mounted) {
             widget.onScanned(scanData.code!);
             Navigator.of(context).pop();
           }
         } else if (mounted) {
-          // Show specific error message for prize QR codes
           final errorMessage =
               _isPrizeQrCode(scanData.code!)
                   ? 'QR មិនត្រឺមត្រូវសូមជ្រើសរើសម្តងទៀត'
-                  : 'Invalid transfer QR code format';
+                  : 'Incorrect transfer QR code format'.tr();
 
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text(errorMessage),
-              duration: const Duration(seconds: 3),
-              backgroundColor: Colors.red,
-              padding: const EdgeInsets.only(bottom: 30.0),
-            ),
-          );
+          _showModernErrorSnackBar(errorMessage);
 
           // Resume scanning after delay
           await Future.delayed(const Duration(seconds: 2));
@@ -224,9 +276,74 @@ class _TransferPrizeScanState extends State<TransferPrizeScan>
     });
   }
 
-  // QR format validation
-  // In _TransferPrizeScanState, update the validation
-  // QR format validation - Only accept transfer QR codes
+  void _showModernErrorSnackBar(String message) {
+    final overlay = Overlay.of(context);
+    final overlayEntry = OverlayEntry(
+      builder:
+          (context) => Positioned(
+            top: MediaQuery.of(context).padding.top + 120, // below status bar
+            left: 20,
+            right: 20,
+            child: Material(
+              color: Colors.transparent,
+              child: AnimatedSlide(
+                offset: const Offset(0, -1),
+                duration: const Duration(milliseconds: 300),
+                curve: Curves.easeOut,
+                child: AnimatedOpacity(
+                  opacity: 1,
+                  duration: const Duration(milliseconds: 300),
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 12,
+                    ),
+                    decoration: BoxDecoration(
+                      color: Colors.red.shade700,
+                      borderRadius: BorderRadius.circular(16),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withOpacity(0.3),
+                          blurRadius: 6,
+                          offset: const Offset(0, 3),
+                        ),
+                      ],
+                    ),
+                    child: Row(
+                      children: [
+                        const Icon(
+                          Icons.error_outline,
+                          color: Colors.white,
+                          size: 28,
+                        ),
+                        const SizedBox(width: 16),
+                        Expanded(
+                          child: Text(
+                            message,
+                            style: const TextStyle(
+                              fontWeight: FontWeight.bold,
+                              fontSize: 16,
+                              color: Colors.white,
+                              fontFamily: 'KhmerFont',
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ),
+    );
+
+    overlay.insert(overlayEntry);
+
+    Future.delayed(const Duration(seconds: 3), () {
+      overlayEntry.remove();
+    });
+  }
+
   bool _validateQrFormat(String qrCode) {
     try {
       // First, check if this is a prize QR code (should be rejected)
@@ -235,13 +352,49 @@ class _TransferPrizeScanState extends State<TransferPrizeScan>
         return false;
       }
 
-      // Use the proper parser that handles both signature and JSON formats
-      final parsed = QrCodeParser.parseTransferQr(qrCode);
+      // Try multiple parsing approaches
+      String? phoneNumber;
+
+      // Approach 1: Use your existing parser
+      try {
+        final parsed = QrCodeParser.parseTransferQr(qrCode);
+        phoneNumber = parsed['phoneNumber'];
+      } catch (e) {
+        print("Standard parser failed: $e");
+      }
+
+      // Approach 2: Check if it's a simple phone number
+      if (phoneNumber == null || phoneNumber == 'Unknown') {
+        final cleanQr = qrCode.trim();
+        if (cleanQr.length >= 9 && cleanQr.length <= 15) {
+          // Check if it might be a raw phone number
+          final digitsOnly = cleanQr.replaceAll(RegExp(r'\D'), '');
+          if (digitsOnly.length >= 9 && digitsOnly.length <= 12) {
+            phoneNumber = digitsOnly;
+          }
+        }
+      }
+
+      // Approach 3: Check for JSON format
+      if (phoneNumber == null && qrCode.startsWith('{')) {
+        try {
+          final jsonData = json.decode(qrCode);
+          phoneNumber =
+              jsonData['phone'] ??
+              jsonData['phoneNumber'] ??
+              jsonData['number'];
+        } catch (e) {
+          print("JSON parsing failed: $e");
+        }
+      }
 
       // Valid if we can extract a proper phone number
-      final phone = parsed['phoneNumber'] ?? '';
-      return phone != 'Unknown' && phone.isNotEmpty;
-    } catch (_) {
+      return phoneNumber != null &&
+          phoneNumber.isNotEmpty &&
+          phoneNumber != 'Unknown' &&
+          phoneNumber.length >= 9;
+    } catch (e) {
+      print("QR validation error: $e");
       return false;
     }
   }
@@ -287,8 +440,6 @@ class _TransferPrizeScanState extends State<TransferPrizeScan>
       });
     }
   }
-
-  // add code here
 
   Future<void> _pickQrFromGallery() async {
     if (_isProcessing) return;
@@ -546,8 +697,10 @@ class _TransferPrizeScanState extends State<TransferPrizeScan>
 
   @override
   Widget build(BuildContext context) {
-    final double cutOutSize = MediaQuery.of(context).size.width * 0.7;
-    final double lineThickness = 2.0;
+    final double baseCutOutSize = 260;
+    final double cutOutSize =
+        baseCutOutSize * (_isZooming ? _zoomAnimation.value : 1.0);
+    final double lineThickness = 1;
     return Dialog(
       backgroundColor: Colors.transparent,
       insetPadding: EdgeInsets.zero,
@@ -556,131 +709,138 @@ class _TransferPrizeScanState extends State<TransferPrizeScan>
         width: double.infinity,
         height: double.infinity,
         decoration: BoxDecoration(color: Colors.black.withOpacity(0.9)),
-        child: Stack(
-          children: [
-            Positioned.fill(
-              child: QRView(
-                key: qrKey,
-                onQRViewCreated: _onQRViewCreated,
-                overlay: QrScannerOverlayShape(
-                  borderColor: Colors.white,
-                  borderRadius: 12,
-                  borderLength: 40,
-                  borderWidth: 12,
-                  cutOutSize: cutOutSize,
+        child: AnimatedBuilder(
+          animation: _zoomAnimation,
+          builder: (context, child) {
+            return Stack(
+              children: [
+                Positioned.fill(
+                  child: QRView(
+                    key: qrKey,
+                    onQRViewCreated: _onQRViewCreated,
+                    overlay: QrScannerOverlayShape(
+                      borderColor: _currentBorderColor,
+                      borderRadius: 16,
+                      borderLength: 40,
+                      borderWidth: 12,
+                      cutOutSize: cutOutSize,
+                    ),
+                  ),
                 ),
-              ),
-            ),
-            // Scanning Animation
-            Positioned.fill(
-              child: Center(
-                child: SizedBox(
-                  width: cutOutSize,
-                  height: cutOutSize,
-                  child: AnimatedBuilder(
-                    animation: _positionAnimation,
-                    builder: (context, child) {
-                      final double y =
-                          _positionAnimation.value *
-                          (cutOutSize - lineThickness);
-                      return Stack(
-                        children: [
-                          Positioned(
-                            top: y,
-                            left: 0,
-                            right: 0,
-                            child: Container(
-                              width: cutOutSize - 10,
-                              height: lineThickness,
-                              margin: const EdgeInsets.symmetric(horizontal: 5),
-                              decoration: BoxDecoration(
-                                borderRadius: BorderRadius.circular(2),
-                                gradient: const LinearGradient(
-                                  colors: [
-                                    Colors.amber,
-                                    Colors.yellowAccent,
-                                    Colors.amber,
-                                  ],
-                                ),
-                                boxShadow: [
-                                  BoxShadow(
-                                    color: Colors.amber.withOpacity(0.3),
-                                    blurRadius: 6,
-                                    spreadRadius: 1,
+                // Scanning Animation
+                Positioned.fill(
+                  child: Center(
+                    child: SizedBox(
+                      width: 250,
+                      height: 250,
+                      child: AnimatedBuilder(
+                        animation: _positionAnimation,
+                        builder: (context, child) {
+                          final double y =
+                              _positionAnimation.value * (250 - lineThickness);
+                          return Stack(
+                            children: [
+                              Positioned(
+                                top: y,
+                                left: 0,
+                                right: 0,
+                                child: Container(
+                                  width:
+                                      cutOutSize * 0.6, // 60% of scan box width
+                                  height: lineThickness,
+                                  margin: const EdgeInsets.symmetric(
+                                    horizontal: 4,
                                   ),
-                                ],
+                                  decoration: BoxDecoration(
+                                    borderRadius: BorderRadius.circular(50),
+                                    gradient: const LinearGradient(
+                                      colors: [
+                                        Color.fromARGB(40, 237, 221, 114),
+                                        Colors.yellowAccent,
+                                        Color.fromARGB(40, 237, 221, 114),
+                                      ],
+                                    ),
+                                    boxShadow: [
+                                      BoxShadow(
+                                        color: Colors.amber.withOpacity(0.3),
+                                        blurRadius: 6,
+                                        spreadRadius: 1,
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ),
+                            ],
+                          );
+                        },
+                      ),
+                    ),
+                  ),
+                ),
+                // Header with close button
+                Positioned(
+                  top: MediaQuery.of(context).padding.top,
+                  left: 0,
+                  right: 0,
+                  child: Container(
+                    height: kToolbarHeight,
+                    color: Colors.transparent,
+                    child: Row(
+                      children: [
+                        // Close button on the left
+                        IconButton(
+                          icon: const Icon(
+                            Icons.arrow_back_ios_new,
+                            color: Colors.white,
+                          ),
+                          onPressed: () => Navigator.of(context).pop(),
+                        ),
+                        // Spacer between button and title
+                        const SizedBox(width: 16),
+                        // Title centered (Expanded to take available space)
+                        Expanded(
+                          child: Center(
+                            child: Text(
+                              'transfer_out'.tr(),
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontSize: 20,
+                                fontWeight: FontWeight.bold,
+                                fontFamily: 'KhmerFont',
                               ),
                             ),
                           ),
-                        ],
-                      );
-                    },
-                  ),
-                ),
-              ),
-            ),
-            // Header with close button
-            Positioned(
-              top: MediaQuery.of(context).padding.top,
-              left: 0,
-              right: 0,
-              child: Container(
-                height: kToolbarHeight,
-                color: Colors.transparent,
-                child: Row(
-                  children: [
-                    // Close button on the left
-                    IconButton(
-                      icon: const Icon(
-                        Icons.arrow_back_ios_new,
-                        color: Colors.white,
-                      ),
-                      onPressed: () => Navigator.of(context).pop(),
-                    ),
-                    // Spacer between button and title
-                    const SizedBox(width: 16),
-                    // Title centered (Expanded to take available space)
-                    Expanded(
-                      child: Center(
-                        child: Text(
-                          'transfer_out'.tr(),
-                          style: TextStyle(
-                            color: Colors.white,
-                            fontSize: 20,
-                            fontWeight: FontWeight.bold,
-                            fontFamily: 'KhmerFont',
+                        ),
+                        // Logo on the right
+                        Padding(
+                          padding: const EdgeInsets.only(right: 16.0),
+                          child: Image.asset(
+                            'assets/images/logo.png',
+                            width: 50,
+                            height: 50,
                           ),
                         ),
-                      ),
+                      ],
                     ),
-                    // Logo on the right
-                    Padding(
-                      padding: const EdgeInsets.only(right: 16.0),
-                      child: Image.asset(
-                        'assets/images/logo.png',
-                        width: 50,
-                        height: 50,
-                      ),
-                    ),
-                  ],
+                  ),
                 ),
-              ),
-            ),
-            // Bottom action buttons
-            Positioned(
-              bottom: 0,
-              left: 0,
-              right: 0,
-              child: QrScanActionButtons(
-                onToggleFlash: _toggleFlash,
-                onPickQr: _pickQrFromGallery,
-              ),
-            ),
-          ],
+                // Bottom action buttons
+                Positioned(
+                  bottom: 0,
+                  left: 0,
+                  right: 0,
+                  child: QrScanActionButtons(
+                    onToggleFlash: _toggleFlash,
+                    onPickQr: _pickQrFromGallery,
+                  ),
+                ),
+              ],
+            );
+          },
         ),
       ),
     );
   }
 }
 
-//Correct with 686 line code changes
+//Correct with 847 line code changes

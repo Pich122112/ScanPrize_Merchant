@@ -36,6 +36,7 @@ Future<void> showResultDialog(
                   fontSize: 20,
                   fontWeight: FontWeight.bold,
                   color: color,
+                  fontFamily: 'KhmerFont',
                 ),
                 textAlign: TextAlign.center,
               ),
@@ -44,7 +45,12 @@ Future<void> showResultDialog(
               // Message
               Text(
                 message,
-                style: const TextStyle(fontSize: 16, color: Colors.black87),
+                style: const TextStyle(
+                  fontSize: 16,
+                  color: Colors.black,
+                  fontFamily: 'KhmerFont',
+                  fontWeight: FontWeight.bold,
+                ),
                 textAlign: TextAlign.center,
               ),
               const SizedBox(height: 24),
@@ -64,7 +70,11 @@ Future<void> showResultDialog(
                   onPressed: () => Navigator.of(context).pop(),
                   child: const Text(
                     "បិទ",
-                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w600,
+                      fontFamily: 'KhmerFont',
+                    ),
                   ),
                 ),
               ),

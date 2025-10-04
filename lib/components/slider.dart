@@ -174,7 +174,7 @@ class ImageSliderState extends State<ImageSlider> {
               style: TextStyle(
                 fontWeight: FontWeight.bold,
                 fontSize: titleSize,
-                color: isDarkMode ? Colors.white : Colors.grey,
+                color: isDarkMode ? Colors.white : Colors.white,
                 fontFamily: localeCode == 'km' ? 'KhmerFont' : null,
                 letterSpacing: 0.2,
               ),
@@ -278,10 +278,11 @@ class ImageSliderState extends State<ImageSlider> {
               begin: Alignment.topLeft,
               end: Alignment.bottomRight,
               colors: [
-                const Color.fromARGB(255, 215, 90, 1),
-                const Color.fromARGB(255, 251, 96, 0),
+                const Color(0xFF8A2BE2), // purple
+                const Color(0xFFFF8CFF), // pink
+                const Color.fromARGB(255, 17, 222, 201), // turquoise
               ],
-              stops: [0.3, 1.0],
+              stops: [0.0, 0.5, 1.0], // proper order
             ),
           ),
           child: Stack(

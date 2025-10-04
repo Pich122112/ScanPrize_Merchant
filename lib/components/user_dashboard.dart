@@ -626,6 +626,14 @@ class ThreeBoxSectionState extends State<ThreeBoxSection> {
             decoration: BoxDecoration(
               color: AppColors.primaryColor,
               borderRadius: BorderRadius.circular(10),
+              boxShadow: [
+                BoxShadow(
+                  color: const Color.fromARGB(229, 255, 255, 255),
+                  blurRadius: 6,
+                  spreadRadius: 2, // makes it expand in all directions
+                  offset: Offset(0, 0), // no shift
+                ),
+              ],
             ),
             child: Stack(
               children: [
@@ -635,8 +643,8 @@ class ThreeBoxSectionState extends State<ThreeBoxSection> {
                   child: IconButton(
                     icon: Icon(
                       _showAmount
-                          ? Icons.visibility_outlined
-                          : Icons.visibility_off,
+                          ? Icons.visibility_sharp
+                          : Icons.visibility_off_sharp,
                       color: _isEyePressed ? Colors.black : Colors.white,
                     ),
                     splashColor: Colors.transparent,
@@ -805,13 +813,21 @@ class ThreeBoxSectionState extends State<ThreeBoxSection> {
               ],
             ),
           ),
-          const SizedBox(height: 20),
+          const SizedBox(height: 25),
           Container(
             margin: const EdgeInsets.symmetric(horizontal: 16),
             padding: const EdgeInsets.symmetric(vertical: 20),
             decoration: BoxDecoration(
               color: AppColors.primaryColor,
               borderRadius: BorderRadius.circular(10),
+              boxShadow: [
+                BoxShadow(
+                  color: const Color.fromARGB(229, 255, 255, 255),
+                  blurRadius: 6,
+                  spreadRadius: 2, // makes it expand in all directions
+                  offset: Offset(0, 0), // no shift
+                ),
+              ],
             ),
             child: SizedBox(
               height: 140,

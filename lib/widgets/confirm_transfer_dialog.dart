@@ -12,6 +12,8 @@ class ConfirmTransferDialog extends StatelessWidget {
   final String companyCategoryName;
   final String productName;
   final int quantity;
+    final String unit; // <-- Add this line!
+
   final Function(bool) onConfirm;
 
   const ConfirmTransferDialog({
@@ -23,6 +25,8 @@ class ConfirmTransferDialog extends StatelessWidget {
     required this.onConfirm,
     required this.productName,
     required this.quantity,
+        required this.unit, // <-- Add this line!
+
   });
 
   // Add this method to get sender's phone
@@ -168,6 +172,8 @@ class ConfirmTransferDialog extends StatelessWidget {
                                         productName: productName,
                                         quantity: quantity,
                                         senderPhone: senderPhone,
+                                                            unit: unit, // <-- Pass the unit here!
+
                                       ),
                                 ),
                                 (route) => false,

@@ -164,6 +164,99 @@ class _SignUpPageState extends State<SignUpPage> {
     });
   }
 
+  String _getLabel(bool showFront, String locale) {
+    if (locale == "km") {
+      return showFront ? "រូបផ្នែកខាងមុខ" : "រូបផ្នែកខាងក្រោយ";
+    } else {
+      return showFront ? "Front Image" : "Back Image";
+    }
+  }
+
+  void _showImageDialog(BuildContext context, {required bool showFront}) {
+    File? imageToShow =
+        showFront ? _nationalIdFrontImage : _nationalIdBackImage;
+    String label = _getLabel(
+      showFront,
+      Localizations.localeOf(context).languageCode,
+    );
+
+    showDialog(
+      context: context,
+      barrierColor: Colors.black87, // darker background overlay
+      builder:
+          (_) => Dialog(
+            backgroundColor: Colors.transparent, // make dialog background clean
+            insetPadding: const EdgeInsets.symmetric(
+              horizontal: 12,
+              vertical: 12,
+            ),
+            child: Container(
+              height: 350,
+              decoration: BoxDecoration(
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.5),
+                    blurRadius: 12,
+                    offset: const Offset(0, 4),
+                  ),
+                ],
+              ),
+              child: Stack(
+                children: [
+                  // Image section
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 12.0),
+                        child: Text(
+                          label,
+                          style: const TextStyle(
+                            color: Colors.white70,
+                            fontWeight: FontWeight.w600,
+                            fontSize: 18,
+                            letterSpacing: 0.5,
+                            fontFamily: 'KhmerFont',
+                          ),
+                          textAlign: TextAlign.center,
+                        ),
+                      ),
+                      Expanded(
+                        child:
+                            imageToShow != null
+                                ? ClipRRect(
+                                  child: Image.file(
+                                    imageToShow,
+                                    width: double.infinity,
+                                    fit: BoxFit.fitWidth,
+                                  ),
+                                )
+                                : const Center(
+                                  child: Text(
+                                    'Cannot load image',
+                                    style: TextStyle(color: Colors.redAccent),
+                                  ),
+                                ),
+                      ),
+                    ],
+                  ),
+
+                  // Close button (top right)
+                  Positioned(
+                    top: 8,
+                    right: 8,
+                    child: InkWell(
+                      onTap: () => Navigator.of(context).pop(),
+                      child: Icon(Icons.close, color: Colors.white, size: 30),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+    );
+  }
+
   @override
   void dispose() {
     _connectivitySubscription?.cancel();
@@ -230,7 +323,6 @@ class _SignUpPageState extends State<SignUpPage> {
       _provinceErrorText = null;
       _districtErrorText = null;
       _communeErrorText = null;
-      _villageErrorText = null;
       _nationalIdFrontErrorText = null;
       _nationalIdBackErrorText = null;
     });
@@ -276,12 +368,6 @@ class _SignUpPageState extends State<SignUpPage> {
     if (_selectedCommuneId == null) {
       setState(() {
         _communeErrorText = 'សូមជ្រើសរើសឃុំ/សង្កាត់';
-      });
-      hasError = true;
-    }
-    if (_selectedVillageId == null) {
-      setState(() {
-        _villageErrorText = 'សូមជ្រើសរើសភូមិ';
       });
       hasError = true;
     }
@@ -1131,23 +1217,18 @@ class _SignUpPageState extends State<SignUpPage> {
                                         },
                                       ),
                                       SizedBox(height: 12),
-                                      DropdownButtonFormField<String>(
-                                        dropdownColor: Colors.white,
+                                      TextFormField(
                                         decoration: InputDecoration(
-                                          errorText: _villageErrorText,
-                                          errorStyle: const TextStyle(
-                                            fontFamily: 'KhmerFont',
-                                            fontSize: 16,
-                                            fontWeight:
-                                                FontWeight
-                                                    .w500, // ✅ makes it bold
-                                            color: Colors.red,
-                                          ),
                                           filled: true,
                                           fillColor: Colors.grey[200],
                                           prefixIcon: Icon(
                                             Icons.location_on,
                                             color: Colors.grey[600],
+                                          ),
+                                          hintText:
+                                              'ភូមិ (អាចមិនបំពេញបាន)', // Village (optional)
+                                          hintStyle: TextStyle(
+                                            fontFamily: 'KhmerFont',
                                           ),
                                           border: OutlineInputBorder(
                                             borderRadius: BorderRadius.circular(
@@ -1159,76 +1240,26 @@ class _SignUpPageState extends State<SignUpPage> {
                                             vertical: 18,
                                             horizontal: 10,
                                           ),
-                                        ),
-                                        hint: Text(
-                                          'ភូមិ',
-                                          style: TextStyle(
+                                          errorText: _villageErrorText,
+                                          errorStyle: const TextStyle(
                                             fontFamily: 'KhmerFont',
+                                            fontSize: 16,
+                                            fontWeight: FontWeight.w500,
+                                            color: Colors.red,
                                           ),
                                         ),
-                                        value: _selectedVillageId,
-                                        items: [
-                                          // ស្រុកសៀមរាប
-                                          DropdownMenuItem(
-                                            value: 'sr_001',
-                                            child: Text(
-                                              'ភូមិស្វាយដង្គំ',
-                                              style: TextStyle(
-                                                fontFamily: 'KhmerFont',
-                                                fontWeight: FontWeight.w500,
-                                              ),
-                                            ),
-                                          ),
-                                          DropdownMenuItem(
-                                            value: 'sr_002',
-                                            child: Text(
-                                              'ភូមិត្រពាំងគង',
-                                              style: TextStyle(
-                                                fontFamily: 'KhmerFont',
-                                                fontWeight: FontWeight.w500,
-                                              ),
-                                            ),
-                                          ),
-                                          DropdownMenuItem(
-                                            value: 'sr_003',
-                                            child: Text(
-                                              'ភូមិចំបក់',
-                                              style: TextStyle(
-                                                fontFamily: 'KhmerFont',
-                                                fontWeight: FontWeight.w500,
-                                              ),
-                                            ),
-                                          ),
-                                          DropdownMenuItem(
-                                            value: 'sr_004',
-                                            child: Text(
-                                              'ភូមិតាកែវ',
-                                              style: TextStyle(
-                                                fontFamily: 'KhmerFont',
-                                                fontWeight: FontWeight.w500,
-                                              ),
-                                            ),
-                                          ),
-                                          DropdownMenuItem(
-                                            value: 'sr_005',
-                                            child: Text(
-                                              'ភូមិព្រៃឆ្លាក់',
-                                              style: TextStyle(
-                                                fontFamily: 'KhmerFont',
-                                                fontWeight: FontWeight.w500,
-                                              ),
-                                            ),
-                                          ),
-                                        ],
+                                        style: TextStyle(
+                                          fontFamily: 'KhmerFont',
+                                        ),
                                         onChanged: (value) {
                                           setState(() {
-                                            _selectedVillageId = value;
+                                            _selectedVillageId =
+                                                value; // or use a new variable if you want
+                                            _villageErrorText = null;
                                           });
                                         },
                                         validator: (value) {
-                                          if (value == null || value.isEmpty) {
-                                            return 'សូមជ្រើសរើសភូមិ';
-                                          }
+                                          // Optional: allow empty input
                                           return null;
                                         },
                                       ),
@@ -1237,182 +1268,205 @@ class _SignUpPageState extends State<SignUpPage> {
                                       Row(
                                         children: [
                                           Expanded(
-                                            child: TextFormField(
-                                              decoration: InputDecoration(
-                                                errorText:
-                                                    _nationalIdFrontErrorText,
-                                                errorStyle: const TextStyle(
-                                                  fontFamily: 'KhmerFont',
-                                                  fontSize: 16,
-                                                  fontWeight:
-                                                      FontWeight
-                                                          .w500, // ✅ makes it bold
-                                                  color: Colors.red,
-                                                ),
-                                                filled: true,
-                                                fillColor: Colors.grey[200],
-                                                hintText:
-                                                    _nationalIdFrontImage !=
-                                                            null
-                                                        ? 'រូបភាព: ${_nationalIdFrontImage!.path.split('/').last}'
-                                                        : 'បញ្ជូលរូបភាពស្នាមមុខអត្តសញ្ញាណ',
-                                                hintStyle: TextStyle(
-                                                  fontFamily: 'KhmerFont',
-                                                  fontWeight: FontWeight.w500,
-                                                ),
-                                                border: OutlineInputBorder(
-                                                  borderRadius:
-                                                      BorderRadius.circular(10),
-                                                  borderSide:
-                                                      _nationalIdFrontUploaded
-                                                          ? const BorderSide(
-                                                            color: Colors.green,
-                                                            width: 2,
-                                                          )
-                                                          : BorderSide.none,
-                                                ),
-                                                suffixIcon: IconButton(
-                                                  icon: Icon(
-                                                    Icons.camera_alt_outlined,
-                                                    color: Colors.grey[600],
+                                            child: InkWell(
+                                              onTap:
+                                                  (_nationalIdFrontImage !=
+                                                          null)
+                                                      ? () => _showImageDialog(
+                                                        context,
+                                                        showFront: true,
+                                                      )
+                                                      : null,
+                                              child: InputDecorator(
+                                                decoration: InputDecoration(
+                                                  errorText:
+                                                      _nationalIdFrontErrorText,
+                                                  errorStyle: const TextStyle(
+                                                    fontFamily: 'KhmerFont',
+                                                    fontSize: 16,
+                                                    fontWeight: FontWeight.w500,
+                                                    color: Colors.red,
                                                   ),
-                                                  onPressed: () async {
-                                                    final imageFile =
-                                                        await Navigator.push(
-                                                          context,
-                                                          MaterialPageRoute(
-                                                            builder:
-                                                                (_) =>
-                                                                    const OpenCameraIdentity(
-                                                                      isFront:
-                                                                          true,
-                                                                    ),
-                                                          ),
-                                                        );
-                                                    if (imageFile != null &&
-                                                        imageFile is File) {
-                                                      setState(() {
-                                                        _nationalIdFrontImage =
-                                                            imageFile;
-                                                      });
-                                                    }
-                                                  },
-                                                ),
-                                                contentPadding:
-                                                    EdgeInsets.fromLTRB(
-                                                      20,
-                                                      16,
-                                                      12,
-                                                      16,
+                                                  filled: true,
+                                                  fillColor: Colors.grey[200],
+                                                  border: OutlineInputBorder(
+                                                    borderRadius:
+                                                        BorderRadius.circular(
+                                                          10,
+                                                        ),
+                                                    borderSide:
+                                                        _nationalIdFrontUploaded
+                                                            ? const BorderSide(
+                                                              color:
+                                                                  Colors.green,
+                                                              width: 2,
+                                                            )
+                                                            : BorderSide.none,
+                                                  ),
+                                                  contentPadding:
+                                                      const EdgeInsets.fromLTRB(
+                                                        20,
+                                                        16,
+                                                        12,
+                                                        16,
+                                                      ),
+                                                  suffixIcon: IconButton(
+                                                    icon: Icon(
+                                                      Icons.camera_alt_outlined,
+                                                      color: Colors.grey[600],
                                                     ),
-                                              ),
-                                              readOnly: true,
-                                              controller: TextEditingController(
-                                                text:
+                                                    onPressed: () async {
+                                                      final imageFile =
+                                                          await Navigator.push(
+                                                            context,
+                                                            MaterialPageRoute(
+                                                              builder:
+                                                                  (_) =>
+                                                                      const OpenCameraIdentity(
+                                                                        isFront:
+                                                                            true,
+                                                                      ),
+                                                            ),
+                                                          );
+                                                      if (imageFile != null &&
+                                                          imageFile is File) {
+                                                        setState(() {
+                                                          _nationalIdFrontImage =
+                                                              imageFile;
+                                                        });
+                                                      }
+                                                    },
+                                                  ),
+                                                ),
+                                                child: Align(
+                                                  alignment:
+                                                      Alignment.centerLeft,
+                                                  child: Text(
                                                     _nationalIdFrontImage !=
                                                             null
                                                         ? _nationalIdFrontImage!
                                                             .path
                                                             .split('/')
                                                             .last
-                                                        : '',
+                                                        : 'បញ្ជូលរូបភាពស្នាមមុខអត្តសញ្ញាណ',
+                                                    style: TextStyle(
+                                                      color:
+                                                          _nationalIdFrontImage !=
+                                                                  null
+                                                              ? Colors.blue
+                                                              : Colors
+                                                                  .grey[600],
+                                                      fontFamily: 'KhmerFont',
+                                                      fontWeight:
+                                                          FontWeight.bold,
+                                                    ),
+                                                    maxLines: 1,
+                                                    overflow:
+                                                        TextOverflow.ellipsis,
+                                                  ),
+                                                ),
                                               ),
-                                              validator: (value) {
-                                                if (_nationalIdFrontImage ==
-                                                    null) {
-                                                  return 'សូមបញ្ចូលរូបភាពស្នាមមុខ';
-                                                }
-                                                return null;
-                                              },
                                             ),
                                           ),
                                           SizedBox(width: 10),
                                           Expanded(
-                                            child: TextFormField(
-                                              decoration: InputDecoration(
-                                                errorText:
-                                                    _nationalIdBackErrorText,
-                                                errorStyle: const TextStyle(
-                                                  fontFamily: 'KhmerFont',
-                                                  fontSize: 16,
-                                                  fontWeight:
-                                                      FontWeight
-                                                          .w500, // ✅ makes it bold
-                                                  color: Colors.red,
-                                                ),
-                                                filled: true,
-                                                fillColor: Colors.grey[200],
-                                                hintText:
-                                                    _nationalIdBackImage != null
-                                                        ? 'រូបភាព: ${_nationalIdBackImage!.path.split('/').last}'
-                                                        : 'បញ្ជូលរូបភាពខាងក្រោយអត្តសញ្ញាណ',
-                                                hintStyle: TextStyle(
-                                                  fontFamily: 'KhmerFont',
-                                                  fontWeight: FontWeight.w500,
-                                                ),
-                                                border: OutlineInputBorder(
-                                                  borderRadius:
-                                                      BorderRadius.circular(10),
-                                                  borderSide:
-                                                      _nationalIdBackUploaded
-                                                          ? const BorderSide(
-                                                            color: Colors.green,
-                                                            width: 2,
-                                                          )
-                                                          : BorderSide.none,
-                                                ),
-                                                suffixIcon: IconButton(
-                                                  icon: Icon(
-                                                    Icons.camera_alt_outlined,
-                                                    color: Colors.grey[600],
+                                            child: InkWell(
+                                              onTap:
+                                                  (_nationalIdBackImage != null)
+                                                      ? () => _showImageDialog(
+                                                        context,
+                                                        showFront: false,
+                                                      )
+                                                      : null,
+                                              child: InputDecorator(
+                                                decoration: InputDecoration(
+                                                  errorText:
+                                                      _nationalIdBackErrorText,
+                                                  errorStyle: const TextStyle(
+                                                    fontFamily: 'KhmerFont',
+                                                    fontSize: 16,
+                                                    fontWeight: FontWeight.w500,
+                                                    color: Colors.red,
                                                   ),
-                                                  onPressed: () async {
-                                                    final imageFile =
-                                                        await Navigator.push(
-                                                          context,
-                                                          MaterialPageRoute(
-                                                            builder:
-                                                                (_) =>
-                                                                    const OpenCameraIdentity(
-                                                                      isFront:
-                                                                          false,
-                                                                    ),
-                                                          ),
-                                                        );
-                                                    if (imageFile != null &&
-                                                        imageFile is File) {
-                                                      setState(() {
-                                                        _nationalIdBackImage =
-                                                            imageFile;
-                                                      });
-                                                    }
-                                                  },
-                                                ),
-                                                contentPadding:
-                                                    EdgeInsets.fromLTRB(
-                                                      20,
-                                                      16,
-                                                      12,
-                                                      16,
+                                                  filled: true,
+                                                  fillColor: Colors.grey[200],
+                                                  border: OutlineInputBorder(
+                                                    borderRadius:
+                                                        BorderRadius.circular(
+                                                          10,
+                                                        ),
+                                                    borderSide:
+                                                        _nationalIdBackUploaded
+                                                            ? const BorderSide(
+                                                              color:
+                                                                  Colors.green,
+                                                              width: 2,
+                                                            )
+                                                            : BorderSide.none,
+                                                  ),
+                                                  contentPadding:
+                                                      const EdgeInsets.fromLTRB(
+                                                        20,
+                                                        16,
+                                                        12,
+                                                        16,
+                                                      ),
+                                                  suffixIcon: IconButton(
+                                                    icon: Icon(
+                                                      Icons.camera_alt_outlined,
+                                                      color: Colors.grey[600],
                                                     ),
-                                              ),
-                                              readOnly: true,
-                                              controller: TextEditingController(
-                                                text:
+                                                    onPressed: () async {
+                                                      final imageFile =
+                                                          await Navigator.push(
+                                                            context,
+                                                            MaterialPageRoute(
+                                                              builder:
+                                                                  (
+                                                                    _,
+                                                                  ) => const OpenCameraIdentity(
+                                                                    isFront:
+                                                                        false,
+                                                                  ),
+                                                            ),
+                                                          );
+                                                      if (imageFile != null &&
+                                                          imageFile is File) {
+                                                        setState(() {
+                                                          _nationalIdBackImage =
+                                                              imageFile;
+                                                        });
+                                                      }
+                                                    },
+                                                  ),
+                                                ),
+                                                child: Align(
+                                                  alignment:
+                                                      Alignment.centerLeft,
+                                                  child: Text(
                                                     _nationalIdBackImage != null
                                                         ? _nationalIdBackImage!
                                                             .path
                                                             .split('/')
                                                             .last
-                                                        : '',
+                                                        : 'បញ្ជូលរូបភាពខាងក្រោយអត្តសញ្ញាណ',
+                                                    style: TextStyle(
+                                                      color:
+                                                          _nationalIdFrontImage !=
+                                                                  null
+                                                              ? Colors.blue
+                                                              : Colors
+                                                                  .grey[600],
+                                                      fontFamily: 'KhmerFont',
+                                                      fontWeight:
+                                                          FontWeight.bold,
+                                                    ),
+                                                    maxLines: 1,
+                                                    overflow:
+                                                        TextOverflow.ellipsis,
+                                                  ),
+                                                ),
                                               ),
-                                              validator: (value) {
-                                                if (_nationalIdBackImage ==
-                                                    null) {
-                                                  return 'សូមបញ្ចូលរូបភាពខាងក្រោយ';
-                                                }
-                                                return null;
-                                              },
                                             ),
                                           ),
                                         ],
@@ -1446,7 +1500,12 @@ class _SignUpPageState extends State<SignUpPage> {
                                             Icons.sms,
                                             color: Colors.grey[600],
                                           ),
-
+                                          errorStyle: const TextStyle(
+                                            fontFamily: 'KhmerFont',
+                                            fontSize: 14,
+                                            fontWeight: FontWeight.bold,
+                                            color: Colors.red,
+                                          ),
                                           // ✅ show countdown in OTP field
                                           suffixIcon:
                                               (_otpRequested && _timing)
@@ -1626,4 +1685,4 @@ class _SignUpPageState extends State<SignUpPage> {
   }
 }
 
-//Correct with 1506 line code changes
+//Correct with 1688 line code changes

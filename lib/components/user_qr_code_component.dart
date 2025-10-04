@@ -367,12 +367,20 @@ class UserQrCodeComponent extends StatelessWidget {
                             scaffoldMessenger..hideCurrentSnackBar();
 
                         messenger.showSnackBar(
-                          const SnackBar(
+                          SnackBar(
                             content: Row(
                               children: [
-                                CircularProgressIndicator(),
+                                CircularProgressIndicator(
+                                  color: AppColors.primaryColor,
+                                ),
                                 SizedBox(width: 10),
-                                Text('Preparing QR code for sharing...'),
+                                Text(
+                                  'prepare_share_qr'.tr(),
+                                  style: TextStyle(
+                                    fontFamily: 'KhmerFont',
+                                    fontWeight: FontWeight.w500,
+                                  ),
+                                ),
                               ],
                             ),
                             duration: Duration(seconds: 2),
@@ -380,22 +388,31 @@ class UserQrCodeComponent extends StatelessWidget {
                         );
 
                         try {
-                          await QrShareService.shareQrCode(qrKey, phoneNumber);
+                          final shared = await QrShareService.shareQrCode(
+                            qrKey,
+                            phoneNumber,
+                          );
 
                           messenger.hideCurrentSnackBar();
-                          messenger.showSnackBar(
-                            SnackBar(
-                              backgroundColor: Colors.green,
-                              content: Text(
-                                'QR code shared successfully!',
-                                style: TextStyle(
-                                  color: Colors.white,
-                                  fontSize: 16,
+
+                          if (shared) {
+                            messenger.showSnackBar(
+                              SnackBar(
+                                backgroundColor: Colors.green,
+                                content: Text(
+                                  'success_share_qr'.tr(),
+                                  style: TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 16,
+                                    fontFamily: 'KhmerFont',
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                  textAlign: TextAlign.center,
                                 ),
-                                textAlign: TextAlign.center,
                               ),
-                            ),
-                          );
+                            );
+                          }
+                          // else: do nothing if user cancels
                         } catch (e) {
                           messenger.hideCurrentSnackBar();
                           messenger.showSnackBar(
@@ -420,4 +437,4 @@ class UserQrCodeComponent extends StatelessWidget {
   }
 }
 
-//Correct with 423 line code changes
+//Correct with 432 line code changes

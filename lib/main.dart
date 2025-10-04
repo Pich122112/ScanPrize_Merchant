@@ -1,4 +1,3 @@
-<<<<<<< HEAD
 // import 'package:flutter/material.dart';
 // import 'package:easy_localization/easy_localization.dart';
 // import 'package:gb_merchant/screens/firstScreen.dart';
@@ -101,23 +100,19 @@
 // //Correct with 94 line code changes
 
 import 'package:flutter/material.dart';
-=======
->>>>>>> e381b28ee433bb20987e97ef7f9a092c23062537
 import 'package:easy_localization/easy_localization.dart';
+import 'package:gb_merchant/screens/firstScreen.dart';
+import 'package:gb_merchant/utils/device_uuid.dart';
+import 'package:gb_merchant/widgets/start_screen.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import '../app/bottomAppbar.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
-import 'package:flutter/material.dart';
 import 'package:gb_merchant/main/TransactionPage.dart';
-import 'package:gb_merchant/screens/firstScreen.dart';
 import 'package:gb_merchant/services/firebase_service.dart';
-import 'package:gb_merchant/utils/device_uuid.dart';
-import 'package:shared_preferences/shared_preferences.dart';
-
-import '../app/bottomAppbar.dart';
 
 final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
 
-<<<<<<< HEAD
 // Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
 //   await Firebase.initializeApp();
 //   await FirebaseService.incrementBadgeCount();
@@ -125,41 +120,21 @@ final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
 //   // Handle background message 855887776756 (can show notification, etc)
 //   print('Handling a background message: ${message.messageId}');
 // }
-=======
-Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
-  WidgetsFlutterBinding.ensureInitialized();
-  await Firebase.initializeApp();
-  await FirebaseService.incrementBadgeCount();
-
-  print('Handling a background message: ${message.messageId}');
-}
->>>>>>> e381b28ee433bb20987e97ef7f9a092c23062537
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
-
-  // 🔹 Init EasyLocalization before runApp
   await EasyLocalization.ensureInitialized();
-
-  // 🔹 Initialize Firebase once here
   await Firebase.initializeApp();
-<<<<<<< HEAD
+
+  // ✅ ADD THIS LINE to clear notification cache
+  FirebaseService.clearProcessedNotifications();
 
   FirebaseMessaging.onBackgroundMessage(firebaseMessagingBackgroundHandler);
 
   await FirebaseService.init(navigatorKey);
-=======
 
-  // 🔹 Initialize your service
-  await FirebaseService.init(navigatorKey);
-
-  // 🔹 Register background handler early
-  FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
->>>>>>> e381b28ee433bb20987e97ef7f9a092c23062537
-
-  // Debug printer
   debugPrint = (String? message, {int? wrapWidth}) {
-    if (message != null) print(message);
+    print(message);
   };
 
   // Debug printer
@@ -212,11 +187,12 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
     return {'isLoggedIn': isLoggedIn, 'phoneNumber': phoneNumber};
   }
 
+  bool _showStartScreen = true;
+
   @override
   void initState() {
     super.initState();
 
-    // Add observer for app lifecycle
     WidgetsBinding.instance.addObserver(this);
 
     // First-time refresh when app starts
@@ -243,12 +219,33 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      navigatorKey: navigatorKey, // <== ADD THIS LINE
+      navigatorKey: navigatorKey,
 
       debugShowCheckedModeBanner: false,
       localizationsDelegates: context.localizationDelegates,
       supportedLocales: context.supportedLocales,
       locale: context.locale,
+      // home:
+      //     _showStartScreen
+      //         ? StartScreen(
+      //           onContinue: () {
+      //             setState(() => _showStartScreen = false);
+      //           },
+      //         )
+      //         : FutureBuilder<Map<String, dynamic>>(
+      //           future: _getLoginState(),
+      //           builder: (context, snapshot) {
+      //             if (!snapshot.hasData) {
+      //               return const Scaffold(
+      //                 body: Center(child: CircularProgressIndicator()),
+      //               );
+      //             }
+      //             final isLoggedIn = snapshot.data!['isLoggedIn'] as bool;
+
+      //             // Use Firstscreen directly - it already has its own Scaffold
+      //             return isLoggedIn ? RomlousApp() : Firstscreen();
+      //           },
+      //         ),
       home: FutureBuilder<Map<String, dynamic>>(
         future: _getLoginState(),
         builder: (context, snapshot) {
@@ -259,12 +256,24 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
           }
           final isLoggedIn = snapshot.data!['isLoggedIn'] as bool;
 
-          // Use Firstscreen directly - it already has its own Scaffold
-          return isLoggedIn ? RomlousApp() : Firstscreen();
+          if (!isLoggedIn) {
+            // Brand new user: show signup/onboarding directly, never show StartScreen
+            return Firstscreen();
+          } else if (_showStartScreen) {
+            // Returning user: show StartScreen only once after login/first open
+            return StartScreen(
+              onContinue: () {
+                setState(() => _showStartScreen = false);
+              },
+            );
+          } else {
+            // Logged in user, main app
+            return RomlousApp();
+          }
         },
       ),
     );
   }
 }
 
-//Correct with 241 line code changes
+//Correct with 280 line code changes 99666777

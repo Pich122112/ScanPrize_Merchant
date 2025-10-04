@@ -629,6 +629,8 @@ class _ExchangePrizeDialogState extends State<ExchangePrizeDialog> {
   StreamSubscription<List<ConnectivityResult>>? _connectivitySubscription;
   int selectedIndex = 0; // for segment control
   final List<String> options = ['exchange'.tr(), 'transfer_direct'.tr()];
+  Timer? _snackBarDebounceTimer;
+  bool _isShowingSnackBar = false;
 
   @override
   void initState() {
@@ -674,6 +676,7 @@ class _ExchangePrizeDialogState extends State<ExchangePrizeDialog> {
   @override
   void dispose() {
     _connectivitySubscription?.cancel();
+    _snackBarDebounceTimer?.cancel();
     super.dispose();
   }
 
@@ -771,11 +774,14 @@ class _ExchangePrizeDialogState extends State<ExchangePrizeDialog> {
     }
   }
 
-  // Add this helper method to translate units
   String _translateUnit(String unit, BuildContext context) {
     final localeCode = context.locale.languageCode;
-    if (localeCode == 'km' && unit.toLowerCase() == 'can') {
-      return 'កំប៉ុង';
+    final normalized = unit.toLowerCase();
+    if (normalized == 'can') {
+      return localeCode == 'km' ? 'កំប៉ុង' : 'Can';
+    }
+    if (normalized == 'case') {
+      return localeCode == 'km' ? 'កេស' : 'Case';
     }
     return unit;
   }
@@ -815,15 +821,19 @@ class _ExchangePrizeDialogState extends State<ExchangePrizeDialog> {
                       style: const TextStyle(
                         fontSize: 18,
                         fontWeight: FontWeight.bold,
-                        fontFamily: 'KhmerFont'
+                        fontFamily: 'KhmerFont',
                       ),
                     ),
                   ],
                 ),
                 content: Text(
                   "check_connection".tr(),
-                  style: const TextStyle(fontSize: 15, color: Colors.black87, fontWeight: FontWeight.bold,
-                        fontFamily: 'KhmerFont'),
+                  style: const TextStyle(
+                    fontSize: 15,
+                    color: Colors.black87,
+                    fontWeight: FontWeight.bold,
+                    fontFamily: 'KhmerFont',
+                  ),
                 ),
                 actionsAlignment: MainAxisAlignment.center,
                 actions: [
@@ -865,23 +875,36 @@ class _ExchangePrizeDialogState extends State<ExchangePrizeDialog> {
             ),
           );
         } else {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text(
-                'insufficient_balance'.tr(
-                  namedArgs: {'walletName': prize.walletName},
+          if (!_isShowingSnackBar) {
+            _isShowingSnackBar = true;
+            ScaffoldMessenger.of(context).hideCurrentSnackBar();
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Row(
+                  children: [
+                    Icon(Icons.warning, color: Colors.white),
+                    const SizedBox(width: 4),
+                    Text(
+                      "notenoughbalance".tr(),
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 16,
+                        fontFamily: 'KhmerFont',
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ],
                 ),
-                style: TextStyle(
-                  color: Colors.white,
-                  fontFamily: localeCode == 'km' ? 'KhmerFont' : null,
-                  fontSize: 18,
-                   fontWeight: FontWeight.bold,
-                ),
-                textAlign: isTablet ? TextAlign.left : TextAlign.center,
+                backgroundColor: Colors.black,
+                duration: const Duration(seconds: 2),
               ),
-              backgroundColor: Colors.grey,
-            ),
-          );
+            );
+          }
+          // Reset flag after a short time so snackbar can be shown again if user waits
+          _snackBarDebounceTimer?.cancel();
+          _snackBarDebounceTimer = Timer(const Duration(seconds: 2), () {
+            _isShowingSnackBar = false;
+          });
         }
       },
       child: Opacity(
@@ -919,9 +942,19 @@ class _ExchangePrizeDialogState extends State<ExchangePrizeDialog> {
                           print(
                             "❌ Cached image load error: ${prize.imageUrl}, error: $error",
                           );
-                          return Image.asset(
-                            getPrizeImage(prize),
-                            fit: BoxFit.contain,
+                          return SizedBox.expand(
+                            child: Container(
+                              margin: const EdgeInsets.all(4),
+                              decoration: BoxDecoration(
+                                color: Colors.grey[200],
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                              child: Icon(
+                                Icons.image_not_supported,
+                                size: 50,
+                                color: Colors.grey[400],
+                              ),
+                            ),
                           );
                         },
                       ),
@@ -958,6 +991,54 @@ class _ExchangePrizeDialogState extends State<ExchangePrizeDialog> {
                 ),
               ),
               // Show how many items user can exchange
+              // Top-right badges row: Eye icon (left), exchangeable unit badge (right)
+              // 👁 Eye icon top-left
+              Positioned(
+                top: 12,
+                left: 8,
+                child: InkWell(
+                  borderRadius: BorderRadius.circular(50),
+                  onTap: () {
+                    showDialog(
+                      context: context,
+                      builder:
+                          (_) => Dialog(
+                            insetPadding: EdgeInsets.zero,
+                            backgroundColor: Colors.transparent,
+                            child: GestureDetector(
+                              onTap: () => Navigator.of(context).pop(),
+                              child: InteractiveViewer(
+                                child: CachedNetworkImage(
+                                  imageUrl: prize.imageUrl,
+                                  fit: BoxFit.contain,
+                                ),
+                              ),
+                            ),
+                          ),
+                    );
+                  },
+                  child: Container(
+                    padding: EdgeInsets.all(screenWidth * 0.012),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(24),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withOpacity(0.08),
+                          blurRadius: 6,
+                          offset: const Offset(0, 2),
+                        ),
+                      ],
+                    ),
+                    child: const Icon(
+                      Icons.remove_red_eye,
+                      color: Colors.black38,
+                      size: 18,
+                    ),
+                  ),
+                ),
+              ),
+              // 🎟 Unit badge top-right
               if (canExchange && maxExchangeable > 0)
                 Positioned(
                   top: 12,
@@ -1179,4 +1260,4 @@ class _ExchangePrizeDialogState extends State<ExchangePrizeDialog> {
   }
 }
 
-//Correct with 1179 line code changes
+//Correct with 1247 line code changes

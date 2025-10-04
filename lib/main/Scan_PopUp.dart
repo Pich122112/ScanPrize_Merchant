@@ -3,11 +3,11 @@ import 'dart:io';
 
 import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
-import 'package:gb_merchant/utils/balance_refresh_notifier.dart';
-import 'package:gb_merchant/utils/qr_code_extractor.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:qr_code_scanner_plus/qr_code_scanner_plus.dart';
 import 'package:gb_merchant/components/transfer_prize_qr.dart';
+import 'package:gb_merchant/utils/balance_refresh_notifier.dart';
+import 'package:gb_merchant/utils/qr_scanner_view.dart';
 import 'package:zxing2/qrcode.dart';
 import 'package:gb_merchant/utils/constants.dart';
 import '../components/qr_scan_action_button.dart';
@@ -17,9 +17,11 @@ import '../services/scanqr_prize.dart';
 import '../widgets//qr_scan_spin_wheel.dart';
 import 'dart:math';
 import '../components/ExchangePrizeList.dart';
-import '../utils/qr_code_parser.dart'; // Import the parser
+import '../utils/qr_code_parser.dart';
 import 'package:qr_code_tools/qr_code_tools.dart';
 import 'dart:typed_data';
+import '../utils/qr_code_extractor.dart';
+import 'package:mobile_scanner/mobile_scanner.dart' as mscanner; //add here
 
 Widget diamondIcon({double size = 22, Color color = Colors.amber}) {
   return Icon(Icons.diamond, size: size, color: color);
@@ -43,8 +45,15 @@ class _OpenScanState extends State<OpenScan>
   late AnimationController _animationController;
   late Animation<double> _positionAnimation;
   bool _isProcessingImage = false;
-
   List<Map<String, String>> scanResults = [];
+  bool _isShowingDialog = false;
+
+  // add here
+  final mscanner.MobileScannerController _scannerController =
+      mscanner.MobileScannerController(
+        facing: mscanner.CameraFacing.back,
+        torchEnabled: false,
+      );
 
   List<InlineSpan> _getResultSpans(String result) {
     final spans = <InlineSpan>[];
@@ -84,11 +93,9 @@ class _OpenScanState extends State<OpenScan>
     return spans;
   }
 
-  // Also update the _generateDefaultItems method to handle translation
   List<String> _generateDefaultItems(int points, int diamond) {
     final random = Random();
     final items = <String>[];
-    final localeCode = context.locale.languageCode; // Get current locale
 
     if (random.nextDouble() < 0.7) {
       items.addAll(['motor', 'car']);
@@ -98,8 +105,7 @@ class _OpenScanState extends State<OpenScan>
     final pointCount = random.nextInt(3) + 2;
     for (var i = 0; i < pointCount; i++) {
       final value = (random.nextInt(9) + 1) * 10; // 10, 20, ..., 90
-      final pointText = localeCode == 'en' ? 'score' : 'ពិន្ទុ';
-      items.add('$value $pointText');
+      items.add('$value ពិន្ទុ');
     }
 
     // Generate diamond items (1-2 items)
@@ -113,8 +119,7 @@ class _OpenScanState extends State<OpenScan>
     while (items.length < 5) {
       if (random.nextBool()) {
         final value = (random.nextInt(9) + 1) * 10;
-        final pointText = localeCode == 'en' ? 'score' : 'ពិន្ទុ';
-        items.add('$value $pointText');
+        items.add('$value ពិន្ទុ');
       } else {
         final value = (random.nextInt(4) + 1) * 5;
         items.add('$value D');
@@ -128,9 +133,8 @@ class _OpenScanState extends State<OpenScan>
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this); // Add observer
-
     _animationController = AnimationController(
-      duration: const Duration(milliseconds: 1200),
+      duration: const Duration(milliseconds: 1500),
       vsync: this,
     )..repeat(reverse: true);
 
@@ -184,10 +188,10 @@ class _OpenScanState extends State<OpenScan>
     BalanceRefreshNotifier().refreshBalances();
   }
 
-  // Updated handleScanResult method to handle signature-only QR
-  // Updated handleScanResult method to properly handle already redeemed codes
+  // Replace the handleScanResult method with this updated version
   Future<void> handleScanResult(String code) async {
     await controller?.pauseCamera();
+    if (_isShowingDialog) return; // skip handling while dialog is visible
 
     try {
       // Check if this is the new URL format QR code
@@ -207,13 +211,22 @@ class _OpenScanState extends State<OpenScan>
         final prizeResponse = await fetchPrizeByNaturalCode(code);
 
         if (prizeResponse['success'] == true) {
-          await _handlePrizeQR(prizeResponse, code);
+          // NEW: If backend returns a "Thank you!" type or message, show a thank you dialog
+          final dataType = prizeResponse['data']?['type']?.toString() ?? '';
+          final message = prizeResponse['message']?.toString() ?? '';
+          if (dataType.toLowerCase().contains('thank') ||
+              message.toLowerCase().contains('thank')) {
+            await _handleThankYou(prizeResponse, code);
+          } else {
+            await _handlePrizeQR(prizeResponse, code);
+          }
         } else {
           final errorMessage =
               prizeResponse['error']?.toString().toLowerCase() ?? '';
 
           if (errorMessage.contains('already redeemed') ||
-              errorMessage.contains('already used')) {
+              errorMessage.contains('already used') ||
+              errorMessage.contains('expired code')) {
             _handleAlreadyRedeemedQR(code, prizeResponse);
           } else {
             _handleInvalidQR(prizeResponse, code);
@@ -254,13 +267,105 @@ class _OpenScanState extends State<OpenScan>
     }
   }
 
+  String _translateThankYou(String message, String localeCode) {
+    // Normalize text (lowercase, trim spaces)
+    final normalized = message.trim().toLowerCase();
+
+    if (localeCode == 'km') {
+      if (normalized == 'thank you!' || normalized == 'thank you') {
+        return 'សូមអរគុណ!';
+      }
+    }
+
+    // Default fallback by locale
+    if (localeCode == 'km') {
+      return 'សូមអរគុណ!';
+    }
+
+    return 'Thank you!';
+  }
+
+  Future<void> _handleThankYou(
+    Map<String, dynamic> prizeResponse,
+    String code,
+  ) async {
+    if (_isShowingDialog) return;
+    _isShowingDialog = true;
+
+    try {
+      final localeCode = context.locale.languageCode;
+      final message = prizeResponse['message']?.toString() ?? '';
+
+      if (!mounted) return;
+
+      await showDialog(
+        context: context,
+        barrierDismissible: true,
+        barrierColor: Colors.transparent,
+        builder: (context) {
+          Future.delayed(const Duration(seconds: 3), () {
+            if (Navigator.of(context).canPop()) {
+              Navigator.of(context).pop();
+            }
+          });
+
+          return Dialog(
+            backgroundColor: Colors.white,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(16),
+            ),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(
+                vertical: 28.0,
+                horizontal: 20.0,
+              ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Semantics(
+                    label: 'Thank you',
+                    child: Text(
+                      '🙏🏻',
+                      style: const TextStyle(fontSize: 64),
+                      textAlign: TextAlign.center,
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  Text(
+                    _translateThankYou(message, localeCode),
+                    textAlign: TextAlign.center,
+                    style: const TextStyle(
+                      fontSize: 22,
+                      fontWeight: FontWeight.bold,
+                      fontFamily: 'KhmerFont',
+                    ),
+                  ),
+                  const SizedBox(height: 18),
+                ],
+              ),
+            ),
+          );
+        },
+      );
+    } catch (e) {
+      debugPrint('Error showing ThankYou dialog: $e');
+    } finally {
+      _isShowingDialog = false;
+      try {
+        await controller?.resumeCamera();
+      } catch (_) {}
+      try {
+        await _scannerController.start();
+      } catch (_) {}
+    }
+  }
+
   void _handleAlreadyRedeemedQR(
     String code,
     Map<String, dynamic> prizeResponse,
   ) {
-    if (mounted) {
-      _showModernErrorSnackBar('Invalid or already redeemed code'.tr());
-    }
+    // Just call _handleInvalidQR for unified behavior
+    _handleInvalidQR(prizeResponse, code);
   }
 
   void _handleScanError(dynamic e) {
@@ -276,12 +381,15 @@ class _OpenScanState extends State<OpenScan>
     Map<String, dynamic> prizeResponse,
   ) async {
     try {
+      // Pause scanner before showing dialog
+      await controller?.pauseCamera();
+      await _scannerController.stop();
+
       // Try to parse as JSON first (old format)
       try {
         final transferData = json.decode(code) as Map<String, dynamic>;
         if (transferData.containsKey('userId') &&
             transferData.containsKey('phoneNumber')) {
-          // Valid JSON transfer QR - directly open exchange prize dialog
           if (mounted) {
             await showGeneralDialog(
               context: context,
@@ -300,6 +408,10 @@ class _OpenScanState extends State<OpenScan>
                 );
               },
             );
+
+            // ✅ Resume scanner after dialog closes
+            await controller?.resumeCamera();
+            await _scannerController.start();
           }
           return;
         }
@@ -311,7 +423,7 @@ class _OpenScanState extends State<OpenScan>
       final qrData = QrCodeParser.parseTransferQr(code);
       final phoneNumber = qrData['phoneNumber'] ?? 'Unknown';
 
-      // Validate that we got a proper phone number
+      // Validate phone number
       if (phoneNumber != 'Unknown' && phoneNumber.contains('855')) {
         if (mounted) {
           await showGeneralDialog(
@@ -331,6 +443,10 @@ class _OpenScanState extends State<OpenScan>
               );
             },
           );
+
+          // ✅ Resume scanner after dialog closes
+          await controller?.resumeCamera();
+          await _scannerController.start();
         }
       } else {
         throw Exception('Invalid QR format - no valid phone number found');
@@ -338,6 +454,10 @@ class _OpenScanState extends State<OpenScan>
     } catch (e) {
       // Not a valid transfer QR either
       _handleInvalidQR(prizeResponse, code);
+
+      // Ensure scanner resumes after error
+      await controller?.resumeCamera();
+      await _scannerController.start();
     }
   }
 
@@ -392,80 +512,164 @@ class _OpenScanState extends State<OpenScan>
     if (issuer != "" && amount != 0) {
       final pointText = localeCode == 'en' ? 'score' : 'ពិន្ទុ';
       prizeDisplay = '$amount $pointText';
+
+      // Refresh balances after successful scan
+      if (widget.onPrizeScanned != null) {
+        await widget.onPrizeScanned!(issuer, newAmount);
+      }
+
+      setState(() {
+        scanResults.add({"code": code, "result": prizeDisplay});
+      });
+
+      if (mounted) {
+        await showDialog(
+          context: context,
+          barrierDismissible: false,
+          builder:
+              (context) => QrScanSpinWheelDialog(
+                prize: prizeDisplay,
+                defaultItems: _generateDefaultItems(amount, 0),
+                prizeLogo: prizeLogo,
+                onClose: () async {
+                  // ✅ Resume both controllers when dialog closes
+                  await controller?.resumeCamera();
+                  await _scannerController.start();
+                },
+              ),
+        );
+      }
     } else {
-      prizeDisplay =
-          localeCode == 'en' ? 'You received a prize' : 'អ្នកទទួលបានរង្វាន់';
-    }
-
-    // Refresh balances after successful scan
-    if (widget.onPrizeScanned != null) {
-      await widget.onPrizeScanned!(issuer, newAmount);
-    }
-
-    setState(() {
-      scanResults.add({"code": code, "result": prizeDisplay});
-    });
-
-    if (mounted) {
-      await showDialog(
-        context: context,
-        barrierDismissible: false,
-        builder:
-            (context) => QrScanSpinWheelDialog(
-              prize: prizeDisplay,
-              defaultItems: _generateDefaultItems(amount, 0),
-              onClose: () => controller?.resumeCamera(),
-              prizeLogo: prizeLogo, // Pass the logo to the dialog
+      // Invalid/empty QR, show message and resume
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              localeCode == 'en' ? 'QR code is empty' : 'QR code គ្មានទិន្នន័យ',
+              style: TextStyle(
+                color: Colors.white,
+                fontFamily: 'KhmerFont',
+                fontWeight: FontWeight.bold,
+              ),
             ),
-      );
+            backgroundColor: Colors.redAccent,
+            duration: const Duration(seconds: 2),
+          ),
+        );
+        await controller?.resumeCamera();
+        await _scannerController.start();
+      }
     }
   }
 
   void _showModernErrorSnackBar(String message) {
-    // Do NOT close previous error, just show again (Flutter replaces old one)
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        behavior: SnackBarBehavior.floating,
-        margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 20),
-        backgroundColor: Colors.red.shade700,
-        elevation: 10,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        content: Row(
-          children: [
-            const Icon(Icons.error_outline, color: Colors.white, size: 28),
-            const SizedBox(width: 16),
-            Expanded(
-              child: Text(
-                message,
-                style: const TextStyle(
-                  fontWeight: FontWeight.bold,
-                  fontSize: 16,
-                  color: Colors.white,
-                  fontFamily: 'KhmerFont', // or remove if not Khmer
+    final overlay = Overlay.of(context);
+    final overlayEntry = OverlayEntry(
+      builder:
+          (context) => Positioned(
+            top: MediaQuery.of(context).padding.top + 130, // below status bar
+            left: 20,
+            right: 20,
+            child: Material(
+              color: Colors.transparent,
+              child: AnimatedSlide(
+                offset: const Offset(0, -1),
+                duration: const Duration(milliseconds: 300),
+                curve: Curves.easeOut,
+                child: AnimatedOpacity(
+                  opacity: 1,
+                  duration: const Duration(milliseconds: 300),
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 12,
+                    ),
+                    decoration: BoxDecoration(
+                      color: Colors.red.shade700,
+                      borderRadius: BorderRadius.circular(16),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withOpacity(0.3),
+                          blurRadius: 6,
+                          offset: const Offset(0, 3),
+                        ),
+                      ],
+                    ),
+                    child: Row(
+                      children: [
+                        const Icon(
+                          Icons.error_outline,
+                          color: Colors.white,
+                          size: 28,
+                        ),
+                        const SizedBox(width: 16),
+                        Expanded(
+                          child: Text(
+                            message,
+                            style: const TextStyle(
+                              fontWeight: FontWeight.bold,
+                              fontSize: 16,
+                              color: Colors.white,
+                              fontFamily: 'KhmerFont',
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
                 ),
-                textAlign: TextAlign.left,
               ),
             ),
-          ],
-        ),
-        duration: const Duration(
-          seconds: 2,
-        ), // Short duration for responsiveness
-        dismissDirection: DismissDirection.horizontal,
-      ),
+          ),
     );
+
+    overlay.insert(overlayEntry);
+
+    // Remove after 2 seconds
+    Future.delayed(const Duration(seconds: 2), () {
+      overlayEntry.remove();
+    });
   }
 
   // Also update your _handleInvalidQR method to be more specific
+  // void _handleInvalidQR(Map<String, dynamic> prizeResponse, String code) {
+  //   final errorMessage = prizeResponse['error']?.toString().toLowerCase() ?? '';
+  //   String resultText;
+  //   if (errorMessage.contains('invalid') ||
+  //       errorMessage.contains('not valid')) {
+  //     resultText = "incorrect_qr_code".tr();
+  //   } else {
+  //     resultText = "incorrect_qr_code".tr();
+  //   }
+  //   if (mounted) {
+  //     _showModernErrorSnackBar(resultText);
+  //   }
+  // }
+
   void _handleInvalidQR(Map<String, dynamic> prizeResponse, String code) {
-    final errorMessage = prizeResponse['error']?.toString().toLowerCase() ?? '';
+    final errorMessage =
+        prizeResponse['error']?.toString().toLowerCase() ??
+        prizeResponse['message']?.toString().toLowerCase() ??
+        '';
     String resultText;
-    if (errorMessage.contains('invalid') ||
-        errorMessage.contains('not valid')) {
-      resultText = "incorrect_qr_code".tr();
+    bool isOurQrFormat =
+        QrCodeExtractor.isUrlFormat(code) || _isSignatureFormat(code);
+
+    if (isOurQrFormat) {
+      // It's one of our QR code formats
+      if (errorMessage.contains('already redeemed') ||
+          errorMessage.contains('already used') ||
+          errorMessage.contains('expired code')) {
+        resultText = "Invalid or already redeemed code".tr();
+      } else {
+        // It's our QR code format, but not valid or some other error
+        resultText = "incorrect_qr_code".tr();
+      }
     } else {
+      // Not our QR code format at all
       resultText = "incorrect_qr_code".tr();
     }
+
     if (mounted) {
       _showModernErrorSnackBar(resultText);
     }
@@ -511,17 +715,17 @@ class _OpenScanState extends State<OpenScan>
     });
   }
 
+  //Update here
   Future<void> _toggleFlash() async {
-    if (controller != null) {
-      await controller!.toggleFlash();
-      final flashStatus = await controller!.getFlashStatus();
+    // ignore: unnecessary_null_comparison
+    if (_scannerController != null) {
+      await _scannerController.toggleTorch();
+      final flashStatus = _scannerController.torchEnabled;
       setState(() {
-        isFlashOn = flashStatus ?? false;
+        isFlashOn = flashStatus;
       });
     }
   }
-
-  //Start add code here
 
   //Start add code here
   Future<void> _pickQrFromGallery() async {
@@ -565,11 +769,15 @@ class _OpenScanState extends State<OpenScan>
           setState(() => _isProcessingImage = false);
         }
 
+        // In the _pickQrFromGallery method, update the handling part:
         if (qrText != null && qrText.isNotEmpty && mounted) {
           print("Detected QR content: $qrText");
 
-          // Handle the scanned QR code - check if it's a signature format first
-          if (_isSignatureFormat(qrText)) {
+          // Handle the scanned QR code - check if it's a URL format first
+          if (QrCodeExtractor.isUrlFormat(qrText)) {
+            print("URL format detected, processing as prize QR");
+            await handleScanResult(qrText);
+          } else if (_isSignatureFormat(qrText)) {
             print("Signature format detected, processing as transfer QR");
             await _handleTransferQR(qrText, {});
           } else {
@@ -577,9 +785,14 @@ class _OpenScanState extends State<OpenScan>
           }
         } else if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
+            SnackBar(
               content: Text(
-                "No QR code found in this image. Please choose another image or retake a clear photo of your QR code.",
+                "no_qr_found".tr(),
+                style: TextStyle(
+                  fontFamily: 'KhmerFont',
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                ),
                 textAlign: TextAlign.center,
               ),
               duration: Duration(seconds: 3),
@@ -770,13 +983,14 @@ class _OpenScanState extends State<OpenScan>
   bool _isSignatureFormat(String code) {
     // Check if it matches the signature pattern (long numeric string)
     final signaturePattern = RegExp(r'^\d{20,40}$');
-    return signaturePattern.hasMatch(code);
+    // Also check if it's a URL format QR code
+    final isUrlFormat = QrCodeExtractor.isUrlFormat(code);
+    return signaturePattern.hasMatch(code) || isUrlFormat;
   }
 
   @override
   Widget build(BuildContext context) {
-    final double cutOutSize = MediaQuery.of(context).size.width * 0.7;
-    final double lineThickness = 2.0;
+    final double lineThickness = 1.5;
     final localeCode = context.locale.languageCode; // 'km' or 'en'
 
     return WillPopScope(
@@ -823,27 +1037,34 @@ class _OpenScanState extends State<OpenScan>
                   child: Stack(
                     alignment: Alignment.center,
                     children: [
-                      QRView(
-                        key: qrKey,
-                        onQRViewCreated: _onQRViewCreated,
-                        overlay: QrScannerOverlayShape(
-                          borderColor: Colors.white,
-                          borderRadius: 12,
-                          borderLength: 40,
-                          borderWidth: 12,
-                          cutOutSize: cutOutSize,
-                        ),
+                      // QRView(
+                      //   key: qrKey,
+                      //   onQRViewCreated: _onQRViewCreated,
+                      //   overlay: QrScannerOverlayShape(
+                      //     borderColor: Colors.white,
+                      //     borderRadius: 12,
+                      //     borderLength: 40,
+                      //     borderWidth: 12,
+                      //     cutOutSize: cutOutSize,
+                      //   ),
+                      // ),
+                      QrScannerView(
+                        controller: _scannerController, // ← required argument
+
+                        onDetect: (code) async {
+                          await handleScanResult(code); // your existing method
+                        },
                       ),
                       Center(
                         child: SizedBox(
-                          width: cutOutSize,
-                          height: cutOutSize,
+                          width: 250,
+                          height: 250,
                           child: AnimatedBuilder(
                             animation: _positionAnimation,
                             builder: (context, child) {
                               final double y =
                                   _positionAnimation.value *
-                                  (cutOutSize - lineThickness);
+                                  (250 - lineThickness);
                               return Stack(
                                 children: [
                                   Positioned(
@@ -851,18 +1072,18 @@ class _OpenScanState extends State<OpenScan>
                                     left: 0,
                                     right: 0,
                                     child: Container(
-                                      width: cutOutSize - 10,
+                                      width: 260 - 10,
                                       height: lineThickness,
                                       margin: const EdgeInsets.symmetric(
                                         horizontal: 5,
                                       ),
                                       decoration: BoxDecoration(
-                                        borderRadius: BorderRadius.circular(2),
+                                        borderRadius: BorderRadius.circular(50),
                                         gradient: const LinearGradient(
                                           colors: [
-                                            Colors.amber,
+                                            Color.fromARGB(40, 237, 221, 114),
                                             Colors.yellowAccent,
-                                            Colors.amber,
+                                            Color.fromARGB(40, 237, 221, 114),
                                           ],
                                         ),
                                         boxShadow: [
@@ -927,6 +1148,7 @@ class _OpenScanState extends State<OpenScan>
                       ),
                     ),
                   ),
+
                 Container(
                   color: AppColors.primaryColor,
                   child: QrScanActionButtons(
@@ -955,4 +1177,4 @@ class _OpenScanState extends State<OpenScan>
   }
 }
 
-//Correct with 958 line code changes
+//Correct with 1180 line code changes

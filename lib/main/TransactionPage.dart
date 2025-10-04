@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:easy_localization/easy_localization.dart';
+import 'package:flutter/rendering.dart';
 import 'package:gb_merchant/utils/constants.dart';
 import 'package:gb_merchant/widgets/bottomsheet_transaction.dart';
 import '../services/user_transaction_service.dart';
 import '../widgets/custom_segment_controll.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import '../services/check_unread_notification.dart';
 
 class NotificationPage extends StatefulWidget {
   const NotificationPage({super.key});
@@ -23,12 +25,57 @@ class _NotificationPageState extends State<NotificationPage> {
   bool _isLoading = true;
   String _errorMessage = '';
 
+  late ScrollController _scrollController;
+  bool _showFAB = false;
+
   @override
   void initState() {
     super.initState();
+    _scrollController = ScrollController();
+    _scrollController.addListener(_handleScrollDirection);
     _loadReadTransactions();
-
     _fetchTransactions();
+  }
+
+  @override
+  void dispose() {
+    _scrollController.removeListener(_handleScrollDirection);
+    _scrollController.dispose();
+    super.dispose();
+  }
+
+  void _updateUnreadStatus() {
+    final hasUnread = _transactions.any((tx) {
+      final txId = tx['id'].toString();
+      return !_readTransactions.contains(txId);
+    });
+    CheckUnreadNotification.updateUnreadStatus(hasUnread);
+  }
+
+  void _handleScrollDirection() {
+    if (!_scrollController.hasClients) return;
+
+    // Hide FAB if at the very top
+    if (_scrollController.offset <= 0) {
+      if (_showFAB) {
+        setState(() {
+          _showFAB = false;
+        });
+      }
+      return;
+    }
+
+    // Show FAB if user scrolls down (forward), hide if going up (reverse)
+    final direction = _scrollController.position.userScrollDirection;
+    if (direction == ScrollDirection.forward && !_showFAB) {
+      setState(() {
+        _showFAB = true;
+      });
+    } else if (direction == ScrollDirection.reverse && _showFAB) {
+      setState(() {
+        _showFAB = false;
+      });
+    }
   }
 
   Future<void> _loadReadTransactions() async {
@@ -37,6 +84,7 @@ class _NotificationPageState extends State<NotificationPage> {
     setState(() {
       _readTransactions = saved.toSet();
     });
+    _updateUnreadStatus();
   }
 
   Future<void> _fetchTransactions() async {
@@ -54,11 +102,23 @@ class _NotificationPageState extends State<NotificationPage> {
         _transactions = transactionsData;
         _isLoading = false;
       });
+      _updateUnreadStatus();
     } catch (e) {
+      // Detect common server-side error messages and set a friendly message
+      String message = e.toString();
+      if (message.contains('502') ||
+          message.contains('503') ||
+          message.contains('504') ||
+          message.contains('SocketException') ||
+          message.toLowerCase().contains('fail') ||
+          message.toLowerCase().contains('server')) {
+        message = 'server_problem_message'.tr();
+      }
       setState(() {
-        _errorMessage = e.toString();
+        _errorMessage = message;
         _isLoading = false;
       });
+      _updateUnreadStatus();
       print('Error fetching transactions: $e');
     }
   }
@@ -66,59 +126,84 @@ class _NotificationPageState extends State<NotificationPage> {
   // Replace the entire build method with this:
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: AppColors.primaryColor,
-      body: Column(
-        children: [
-          const SizedBox(height: 50),
-          Container(
-            alignment: Alignment.topLeft,
-            child: Row(
-              children: [
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 0),
-                  child: IconButton(
-                    onPressed: () {
-                      Navigator.pop(context);
-                    },
-                    icon: const Icon(
-                      Icons.arrow_back_ios_new,
-                      color: Colors.white,
-                      size: 20,
+    return Stack(
+      children: [
+        Scaffold(
+          backgroundColor: AppColors.primaryColor,
+          body: Column(
+            children: [
+              const SizedBox(height: 50),
+              Container(
+                alignment: Alignment.topLeft,
+                child: Row(
+                  children: [
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 0),
+                      child: IconButton(
+                        onPressed: () {
+                          Navigator.pop(context);
+                        },
+                        icon: const Icon(
+                          Icons.arrow_back_ios_new,
+                          color: Colors.white,
+                          size: 20,
+                        ),
+                      ),
                     ),
-                  ),
+                    const SizedBox(width: 12),
+                    Text(
+                      'notification'.tr(),
+                      style: TextStyle(
+                        fontFamily: 'KhmerFont',
+                        fontSize: 20,
+                        color: Colors.white,
+                      ),
+                    ),
+                  ],
                 ),
-                const SizedBox(width: 12),
-                Text(
-                  'notification'.tr(),
-                  style: TextStyle(
-                    fontFamily: 'KhmerFont',
-                    fontSize: 20,
-                    color: Colors.white,
-                  ),
+              ),
+              const SizedBox(height: 40),
+              // Segmented Control
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                child: KhmerSegmentedControl(
+                  selectedIndex: selectedIndex,
+                  options: options,
+                  onChanged: (idx) => setState(() => selectedIndex = idx),
                 ),
-              ],
-            ),
+              ),
+              const SizedBox(height: 18),
+              Expanded(
+                child:
+                    selectedIndex == 1
+                        ? _buildAnnouncementsTab()
+                        : _buildTransactionsTab(),
+              ),
+            ],
           ),
-          const SizedBox(height: 40),
-          // Segmented Control
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16),
-            child: KhmerSegmentedControl(
-              selectedIndex: selectedIndex,
-              options: options,
-              onChanged: (idx) => setState(() => selectedIndex = idx),
-            ),
-          ),
-          const SizedBox(height: 18),
-          Expanded(
-            child:
-                selectedIndex == 1
-                    ? _buildAnnouncementsTab()
-                    : _buildTransactionsTab(),
-          ),
-        ],
-      ),
+          floatingActionButton:
+              _showFAB
+                  ? FloatingActionButton(
+                    shape: const CircleBorder(), // 🔵 makes sure it's round
+
+                    onPressed: () {
+                      _scrollController.animateTo(
+                        0,
+                        duration: const Duration(milliseconds: 500),
+                        curve: Curves.easeOut,
+                      );
+                    },
+                    backgroundColor: Colors.white,
+                    child: const Icon(
+                      Icons.arrow_upward,
+                      color: AppColors.primaryColor,
+                    ),
+                  )
+                  : null,
+          floatingActionButtonLocation:
+              FloatingActionButtonLocation.centerFloat,
+        ),
+      ],
     );
   }
 
@@ -132,10 +217,39 @@ class _NotificationPageState extends State<NotificationPage> {
     }
 
     if (_errorMessage.isNotEmpty) {
+      // Show a friendly, styled server error message
       return Center(
-        child: Text(
-          'Error: $_errorMessage',
-          style: const TextStyle(color: Colors.white),
+        child: Container(
+          margin: const EdgeInsets.symmetric(horizontal: 28, vertical: 32),
+          padding: const EdgeInsets.all(24),
+          decoration: BoxDecoration(
+            color: Colors.white.withOpacity(0.97),
+            borderRadius: BorderRadius.circular(18),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.13),
+                blurRadius: 16,
+                offset: const Offset(0, 8),
+              ),
+            ],
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Icon(Icons.cloud_off, color: Colors.red, size: 48),
+              const SizedBox(height: 18),
+              Text(
+                'server_problem_message'.tr(),
+                textAlign: TextAlign.center,
+                style: const TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.w600,
+                  color: Colors.red,
+                  fontFamily: 'KhmerFont',
+                ),
+              ),
+            ],
+          ),
         ),
       );
     }
@@ -157,8 +271,11 @@ class _NotificationPageState extends State<NotificationPage> {
     }
 
     return RefreshIndicator(
+      backgroundColor: Colors.white,
+      color: AppColors.primaryColor,
       onRefresh: _fetchTransactions,
       child: ListView.builder(
+        controller: _scrollController, // <-- Add this line!
         padding: const EdgeInsets.all(16),
         itemCount: _transactions.length,
         itemBuilder: (context, index) {
@@ -270,6 +387,8 @@ class _NotificationPageState extends State<NotificationPage> {
     final String createdAt = transaction['created_at'] ?? '';
     final String walletType = transaction['wallet_type'] ?? '';
     final localeCode = context.locale.languageCode;
+    final dynamic qtyValue = transaction['qty'];
+    final String unitValue = (transaction['unit'] ?? '').toString();
 
     // Format phone numbers
     String formatPhoneNumber(String phone) {
@@ -287,9 +406,47 @@ class _NotificationPageState extends State<NotificationPage> {
       return digits;
     }
 
+    // Helper to translate unit
+    String _translateUnit(String unit) {
+      if (localeCode == 'km') {
+        switch (unit.toLowerCase()) {
+          case 'can':
+            return 'កំប៉ុង';
+          case 'case':
+            return 'កេស';
+          case 'bottle':
+            return 'ដប';
+          case 'shirt':
+            return 'អាវ';
+          case 'ball':
+            return 'បាល់';
+          case 'umbrella':
+            return 'ឆ័ត្រ';
+          case 'dolla':
+            return 'ដុល្លា';
+          case 'helmet':
+            return 'មួក';
+          case 'bucket':
+            return 'ធុងទឹកកក';
+          case 'motor':
+            return 'ម៉ូតូ';
+          case 'car':
+            return 'ឡាន';
+          case 'piece':
+            return 'ប្រអប់';
+          case 'pack':
+            return 'ប៉ាក';
+          default:
+            return unit;
+        }
+      }
+      return unit;
+    }
+
     Future<void> _saveReadTransactions() async {
       final prefs = await SharedPreferences.getInstance();
       await prefs.setStringList('readTransactions', _readTransactions.toList());
+      _updateUnreadStatus();
     }
 
     final String formattedFromPhone = formatPhoneNumber(fromPhoneNumber);
@@ -336,12 +493,23 @@ class _NotificationPageState extends State<NotificationPage> {
         });
         _saveReadTransactions();
         // Show transaction detail modal
+        // Ensure 'remark' is present (for demo/testing; remove if backend already provides it)
+        final txWithRemark = Map<String, dynamic>.from(transaction);
+        txWithRemark['remark'] =
+            txWithRemark['remark']?.isNotEmpty == true
+                ? txWithRemark['remark']
+                : 'Test demo remark';
+        print(
+          'DEBUG txWithRemark remark before modal: ${txWithRemark['remark']}',
+        );
         showModalBottomSheet(
           context: context,
           isScrollControlled: true,
           backgroundColor: Colors.transparent,
           builder:
-              (context) => TransactionDetailModal(transaction: transaction),
+              (context) => TransactionDetailModal(
+                transaction: txWithRemark,
+              ), // <--- Use txWithRemark!
         );
       },
       child: Container(
@@ -420,26 +588,58 @@ class _NotificationPageState extends State<NotificationPage> {
                     ),
                   ),
                   const SizedBox(height: 10),
-                  Text(
-                    '${amount.abs()} ${"score".tr()} ${isCredit ? 'added_to'.tr() : 'deducted_from'.tr()} $walletType',
-                    style: TextStyle(
-                      fontSize: 16,
-                      color: Colors.black87,
-                      height: 1.4,
-                      fontFamily: localeCode == 'km' ? 'KhmerFont' : null,
+                  RichText(
+                    text: TextSpan(
+                      style: TextStyle(
+                        fontSize: 16,
+                        color: Colors.black54,
+                        height: 1.4,
+                        fontFamily: localeCode == 'km' ? 'KhmerFont' : null,
+                      ),
+                      children: [
+                        TextSpan(
+                          text:
+                              '${amount.abs()} ${"score".tr()} ', // ✅ Bold part
+                          style: const TextStyle(fontWeight: FontWeight.bold),
+                        ),
+                        TextSpan(
+                          text:
+                              '${isCredit ? 'added_to'.tr() : 'deducted_from'.tr()} $walletType', // ✅ Normal text
+                        ),
+                      ],
                     ),
                   ),
                 ],
               ),
             ),
-            Text(
-              '${isCredit ? '+' : '-'}${amount.abs()}',
-              style: TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
-                color: amountColor,
-                fontFamily: 'KhmerFont',
-              ),
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.end,
+              children: [
+                Text(
+                  '${isCredit ? '+' : '-'}${amount.abs()}',
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                    color: amountColor,
+                    fontFamily: 'KhmerFont',
+                  ),
+                ),
+                if (qtyValue != null &&
+                    qtyValue.toString().isNotEmpty &&
+                    unitValue.isNotEmpty)
+                  Padding(
+                    padding: const EdgeInsets.only(top: 4.0),
+                    child: Text(
+                      'x $qtyValue ${_translateUnit(unitValue)}',
+                      style: TextStyle(
+                        fontSize: 13,
+                        color: isCredit ? Colors.red : Colors.green,
+                        fontWeight: FontWeight.w600,
+                        fontFamily: 'KhmerFont',
+                      ),
+                    ),
+                  ),
+              ],
             ),
           ],
         ),
@@ -560,8 +760,6 @@ class _NotificationPageState extends State<NotificationPage> {
                             Shadow(color: Colors.black26, blurRadius: 3),
                           ],
                         ),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
                       ),
                     ],
                   ),
@@ -629,4 +827,4 @@ class _NotificationPageState extends State<NotificationPage> {
   }
 }
 
-//Correct with 625 line code changes
+//Correct with 830 line code changes

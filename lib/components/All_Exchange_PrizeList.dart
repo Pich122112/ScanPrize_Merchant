@@ -289,10 +289,13 @@
 
 // //Correct with 290 line code changes
 
+import 'dart:async';
+
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
 import 'package:gb_merchant/utils/constants.dart';
+import 'package:gb_merchant/widgets/modern_btn_ui.dart';
 import '../models/exchange_prize_model.dart';
 import '../services/exchange_prize_service.dart';
 
@@ -317,12 +320,20 @@ class AllExchangePrizeList extends StatefulWidget {
 class AllExchangePrizeListState extends State<AllExchangePrizeList> {
   late Future<List<ExchangePrize>> _prizesFuture;
   final ExchangePrizeService _service = ExchangePrizeService();
+  Timer? _snackBarDebounceTimer;
+  bool _isShowingSnackBar = false;
 
   @override
   void initState() {
     super.initState();
     // Load prizes without force refresh initially
     _prizesFuture = _service.fetchExchangePrizes(forceRefresh: false);
+  }
+
+  @override
+  void dispose() {
+    _snackBarDebounceTimer?.cancel();
+    super.dispose();
   }
 
   void refreshPrizes({bool forceRefresh = false}) {
@@ -332,11 +343,62 @@ class AllExchangePrizeListState extends State<AllExchangePrizeList> {
   }
 
   // Add this helper method to translate units
+  // String _translateUnit(String unit, BuildContext context) {
+  //   final localeCode = context.locale.languageCode;
+  //   final normalized = unit.toLowerCase();
+  //   if (normalized == 'can') {
+  //     return localeCode == 'km' ? 'កំប៉ុង' : 'Can';
+  //   }
+  //   if (normalized == 'case') {
+  //     return localeCode == 'km' ? 'កេស' : 'Case';
+  //   }
+  //   return unit;
+  // }
+
   String _translateUnit(String unit, BuildContext context) {
     final localeCode = context.locale.languageCode;
-    if (localeCode == 'km' && unit.toLowerCase() == 'can') {
-      return 'កំប៉ុង';
+    final normalized = unit.toLowerCase();
+
+    if (normalized == 'can') {
+      return localeCode == 'km' ? 'កំប៉ុង' : 'Can';
     }
+    if (normalized == 'case') {
+      return localeCode == 'km' ? 'កេស' : 'Case';
+    }
+    if (normalized == 'bottle') {
+      return localeCode == 'km' ? 'ដប' : 'Bottle';
+    }
+    if (normalized == 'shirt') {
+      return localeCode == 'km' ? 'អាវ' : 'Shirt';
+    }
+    if (normalized == 'ball') {
+      return localeCode == 'km' ? 'បាល់' : 'Ball';
+    }
+    if (normalized == 'umbrella') {
+      return localeCode == 'km' ? 'ឆ័ត្រ' : 'Umbrella';
+    }
+    if (normalized == 'dolla') {
+      return localeCode == 'km' ? 'ដុល្លា' : 'Dollar';
+    }
+    if (normalized == 'helmet') {
+      return localeCode == 'km' ? 'មួក' : 'Helmet';
+    }
+    if (normalized == 'bucket') {
+      return localeCode == 'km' ? 'ធុងទឹកកក' : 'Bucket';
+    }
+    if (normalized == 'motor') {
+      return localeCode == 'km' ? 'ម៉ូតូ' : 'Motor';
+    }
+    if (normalized == 'car') {
+      return localeCode == 'km' ? 'ឡាន' : 'Car';
+    }
+    if (normalized == 'piece') {
+      return localeCode == 'km' ? 'ប្រអប់' : 'Piece';
+    }
+    if (normalized == 'pack') {
+      return localeCode == 'km' ? 'ប៉ាក' : 'Pack';
+    }
+
     return unit;
   }
 
@@ -354,6 +416,108 @@ class AllExchangePrizeListState extends State<AllExchangePrizeList> {
       default:
         return walletName.toLowerCase();
     }
+  }
+
+  void _showFullScreenImage(int initialIndex, List<String> imageUrls) {
+    final PageController pageController = PageController(
+      initialPage: initialIndex,
+    );
+
+    showGeneralDialog(
+      context: context,
+      barrierDismissible: true,
+      barrierLabel: "FullscreenImage",
+      transitionDuration: const Duration(milliseconds: 300),
+      pageBuilder: (context, animation, secondaryAnimation) {
+        return Scaffold(
+          backgroundColor: const Color.fromARGB(
+            255,
+            34,
+            34,
+            34,
+          ).withOpacity(0.9),
+          body: SafeArea(
+            child: Stack(
+              children: [
+                // Swipeable gallery
+                PageView.builder(
+                  controller: pageController,
+                  itemCount: imageUrls.length,
+                  itemBuilder: (context, index) {
+                    return InteractiveViewer(
+                      panEnabled: true,
+                      boundaryMargin: const EdgeInsets.all(double.infinity),
+                      minScale: 0.5,
+                      maxScale: 5.0,
+                      child: Center(
+                        child: Image.network(
+                          imageUrls[index],
+                          fit: BoxFit.contain, // ensures full image shows
+                          loadingBuilder: (context, child, loadingProgress) {
+                            if (loadingProgress == null) return child;
+                            return SizedBox(
+                              width: 80,
+                              height: 80,
+                              child: Center(
+                                child: CircularProgressIndicator(
+                                  value:
+                                      loadingProgress.expectedTotalBytes != null
+                                          ? loadingProgress
+                                                  .cumulativeBytesLoaded /
+                                              loadingProgress
+                                                  .expectedTotalBytes!
+                                          : null,
+                                  color: AppColors.primaryColor,
+                                ),
+                              ),
+                            );
+                          },
+                          errorBuilder: (context, error, stackTrace) {
+                            return const Center(
+                              child: Icon(
+                                Icons.broken_image,
+                                color: Colors.white,
+                                size: 60,
+                              ),
+                            );
+                          },
+                        ),
+                      ),
+                    );
+                  },
+                ),
+
+                // Close button
+                Positioned(
+                  top: 20,
+                  right: 20,
+                  child: Container(
+                    decoration: BoxDecoration(
+                      color: Colors.black.withOpacity(0.5),
+                      shape: BoxShape.circle,
+                    ),
+                    child: IconButton(
+                      icon: const Icon(
+                        Icons.close,
+                        color: Colors.white,
+                        size: 32,
+                      ),
+                      onPressed: () => Navigator.pop(context),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+      transitionBuilder: (context, animation, secondaryAnimation, child) {
+        return FadeTransition(
+          opacity: CurvedAnimation(parent: animation, curve: Curves.easeOut),
+          child: child,
+        );
+      },
+    );
   }
 
   @override
@@ -385,9 +549,10 @@ class AllExchangePrizeListState extends State<AllExchangePrizeList> {
     final isTablet = screenWidth > 600;
     final isDesktop = screenWidth > 1024;
     final localeCode = context.locale.languageCode;
+    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
     final size = MediaQuery.of(context).size;
     final width = size.width;
-    final double titleSize = width * 0.040; // scale font sizes
+    final double titleSize = width * 0.045; // scale font sizes
 
     int crossAxisCount = 2;
     if (isTablet) crossAxisCount = 3;
@@ -409,7 +574,7 @@ class AllExchangePrizeListState extends State<AllExchangePrizeList> {
                   style: TextStyle(
                     fontWeight: FontWeight.bold,
                     fontSize: titleSize,
-                    color: Colors.grey,
+                    color: isDarkMode ? Colors.white : Colors.white,
                     fontFamily: localeCode == 'km' ? 'KhmerFont' : null,
                   ),
                 ),
@@ -427,7 +592,7 @@ class AllExchangePrizeListState extends State<AllExchangePrizeList> {
           itemCount: prizes.length,
           gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
             crossAxisCount: crossAxisCount,
-            childAspectRatio: isTablet ? 0.85 : 0.75, // Increased aspect ratio
+            childAspectRatio: isTablet ? 0.85 : 0.65, // Increased aspect ratio
             crossAxisSpacing: screenWidth * 0.03,
             mainAxisSpacing: screenWidth * 0.03,
           ),
@@ -438,11 +603,48 @@ class AllExchangePrizeListState extends State<AllExchangePrizeList> {
             final canExchange = userBalance >= prize.point;
 
             return GestureDetector(
-              onTap: () => canExchange ? widget.onPrizeSelected(prize) : null,
+              onTap: () {
+                if (canExchange) {
+                  widget.onPrizeSelected(prize);
+                } else {
+                  if (!_isShowingSnackBar) {
+                    _isShowingSnackBar = true;
+                    ScaffoldMessenger.of(context).hideCurrentSnackBar();
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Row(
+                          children: [
+                            Icon(Icons.warning, color: Colors.white),
+                            const SizedBox(width: 4),
+                            Text(
+                              "notenoughbalance".tr(),
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontSize: 16,
+                                fontFamily: 'KhmerFont',
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                          ],
+                        ),
+                        backgroundColor: Colors.black,
+                        duration: const Duration(seconds: 2),
+                      ),
+                    );
+                  }
+                  // Reset flag after a short time so snackbar can be shown again if user waits
+                  _snackBarDebounceTimer?.cancel();
+                  _snackBarDebounceTimer = Timer(
+                    const Duration(seconds: 2),
+                    () {
+                      _isShowingSnackBar = false;
+                    },
+                  );
+                }
+              },
               child: MouseRegion(
                 cursor: SystemMouseCursors.click,
                 child: Container(
-                  margin: const EdgeInsets.all(4),
                   decoration: BoxDecoration(
                     borderRadius: BorderRadius.circular(12),
                     color: canExchange ? Colors.white : Colors.grey[300],
@@ -466,33 +668,65 @@ class AllExchangePrizeListState extends State<AllExchangePrizeList> {
                               .spaceBetween, // Changed to spaceBetween
                       crossAxisAlignment: CrossAxisAlignment.center,
                       children: [
-                        if (canExchange)
-                          Align(
-                            alignment: Alignment.topRight,
-                            child: Container(
-                              padding: EdgeInsets.symmetric(
-                                horizontal: screenWidth * 0.02,
-                                vertical: screenHeight * 0.005,
-                              ),
-                              decoration: BoxDecoration(
-                                color: AppColors.primaryColor,
-                                borderRadius: BorderRadius.circular(12),
-                              ),
-                              child: Text(
-                                "${(userBalance / prize.point).floor()} ${_translateUnit(prize.unit, context)}",
-                                style: TextStyle(
+                        // Top row: Eye (left) + Unit badge (right)
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            // 👁 Eye Icon
+                            InkWell(
+                              borderRadius: BorderRadius.circular(50),
+                              onTap:
+                                  () => _showFullScreenImage(
+                                    index,
+                                    prizes.map((p) => p.imageUrl).toList(),
+                                  ),
+                              child: Container(
+                                padding: EdgeInsets.all(screenWidth * 0.012),
+                                decoration: BoxDecoration(
                                   color: Colors.white,
-                                  fontSize: isTablet ? 14 : 12,
-                                  fontWeight: FontWeight.bold,
-                                  fontFamily: 'KhmerFont',
+                                  borderRadius: BorderRadius.circular(24),
+                                  boxShadow: [
+                                    BoxShadow(
+                                      color: Colors.black.withOpacity(0.08),
+                                      blurRadius: 6,
+                                      offset: const Offset(0, 2),
+                                    ),
+                                  ],
+                                ),
+                                child: const Icon(
+                                  Icons.remove_red_eye,
+                                  color: Colors.black38,
+                                  size: 18,
                                 ),
                               ),
                             ),
-                          ),
-                        if (!canExchange)
-                          SizedBox(
-                            height: screenHeight * 0.015,
-                          ), // Add spacer for non-exchangeable items
+                            // 📦 Unit Badge (only if exchangeable)
+                            if (canExchange)
+                              Container(
+                                padding: EdgeInsets.symmetric(
+                                  horizontal: screenWidth * 0.02,
+                                  vertical: screenHeight * 0.005,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: AppColors.primaryColor,
+                                  borderRadius: BorderRadius.circular(50),
+                                ),
+                                child: Text(
+                                  "${(userBalance / prize.point).floor()} ${_translateUnit(prize.unit, context)}",
+                                  style: TextStyle(
+                                    color: Colors.white,
+                                    fontSize: isTablet ? 14 : 12,
+                                    fontWeight: FontWeight.bold,
+                                    fontFamily: 'KhmerFont',
+                                  ),
+                                ),
+                              )
+                            else
+                              SizedBox(
+                                height: screenHeight * 0.018,
+                              ), // keeps spacing consistent
+                          ],
+                        ),
                         Expanded(
                           flex: 3, // Give more space to the image
                           child: CachedNetworkImage(
@@ -527,13 +761,13 @@ class AllExchangePrizeListState extends State<AllExchangePrizeList> {
                             Text(
                               "${prize.point} ${prize.walletName}",
                               style: TextStyle(
-                                fontSize: isTablet ? 20 : 16,
-                                fontWeight: FontWeight.w600,
+                                fontSize: isTablet ? 20 : 18,
+                                fontWeight: FontWeight.bold,
                                 fontFamily: 'KhmerFont',
                                 color:
                                     canExchange
                                         ? Colors.blueGrey[800]
-                                        : Colors.red[400],
+                                        : Colors.grey[600],
                               ),
                               textAlign: TextAlign.center,
                             ),
@@ -542,15 +776,26 @@ class AllExchangePrizeListState extends State<AllExchangePrizeList> {
                               Text(
                                 "notenoughbalance".tr(),
                                 style: TextStyle(
-                                  color: Colors.red,
-                                  fontSize: isTablet ? 14 : 12,
-                                  fontWeight: FontWeight.w500,
+                                  color: Colors.grey[600],
+                                  fontSize: isTablet ? 16 : 14,
+                                  fontWeight: FontWeight.w600,
                                   fontFamily:
                                       localeCode == 'km' ? 'KhmerFont' : null,
                                 ),
                               ),
                             ],
                           ],
+                        ),
+                        const SizedBox(height: 10),
+                        AnimatedGradientButton(
+                          text: "exchange_now",
+                          onPressed: () {
+                            if (canExchange) {
+                              widget.onPrizeSelected(prize);
+                            }
+                          },
+                          disabled:
+                              !canExchange, // button turns grey if user can't exchange
                         ),
                       ],
                     ),
@@ -565,4 +810,4 @@ class AllExchangePrizeListState extends State<AllExchangePrizeList> {
   }
 }
 
-//Correct with 569 line code changes
+//Correct with 766 line code changes

@@ -386,7 +386,7 @@ class _ProfileDrawerState extends State<ProfileDrawer> {
     final localeCode = context.locale.languageCode; // 'km' or 'en'
 
     return Drawer(
-      backgroundColor: Colors.grey.shade100,
+      backgroundColor: AppColors.primaryColor,
       child: Column(
         children: [
           // Profile Header
@@ -413,12 +413,12 @@ class _ProfileDrawerState extends State<ProfileDrawer> {
                   children: [
                     Stack(
                       children: [
-                        const SizedBox(height: 50),
+                        const SizedBox(height: 80),
                         GestureDetector(
                           onTap: () => _showFullImage(context),
                           child: Container(
-                            width: 124,
-                            height: 124,
+                            width: 150,
+                            height: 150,
                             decoration: BoxDecoration(
                               shape: BoxShape.circle,
                               border: Border.all(color: Colors.white, width: 2),
@@ -438,26 +438,30 @@ class _ProfileDrawerState extends State<ProfileDrawer> {
                         ),
                         Positioned(
                           bottom: 0,
-                          right: 0,
-                          child: GestureDetector(
-                            onTap: _pickImage,
-                            child: Container(
-                              padding: const EdgeInsets.all(6),
-                              decoration: BoxDecoration(
-                                color: Colors.white,
-                                shape: BoxShape.circle,
-                                boxShadow: [
-                                  BoxShadow(
-                                    color: Colors.black26,
-                                    blurRadius: 4,
-                                    offset: Offset(0, 2),
-                                  ),
-                                ],
-                              ),
-                              child: Icon(
-                                Icons.camera_alt,
-                                size: 18,
-                                color: AppColors.primaryColor,
+                          right: 5,
+                          child: Positioned(
+                            bottom: 5,
+                            right: 16,
+                            child: GestureDetector(
+                              onTap: _pickImage,
+                              child: Container(
+                                padding: const EdgeInsets.all(6),
+                                decoration: BoxDecoration(
+                                  color: Colors.white,
+                                  shape: BoxShape.circle,
+                                  boxShadow: [
+                                    BoxShadow(
+                                      color: Colors.black26,
+                                      blurRadius: 4,
+                                      offset: Offset(0, 2),
+                                    ),
+                                  ],
+                                ),
+                                child: Icon(
+                                  Icons.camera_alt,
+                                  size: 18,
+                                  color: AppColors.primaryColor,
+                                ),
                               ),
                             ),
                           ),
@@ -485,8 +489,11 @@ class _ProfileDrawerState extends State<ProfileDrawer> {
               },
             ),
           ),
+          Divider(
+            color: Colors.grey.shade300,
+            thickness: 1.5, // optional, keep the divider thickness
+          ),
           const SizedBox(height: 40),
-          // ... rest of your build method remains the same
           Expanded(
             child: ListView(
               padding: const EdgeInsets.all(16),
@@ -525,7 +532,7 @@ class _ProfileDrawerState extends State<ProfileDrawer> {
                   padding: const EdgeInsets.all(0),
                   child: ElevatedButton.icon(
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.red,
+                      backgroundColor: Colors.white,
                       foregroundColor: Colors.white,
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(8),
@@ -594,10 +601,13 @@ class _ProfileDrawerState extends State<ProfileDrawer> {
                         },
                       );
                     },
-                    icon: const Icon(Icons.logout),
+                    icon: const Icon(Icons.logout, color: Colors.red),
                     label: Text(
                       'logout'.tr(),
                       style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 18,
+                        color: Colors.red,
                         fontFamily: localeCode == 'km' ? 'KhmerFont' : null,
                       ),
                     ),

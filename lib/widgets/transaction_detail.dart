@@ -21,9 +21,12 @@ class TransactionDetail extends StatefulWidget {
   final num points;
   final String? senderPhone;
   final bool isPointTransfer; // Add this parameter
+  final String unit; // <-- Add this
 
   final String productName;
   final int quantity;
+  final String? remark;
+
   const TransactionDetail({
     super.key,
     required this.transactionDate,
@@ -32,8 +35,11 @@ class TransactionDetail extends StatefulWidget {
     required this.points,
     required this.productName,
     required this.quantity,
+    required this.unit, // <-- Add this here
+
     this.senderPhone,
     this.isPointTransfer = false,
+    this.remark, // <-- add this
   });
 
   @override
@@ -536,9 +542,8 @@ class _TransactionDetailState extends State<TransactionDetail> {
           physics: const BouncingScrollPhysics(),
           child: Column(
             children: [
-              SizedBox(
-                height: MediaQuery.of(context).size.height * 0.03,
-              ), // Success Animation/Icon
+              SizedBox(height: MediaQuery.of(context).size.height * 0.03),
+              // Success Animation/Icon
               Container(
                 width: 60,
                 height: 60,
@@ -612,8 +617,26 @@ class _TransactionDetailState extends State<TransactionDetail> {
         switch (unit.toLowerCase()) {
           case 'can':
             return 'កំប៉ុង';
+          case 'case':
+            return 'កេស';
           case 'bottle':
             return 'ដប';
+          case 'shirt':
+            return 'អាវ';
+          case 'ball':
+            return 'បាល់';
+          case 'umbrella':
+            return 'ឆ័ត្រ';
+          case 'dolla':
+            return 'ដុល្លា';
+          case 'helmet':
+            return 'មួក';
+          case 'bucket':
+            return 'ធុងទឹកកក';
+          case 'motor':
+            return 'ម៉ូតូ';
+          case 'car':
+            return 'ឡាន';
           case 'piece':
             return 'ប្រអប់';
           case 'pack':
@@ -693,7 +716,7 @@ class _TransactionDetailState extends State<TransactionDetail> {
                         if (!widget.isPointTransfer) SizedBox(width: 12),
                         if (!widget.isPointTransfer)
                           Text(
-                            '( ${widget.quantity} ${_translateUnit('can')} )',
+                            '( ${widget.quantity} ${_translateUnit(widget.unit)} )',
                             style: TextStyle(
                               color: Colors.black54,
                               fontWeight: FontWeight.bold,
@@ -759,26 +782,36 @@ class _TransactionDetailState extends State<TransactionDetail> {
               "deduct_from".tr(),
               widget.companyCategoryName,
             ),
-            SizedBox(height: MediaQuery.of(context).size.height * 0.03),
-            // Only show exchange type if it's not a point transfer
-            if (!widget.isPointTransfer)
+
+            // ✅ Only show exchange type if not point transfer
+            if (!widget.isPointTransfer) ...[
+              SizedBox(height: MediaQuery.of(context).size.height * 0.03),
               _buildDetailRow(
                 Icons.card_giftcard,
                 "exchange_type".tr(),
-                "x ${widget.quantity} ${_translateUnit('can')}",
+                "x ${widget.quantity} ${_translateUnit(widget.unit)}",
               ),
-            if (!widget.isPointTransfer)
-              SizedBox(height: MediaQuery.of(context).size.height * 0.03),
+            ],
+
+            SizedBox(height: MediaQuery.of(context).size.height * 0.03),
             _buildDetailRow(
               Icons.phone,
               "receiver".tr(),
               formatPhoneNumber(widget.receiverPhone),
             ),
+
+            // ✅ Remark only if not empty
+            if (widget.remark != null && widget.remark!.isNotEmpty) ...[
+              SizedBox(height: MediaQuery.of(context).size.height * 0.03),
+              _buildDetailRow(Icons.note, "remark".tr(), widget.remark!),
+            ],
+
             SizedBox(height: MediaQuery.of(context).size.height * 0.03),
             _buildDetailRow(
               Icons.star,
               "total_transfer".tr(),
-              '${widget.points is int ? widget.points : widget.points.toStringAsFixed(2)} ${widget.companyCategoryName.toLowerCase() == 'dm' || widget.companyCategoryName.toLowerCase() == 'diamond' ? 'Diamond' : 'score'.tr()}',
+              '${widget.points is int ? widget.points : widget.points.toStringAsFixed(2)} '
+              '${widget.companyCategoryName.toLowerCase() == 'dm' || widget.companyCategoryName.toLowerCase() == 'diamond' ? 'Diamond' : 'score'.tr()}',
             ),
           ],
         ),
@@ -944,10 +977,11 @@ class _TransactionDetailState extends State<TransactionDetail> {
         const SizedBox(height: 8),
         Text(
           text,
-          style: const TextStyle(
+          style: TextStyle(
             color: Colors.white,
-            fontSize: 12,
-            fontWeight: FontWeight.w600,
+            fontSize: 14,
+            fontWeight: FontWeight.bold,
+            fontFamily: 'KhmerFont',
           ),
         ),
       ],
@@ -955,4 +989,4 @@ class _TransactionDetailState extends State<TransactionDetail> {
   }
 }
 
-//Correct with 956 line code changes
+//Correct with 971 line code changes

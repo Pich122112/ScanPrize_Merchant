@@ -178,7 +178,11 @@ class _TransferAnimationState extends State<TransferAnimation>
       case 'gb':
         return Image.asset('assets/images/logo.png', width: 45, height: 45);
       case 'bs':
-        return Image.asset('assets/images/newbslogo.png', width: 45, height: 45);
+        return Image.asset(
+          'assets/images/newbslogo.png',
+          width: 45,
+          height: 45,
+        );
       case 'id':
         return Image.asset('assets/images/idollogo.png', width: 45, height: 45);
       case 'dm':
@@ -193,9 +197,20 @@ class _TransferAnimationState extends State<TransferAnimation>
     }
   }
 
+  String _avatarText(String text) {
+    final digits = text.replaceAll(RegExp(r'\D'), '');
+    if (digits.startsWith('855') && digits.length >= 6) {
+      // Take only the first three digits after 855
+      return '0' + digits.substring(3, 5);
+    }
+    if (digits.length >= 3) return digits.substring(0, 3);
+    return '?';
+  }
+
   @override
   Widget build(BuildContext context) {
     final localeCode = context.locale.languageCode;
+    final screenWidth = MediaQuery.of(context).size.width;
 
     return Scaffold(
       backgroundColor: AppColors.primaryColor,
@@ -208,12 +223,16 @@ class _TransferAnimationState extends State<TransferAnimation>
               child: Column(
                 children: [
                   CircleAvatar(
-                    radius: 36,
-                    backgroundColor: Colors.black,
-                    child: Icon(
-                      Icons.account_circle,
-                      color: Colors.white,
-                      size: 65,
+                    radius: screenWidth * 0.08,
+                    backgroundColor: Colors.yellow[700],
+                    child: Text(
+                      _avatarText(widget.recipientPhone),
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 18,
+                        fontFamily: 'KhmerFont',
+                      ),
                     ),
                   ),
                   const SizedBox(height: 16),
@@ -301,4 +320,4 @@ class _TransferAnimationState extends State<TransferAnimation>
   }
 }
 
-//Correct with 304 line code changes
+//Correct with 323 line code changes

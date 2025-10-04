@@ -3,6 +3,7 @@ class SliderModel {
   final String title;
   final String subtitle;
   final String description;
+  final String url;
   final List<String> imageUrls;
 
   SliderModel({
@@ -10,6 +11,7 @@ class SliderModel {
     required this.title,
     required this.subtitle,
     required this.description,
+    required this.url,
     required this.imageUrls,
   });
 
@@ -33,11 +35,11 @@ class SliderModel {
       title: json['title']?.toString() ?? 'No Title',
       subtitle: json['subtitle']?.toString() ?? 'No Subtitle',
       description: json['description']?.toString() ?? '',
+      url: json['url'],
       imageUrls: imageUrls,
     );
   }
-
   String get actionButton => '';
 }
 
-//Correct with 43 line code changes
+//Correct with 45 line code changes

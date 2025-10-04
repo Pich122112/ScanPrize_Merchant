@@ -1,3 +1,7 @@
+import 'dart:async';
+import 'dart:convert';
+
+import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
 import 'package:gb_merchant/app/bottomAppbar.dart';
@@ -5,18 +9,17 @@ import 'package:gb_merchant/services/passcode_service.dart';
 import 'package:gb_merchant/services/transfer_service.dart';
 import 'package:gb_merchant/utils/constants.dart';
 import 'package:gb_merchant/utils/qr_code_parser.dart';
+import 'package:gb_merchant/widgets/remark_style.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'dart:convert';
+
+import '../models/exchange_prize_model.dart';
+import '../services/user_balance_service.dart';
+import '../utils/balance_refresh_notifier.dart';
+import '../utils/show_dialog_util.dart';
+import '../widgets/transaction_detail.dart';
 // import '../widgets/confirm_transfer_dialog.dart';
 // ignore: unused_import
 import './transfer_animation.dart';
-import '../models/exchange_prize_model.dart';
-import '../utils/show_dialog_util.dart';
-import '../services/user_balance_service.dart';
-import '../widgets/transaction_detail.dart';
-import 'package:connectivity_plus/connectivity_plus.dart';
-import 'dart:async';
-import '../utils/balance_refresh_notifier.dart';
 
 class EnterQuantityDialog extends StatefulWidget {
   final ExchangePrize prize;
@@ -55,6 +58,7 @@ class _EnterQuantityDialogState extends State<EnterQuantityDialog>
   bool get isWalletTransfer => widget.prize.point == 1;
   late AnimationController _cursorController;
   late Animation<double> _cursorAnimation;
+  TextEditingController _remarkController = TextEditingController();
   int get basePoints {
     final numericString = widget.prize.point.toString();
 
@@ -188,6 +192,16 @@ class _EnterQuantityDialogState extends State<EnterQuantityDialog>
     }
   }
 
+  String _avatarText(String text) {
+    final digits = text.replaceAll(RegExp(r'\D'), '');
+    if (digits.startsWith('855') && digits.length >= 6) {
+      // Take only the first three digits after 855
+      return '0' + digits.substring(3, 5);
+    }
+    if (digits.length >= 3) return digits.substring(0, 3);
+    return '?';
+  }
+
   int getRemainingPoints() {
     final walletKey = _mapWalletNameToBalanceKey(
       widget.prize.walletName.toLowerCase(),
@@ -267,6 +281,7 @@ class _EnterQuantityDialogState extends State<EnterQuantityDialog>
   @override
   void dispose() {
     _cursorController.dispose();
+    _remarkController.dispose(); // <-- add this
 
     _balanceNotifier?.removeListener(_handleBalanceRefresh);
     _balanceNotifier = null;
@@ -573,6 +588,191 @@ class _EnterQuantityDialogState extends State<EnterQuantityDialog>
   //   }
   // }
 
+  Future<void> _confirmAndProcessTransfer() async {
+    try {
+      // 1️⃣ Clean and validate phone number
+      final cleanPhone = widget.phoneNumber.replaceAll(RegExp(r'[\s-]'), '');
+      if (cleanPhone == 'Unknown' || !cleanPhone.startsWith('855')) {
+        await showResultDialog(
+          context,
+          title: "បរាជ័យ",
+          message: "លេខទូរស័ព្ទមិនត្រឹមត្រូវទេ",
+          color: Colors.red,
+        );
+        return;
+      }
+
+      // 2️⃣ Get token & user phone
+      final prefs = await SharedPreferences.getInstance();
+      final token = prefs.getString('token');
+      final senderPhone = prefs.getString('userPhone') ?? '';
+      print("DEBUG TOKEN: $token");
+
+      // 3️⃣ Calculate points
+      final int selectedQuantity = int.tryParse(quantity) ?? 0;
+      final bool isWalletTransfer = widget.prize.point == 1;
+      final pointsToTransfer =
+          isWalletTransfer ? selectedQuantity : getDeductedPoints();
+      final remainingPoints = getRemainingPoints();
+
+      if (remainingPoints < 0) {
+        setState(() => _insufficientBalance = true);
+        await showResultDialog(
+          context,
+          title: "បរាជ័យ",
+          message: "មិនមានចំនួនពិន្ទុគ្រប់គ្រាន់",
+          color: Colors.red,
+        );
+        return;
+      }
+
+      // 4️⃣ Verify receiver
+      print('🔍 Verifying receiver: $cleanPhone');
+      final receiverData = await TransferService.verifyReceiver(cleanPhone);
+      if (receiverData == null || receiverData['receiver'] == null) {
+        await showResultDialog(
+          context,
+          title: "បរាជ័យ",
+          message: "មិនអាចផ្ទៀងផ្ទាត់អ្នកទទួលបានទេ",
+          color: Colors.red,
+        );
+        return;
+      }
+
+      final receiverId = receiverData['receiver']['id'].toString();
+      final receiverName = receiverData['receiver']['name'] ?? 'Unknown';
+      final verifiedPhone =
+          receiverData['receiver']['phone_number'] ?? cleanPhone;
+      print(
+        '✅ Verified receiver: $receiverName ($verifiedPhone) ID: $receiverId',
+      );
+
+      // 5️⃣ Get QR signature
+      final qrData = QrCodeParser.parseTransferQr(widget.scannedQr);
+      // ignore: unused_local_variable
+      final signature = qrData['signature'];
+
+      print(
+        '🔍 Points: $pointsToTransfer, Wallet ID: ${widget.walletId}, Receiver: $verifiedPhone',
+      );
+
+      // 6️⃣ Execute transfer
+      final response = await TransferService.transferPoints(
+        points: pointsToTransfer,
+        walletId: widget.walletId,
+        receiverId: receiverId,
+        receiverPhone: verifiedPhone,
+        prizeId: widget.fromWalletTab ? null : widget.prize.prizeId.toString(),
+        prizePoint: widget.fromWalletTab ? null : widget.prize.point,
+        qty: widget.fromWalletTab ? null : selectedQuantity,
+        remark: _remarkController.text.trim(), // <-- add this line!
+      );
+
+      // 7️⃣ Handle response
+      if (response.statusCode == 200) {
+        await UserBalanceService.refreshBalancesAfterTransaction(
+          isSender: true,
+        );
+        if (mounted) {
+          final updatedSummary = await UserBalanceService.fetchUserBalances();
+          setState(() {
+            _userPointsSummary = updatedSummary;
+            quantity = '0';
+            _insufficientBalance = false;
+          });
+        }
+
+        widget.onTransferSuccess?.call();
+
+        if (mounted) {
+          await Navigator.of(context).push(
+            MaterialPageRoute(
+              builder:
+                  (_) => TransferAnimation(
+                    recipientPhone: widget.phoneNumber,
+                    companyCategoryName: widget.prize.walletName,
+                    onAnimationComplete: () {
+                      final String transferUnit = widget.prize.unit;
+                      Navigator.of(context).pushAndRemoveUntil(
+                        MaterialPageRoute(
+                          builder:
+                              (_) => TransactionDetail(
+                                transactionDate: DateTime.now(),
+                                companyCategoryName: widget.prize.walletName,
+                                receiverPhone: widget.phoneNumber,
+                                points: pointsToTransfer,
+                                productName:
+                                    isWalletTransfer
+                                        ? '${widget.prize.walletName} Points'
+                                        : widget.prize.prizeName,
+                                quantity: selectedQuantity,
+                                senderPhone: senderPhone,
+                                isPointTransfer:
+                                    isWalletTransfer, // Set this flag
+                                remark: _remarkController.text.trim(),
+                                unit: transferUnit, // <-- Add this line!
+                              ),
+                        ),
+                        (route) => false,
+                      );
+                    },
+                  ),
+            ),
+          );
+        }
+      } else {
+        final errorData = json.decode(response.body);
+        final message = errorData['message'] ?? "ការផ្ទេរបានបរាជ័យ។";
+
+        if (message.contains('wallet_transaction_id')) {
+          await showResultDialog(
+            context,
+            title: "System Error",
+            message: "Please contact support. Database update required.",
+            color: Colors.red,
+          );
+        } else if (message.toLowerCase().contains('insufficient')) {
+          setState(() => _insufficientBalance = true);
+          await showResultDialog(
+            context,
+            title: "បរាជ័យ",
+            message: "មិនមានចំនួនពិន្ទុគ្រប់គ្រាន់",
+            color: Colors.red,
+          );
+        } else {
+          await showResultDialog(
+            context,
+            title: "បរាជ័យ",
+            message: message,
+            color: Colors.red,
+          );
+        }
+      }
+    } catch (e) {
+      print('❌ Transfer failed: $e');
+      String message;
+
+      if (e.toString().contains('wallet_transaction_id')) {
+        message = "Please contact support. Database update required.";
+      } else if (e.toString().contains('No user found')) {
+        message = "លេខទូរស័ព្ទនេះមិនត្រូវបានរកឃើញក្នុងប្រព័ន្ធទេ";
+      } else if (e.toString().contains('Insufficient balance')) {
+        setState(() => _insufficientBalance = true);
+        message = "មិនមានចំនួនពិន្ទុគ្រប់គ្រាន់";
+      } else {
+        message = "កំហុសមិនឃើញ: ${e.toString()}";
+      }
+
+      await showResultDialog(
+        context,
+        title: "បរាជ័យ",
+        message: message,
+        color: Colors.red,
+      );
+    }
+  }
+
+  /*
   //Transfer without confirm dialog
   Future<void> _confirmAndProcessTransfer() async {
     try {
@@ -808,7 +1008,7 @@ class _EnterQuantityDialogState extends State<EnterQuantityDialog>
       }
     }
   }
-
+*/
   @override
   Widget build(BuildContext context) {
     // int deductedPoints = getDeductedPoints();
@@ -890,11 +1090,15 @@ class _EnterQuantityDialogState extends State<EnterQuantityDialog>
                         SizedBox(height: screenHeight * 0.03),
                         CircleAvatar(
                           radius: screenWidth * 0.08,
-                          backgroundColor: Colors.white,
-                          child: Icon(
-                            Icons.person,
-                            size: screenWidth * 0.1,
-                            color: Colors.black,
+                          backgroundColor: Colors.yellow[700],
+                          child: Text(
+                            _avatarText(widget.phoneNumber),
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontWeight: FontWeight.bold,
+                              fontSize: 18,
+                              fontFamily: 'KhmerFont',
+                            ),
                           ),
                         ),
                         SizedBox(height: screenHeight * 0.015),
@@ -924,7 +1128,7 @@ class _EnterQuantityDialogState extends State<EnterQuantityDialog>
                             );
                           },
                         ),
-                        SizedBox(height: screenHeight * 0.045),
+                        SizedBox(height: screenHeight * 0.03),
                         Flexible(
                           child: Row(
                             mainAxisAlignment: MainAxisAlignment.center,
@@ -1106,7 +1310,7 @@ class _EnterQuantityDialogState extends State<EnterQuantityDialog>
                             ],
                           ),
                         ),
-                        SizedBox(height: screenHeight * 0.04),
+                        SizedBox(height: screenHeight * 0.03),
                         // Points Information
                         Flexible(
                           child: Column(
@@ -1232,10 +1436,14 @@ class _EnterQuantityDialogState extends State<EnterQuantityDialog>
                                       ),
                                     ),
                                   ),
-                                  const SizedBox(height: 12),
                                 ],
                               ),
-
+                              // Remark input field
+                              SizedBox(height: screenHeight * 0.02),
+                              RemarkInput(
+                                controller: _remarkController,
+                                localeCode: localeCode,
+                              ),
                               if (_insufficientBalance)
                                 Padding(
                                   padding: const EdgeInsets.only(top: 8),
@@ -1255,7 +1463,7 @@ class _EnterQuantityDialogState extends State<EnterQuantityDialog>
                             ],
                           ),
                         ),
-                        SizedBox(height: screenHeight * 0.055),
+                        SizedBox(height: screenHeight * 0.02),
                         Flexible(
                           child: Padding(
                             padding: EdgeInsets.symmetric(
@@ -1304,7 +1512,7 @@ class _EnterQuantityDialogState extends State<EnterQuantityDialog>
                                   (quantity == '0' ||
                                           quantity.isEmpty ||
                                           _insufficientBalance)
-                                      ? null // Disabled when invalid
+                                      ? null
                                       : () async {
                                         // Step 1: Validate balance
                                         if (getRemainingPoints() < 0) {
@@ -1314,7 +1522,7 @@ class _EnterQuantityDialogState extends State<EnterQuantityDialog>
                                           return;
                                         }
 
-                                        // Step 2: Require passcode
+                                        // Step 2: Require passcode (create or enter)
                                         final unlocked =
                                             await PasscodeService.requireUnlock(
                                               context,
@@ -1322,7 +1530,7 @@ class _EnterQuantityDialogState extends State<EnterQuantityDialog>
                                             );
                                         if (!unlocked) return;
 
-                                        // Step 3: Proceed transfer
+                                        // Step 3: Immediately proceed to transfer/animation
                                         await _confirmAndProcessTransfer();
                                       },
                               child: Text(
@@ -1438,4 +1646,4 @@ class _EnterQuantityDialogState extends State<EnterQuantityDialog>
   }
 }
 
-//Correct with 1438 line code changes
+//Correct with 1649 line code changes

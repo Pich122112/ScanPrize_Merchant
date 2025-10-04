@@ -91,7 +91,7 @@
     "error_occurred": "An error occurred",
     "transaction_saved": "Transaction was save to your phone",
     "saving_transaction": "Saving Transaction...",
-    "Invalid or already redeemed code": "Code already scan",
+    "Invalid or already redeemed code": "QR already scan",
     "no_internet_connection": "No internet connection, please check your network settings.",
     "transferred_to": "Transfered to {phoneNumber}",
     "received_from": "Received from {phoneNumber}",
@@ -118,5 +118,18 @@
     "contact_us": "Contact Us",
     "contact_platform": "You can reach us anytime through any of the platforms below. We stay to help you.",
     "you_not_have_any_transaction": "You're not have any transaction yet !",
-    "incorrect_qr_code": "Incorrect QR Code"
+    "incorrect_qr_code": "Incorrect QR Code",
+    "exchange_now": "Exchange Now",
+    "click_link": "Click on the link",
+    "remark": "Remark",
+    "reference_id": "Reference #",
+    "remarks": "Remark :",
+    "nohavebalance": "Don't have balance",
+    "pleasewait": "Please wait {time} seconds",
+    "prepare_share_qr": "Preparing QR for sharing...",
+    "success_share_qr": "QR Code Share Successfully",
+    "server_problem_message": "The server is currently having a problem. We are working to fix it, please wait...",
+    "unit": "UOM",
+    "no_qr_found": "QR Code Not Found",
+    "scroll": "Scroll"
 }
