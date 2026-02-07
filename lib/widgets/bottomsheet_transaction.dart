@@ -391,6 +391,17 @@ class _TransactionDetailModalState extends State<TransactionDetailModal> {
     return unit;
   }
 
+  String _getWalletLabel(String transactionType) {
+    switch (transactionType) {
+      case 'transfer_out':
+        return 'deducted_from_account'.tr(); // localized
+      case 'transfer_in':
+        return 'added_to_account'.tr(); // localized
+      default:
+        return 'wallet'.tr(); // fallback to "Account"
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final transaction = widget.transaction;
@@ -440,22 +451,45 @@ class _TransactionDetailModalState extends State<TransactionDetailModal> {
       return digits;
     }
 
+    bool isCambodianPhone(String value) {
+      final digits = value.replaceAll(RegExp(r'\D'), '');
+      return digits.length >= 9 && digits.startsWith('855');
+    }
+
     final String formattedFromPhone = formatPhoneNumber(fromPhoneNumber);
     final String formattedToPhone = formatPhoneNumber(toPhoneNumber);
     String title;
     Color amountColor;
 
+    // Improved title logic:
     if (transactionType == 'transfer_out') {
-      title =
-          toPhoneNumber.isNotEmpty
-              ? formatPhoneNumber(toPhoneNumber)
-              : toUserName;
+      if (toUserName != null &&
+          toUserName.trim().isNotEmpty &&
+          toUserName != 'N/A') {
+        // Check if toUserName is a phone number, if so, format it
+        title =
+            isCambodianPhone(toUserName)
+                ? formatPhoneNumber(toUserName)
+                : toUserName;
+      } else if (toPhoneNumber.isNotEmpty) {
+        title = formatPhoneNumber(toPhoneNumber);
+      } else {
+        title = transactionType;
+      }
       amountColor = Colors.redAccent;
     } else if (transactionType == 'transfer_in') {
-      title =
-          fromPhoneNumber.isNotEmpty
-              ? formatPhoneNumber(fromPhoneNumber)
-              : fromUserName;
+      if (fromUserName != null &&
+          fromUserName.trim().isNotEmpty &&
+          fromUserName != 'N/A') {
+        title =
+            isCambodianPhone(fromUserName)
+                ? formatPhoneNumber(fromUserName)
+                : fromUserName;
+      } else if (fromPhoneNumber.isNotEmpty) {
+        title = formatPhoneNumber(fromPhoneNumber);
+      } else {
+        title = transactionType;
+      }
       amountColor = Colors.green;
     } else {
       title = transactionType;
@@ -550,14 +584,39 @@ class _TransactionDetailModalState extends State<TransactionDetailModal> {
                                     localeCode == 'km' ? 'KhmerFont' : null,
                               ),
                             ),
-                            Text(
-                              '${isCredit ? '+' : '-'}${amount.abs()} ${"score".tr()}',
-                              style: TextStyle(
-                                fontWeight: FontWeight.w500,
-                                fontFamily: 'KhmerFont',
-                                fontSize: 20,
-                                color: amountColor,
-                              ),
+                            // Replaced single Text with a Row to show diamond icon for DM wallet
+                            Row(
+                              crossAxisAlignment: CrossAxisAlignment.center,
+                              children: [
+                                Text(
+                                  '${isCredit ? '+' : '-'}${amount.abs()} ',
+                                  style: TextStyle(
+                                    fontWeight: FontWeight.w500,
+                                    fontFamily: 'KhmerFont',
+                                    fontSize: 20,
+                                    color: amountColor,
+                                  ),
+                                ),
+                                if ((walletType ?? '')
+                                        .toString()
+                                        .toUpperCase() ==
+                                    'DM')
+                                  Icon(
+                                    Icons.diamond,
+                                    size: 22,
+                                    color: amountColor,
+                                  )
+                                else
+                                  Text(
+                                    " ${"score".tr()}",
+                                    style: TextStyle(
+                                      fontWeight: FontWeight.w500,
+                                      fontFamily: 'KhmerFont',
+                                      fontSize: 20,
+                                      color: amountColor,
+                                    ),
+                                  ),
+                              ],
                             ),
                           ],
                         ),
@@ -582,32 +641,109 @@ class _TransactionDetailModalState extends State<TransactionDetailModal> {
                     _buildDashedDivider(),
                     _buildInvoiceRow(
                       context,
-                      'wallet'.tr(),
+                      _getWalletLabel(transactionType),
                       _getFullWalletName(walletType),
                       valueColor: AppColors.primaryColor,
                     ),
                     _buildDashedDivider(),
-                    _buildInvoiceRow(
+                    _buildInvoiceRowWidget(
                       context,
                       'amount'.tr(),
-                      '${isCredit ? '+' : '-'}${amount.abs()} ${"score".tr()}',
+                      Row(
+                        mainAxisSize: MainAxisSize.min,
+                        crossAxisAlignment: CrossAxisAlignment.center,
+                        children: [
+                          Text(
+                            '${isCredit ? '+' : '-'}${amount.abs()} ',
+                            style: TextStyle(
+                              fontSize: 18,
+                              fontWeight: FontWeight.bold,
+                              color: amountColor,
+                              fontFamily:
+                                  localeCode == 'km' ? 'KhmerFont' : null,
+                            ),
+                          ),
+                          if ((walletType ?? '').toString().toUpperCase() ==
+                              'DM')
+                            Icon(Icons.diamond, size: 25, color: amountColor)
+                          else
+                            Text(
+                              " ${'score'.tr()}",
+                              style: TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.bold,
+                                color: amountColor,
+                                fontFamily:
+                                    localeCode == 'km' ? 'KhmerFont' : null,
+                              ),
+                            ),
+                        ],
+                      ),
                       valueColor: amountColor,
                     ),
-                    if ((unit.isNotEmpty) &&
-                        (qty != null && qty.isNotEmpty)) ...[
+                    if (unit.isNotEmpty) ...[
                       _buildDashedDivider(),
-                      _buildInvoiceRow(
-                        context,
-                        'unit'.tr(),
-                        'x $qty ${_translateUnit(unit)}',
-                      ),
-                    ] else if (unit.isNotEmpty) ...[
-                      _buildDashedDivider(),
-                      _buildInvoiceRow(
-                        context,
-                        'unit'.tr(),
-                        _translateUnit(unit),
-                      ),
+                      if (qty != null && qty.isNotEmpty) ...[
+                        _buildInvoiceRowWidget(
+                          context,
+                          'unit'.tr(),
+                          Row(
+                            mainAxisSize: MainAxisSize.min,
+                            crossAxisAlignment: CrossAxisAlignment.center,
+                            children: [
+                              Text(
+                                'x $qty ',
+                                style: TextStyle(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.bold,
+                                  color: Colors.black87,
+                                  fontFamily:
+                                      localeCode == 'km' ? 'KhmerFont' : null,
+                                ),
+                              ),
+                              if ((walletType ?? '').toString().toUpperCase() ==
+                                  'DM')
+                                Icon(
+                                  Icons.diamond,
+                                  size: 16,
+                                  color: Colors.black87,
+                                )
+                              else
+                                Text(
+                                  _translateUnit(unit),
+                                  style: TextStyle(
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.bold,
+                                    color: Colors.black87,
+                                    fontFamily:
+                                        localeCode == 'km' ? 'KhmerFont' : null,
+                                  ),
+                                ),
+                            ],
+                          ),
+                        ),
+                      ] else ...[
+                        _buildInvoiceRowWidget(
+                          context,
+                          'unit'.tr(),
+                          (walletType ?? '').toString().toUpperCase() == 'DM'
+                              ? Icon(
+                                Icons.diamond,
+                                size: 16,
+                                color: Colors.black87,
+                              )
+                              : Text(
+                                _translateUnit(unit),
+                                style: TextStyle(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.bold,
+                                  color: Colors.black87,
+                                  fontFamily:
+                                      localeCode == 'km' ? 'KhmerFont' : null,
+                                ),
+                              ),
+                        ),
+                      ],
                     ],
                     // FIXED: This should now work correctly with 'remarks'
                     if (hasRemarks) ...[
@@ -729,6 +865,43 @@ class _TransactionDetailModalState extends State<TransactionDetailModal> {
     );
   }
 
+  // It mirrors _buildInvoiceRow but accepts a Widget for the value column.
+  Widget _buildInvoiceRowWidget(
+    BuildContext context,
+    String label,
+    Widget valueWidget, {
+    Color? valueColor,
+  }) {
+    final localeCode = context.locale.languageCode;
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 12),
+      child: Row(
+        children: [
+          Text(
+            label,
+            style: TextStyle(
+              fontSize: 14,
+              fontWeight: FontWeight.bold,
+              color: Colors.grey[700],
+              fontFamily: localeCode == 'km' ? 'KhmerFont' : null,
+            ),
+          ),
+          const Spacer(),
+          // Wrap the provided widget so it inherits color if needed
+          DefaultTextStyle(
+            style: TextStyle(
+              fontSize: 16,
+              fontWeight: FontWeight.bold,
+              color: valueColor ?? Colors.black,
+              fontFamily: localeCode == 'km' ? 'KhmerFont' : null,
+            ),
+            child: valueWidget,
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget _buildInvoiceRow(
     BuildContext context,
     String label,
@@ -743,8 +916,8 @@ class _TransactionDetailModalState extends State<TransactionDetailModal> {
           Text(
             label,
             style: TextStyle(
-              fontSize: 16,
-              fontWeight: FontWeight.w500,
+              fontSize: 14,
+              fontWeight: FontWeight.bold,
               color: Colors.grey[700],
               fontFamily: localeCode == 'km' ? 'KhmerFont' : null,
             ),
@@ -753,7 +926,7 @@ class _TransactionDetailModalState extends State<TransactionDetailModal> {
           Text(
             value,
             style: TextStyle(
-              fontSize: 14,
+              fontSize: 16,
               fontWeight: FontWeight.bold,
               color: valueColor ?? Colors.black,
               fontFamily: localeCode == 'km' ? 'KhmerFont' : null,
@@ -818,4 +991,4 @@ class _TransactionDetailModalState extends State<TransactionDetailModal> {
   }
 }
 
-//Correct with 821 line code changes
+//Correct with 994 line code changes

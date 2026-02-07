@@ -1,3 +1,6 @@
+import 'dart:async';
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/rendering.dart';
@@ -22,17 +25,35 @@ class _NotificationPageState extends State<NotificationPage> {
 
   // For storing transactions data
   List<Map<String, dynamic>> _transactions = [];
-  bool _isLoading = true;
-  String _errorMessage = '';
 
   late ScrollController _scrollController;
   bool _showFAB = false;
+  bool _hasNoInternet = false;
+  bool _hasServerError = false;
+
+  int _currentPage = 1;
+  final int _perPage = 30;
+  bool _isLoading = false;
+  bool _isLoadingMore = false;
+  bool _hasMore = true;
+
+  Timer? _readAllDebounceTimer;
+  bool _isShowingReadAllSnackBar = false;
 
   @override
   void initState() {
     super.initState();
     _scrollController = ScrollController();
     _scrollController.addListener(_handleScrollDirection);
+    _scrollController.addListener(() {
+      if (_scrollController.position.pixels >=
+              _scrollController.position.maxScrollExtent - 100 &&
+          !_isLoadingMore &&
+          _hasMore) {
+        _currentPage++;
+        _fetchTransactions();
+      }
+    });
     _loadReadTransactions();
     _fetchTransactions();
   }
@@ -41,6 +62,7 @@ class _NotificationPageState extends State<NotificationPage> {
   void dispose() {
     _scrollController.removeListener(_handleScrollDirection);
     _scrollController.dispose();
+    _readAllDebounceTimer?.cancel();
     super.dispose();
   }
 
@@ -87,39 +109,168 @@ class _NotificationPageState extends State<NotificationPage> {
     _updateUnreadStatus();
   }
 
-  Future<void> _fetchTransactions() async {
+  Future<void> _markAllAsRead() async {
+    // Cancel any existing timer
+    _readAllDebounceTimer?.cancel();
+
+    final prefs = await SharedPreferences.getInstance();
+
+    // Add all transaction IDs to read set
+    for (final tx in _transactions) {
+      final txId = tx['id'].toString();
+      _readTransactions.add(txId);
+    }
+
+    // Save to shared preferences
+    await prefs.setStringList('readTransactions', _readTransactions.toList());
+
+    // Update UI and unread status
+    setState(() {});
+    _updateUnreadStatus();
+
+    // Debounce snackbar - only show if not currently showing
+    if (!_isShowingReadAllSnackBar) {
+      _isShowingReadAllSnackBar = true;
+
+      ScaffoldMessenger.of(context).hideCurrentSnackBar();
+      ScaffoldMessenger.of(context)
+          .showSnackBar(
+            SnackBar(
+              content: Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 8,
+                  vertical: 12,
+                ),
+                decoration: BoxDecoration(
+                  color: Colors.green.shade800,
+                  borderRadius: BorderRadius.circular(12),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.green.withOpacity(0.3),
+                      blurRadius: 10,
+                      spreadRadius: 2,
+                      offset: const Offset(0, 4),
+                    ),
+                  ],
+                  border: Border.all(color: Colors.green.shade200, width: 1.5),
+                ),
+                child: Row(
+                  children: [
+                    Container(
+                      width: 40,
+                      height: 40,
+                      decoration: BoxDecoration(
+                        color: Colors.green.shade50,
+                        shape: BoxShape.circle,
+                      ),
+                      child: Icon(
+                        Icons.check_circle_rounded,
+                        color: Colors.green.shade600,
+                        size: 24,
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'all_notifications_marked_read'.tr(),
+                            style: TextStyle(
+                              fontFamily: 'KhmerFont',
+                              color: Colors.white,
+                              fontWeight: FontWeight.w500,
+                              fontSize: 14,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              backgroundColor: Colors.transparent,
+              elevation: 0,
+              behavior: SnackBarBehavior.floating,
+              margin: const EdgeInsets.all(15),
+              duration: const Duration(seconds: 3),
+              padding: EdgeInsets.zero,
+            ),
+          )
+          .closed
+          .then((reason) {
+            // Reset the flag when snackbar is closed
+            _isShowingReadAllSnackBar = false;
+          });
+    }
+
+    // Set a timer to reset the flag after a delay (safety net)
+    _readAllDebounceTimer = Timer(const Duration(seconds: 4), () {
+      _isShowingReadAllSnackBar = false;
+    });
+  }
+
+  Future<void> _fetchTransactions({bool isRefresh = false}) async {
     setState(() {
       _isLoading = true;
     });
 
+    if (isRefresh) {
+      _currentPage = 1;
+      _transactions.clear();
+      _hasMore = true;
+    }
+
+    setState(() {
+      _isLoading = _currentPage == 1;
+      _isLoadingMore = _currentPage > 1;
+    });
+
     try {
-      // Fetch all transactions (you might need to adjust this based on your API)
-      // For notifications, we want all transactions regardless of wallet type
-      final transactionsData =
-          await UserTransactionService.fetchAllUserTransactions();
+      final newTransactions =
+          await UserTransactionService.fetchUserTransactionsByPagination(
+            page: _currentPage,
+            perPage: _perPage,
+          );
 
       setState(() {
-        _transactions = transactionsData;
+        if (_currentPage == 1) {
+          _transactions = newTransactions;
+        } else {
+          _transactions.addAll(newTransactions);
+        }
         _isLoading = false;
+        _isLoadingMore = false;
+        // If fewer than perPage returned, no more data
+        _hasMore = newTransactions.length == _perPage;
       });
       _updateUnreadStatus();
     } catch (e) {
-      // Detect common server-side error messages and set a friendly message
-      String message = e.toString();
-      if (message.contains('502') ||
-          message.contains('503') ||
-          message.contains('504') ||
-          message.contains('SocketException') ||
-          message.toLowerCase().contains('fail') ||
-          message.toLowerCase().contains('server')) {
-        message = 'server_problem_message'.tr();
+      bool isNoInternet = false, isServerError = false;
+
+      if (e is SocketException) {
+        isNoInternet = true;
+      } else {
+        final errorStr = e.toString().toLowerCase();
+
+        if (errorStr.contains('502') ||
+            errorStr.contains('503') ||
+            errorStr.contains('504') ||
+            errorStr.contains('fail') ||
+            errorStr.contains('server') ||
+            errorStr.contains('internal')) {
+          isServerError = true;
+        }
       }
       setState(() {
-        _errorMessage = message;
         _isLoading = false;
+        _isLoadingMore = false;
+        _hasNoInternet = isNoInternet;
+        _hasServerError = isServerError;
       });
+
       _updateUnreadStatus();
-      print('Error fetching transactions: $e');
+      debugPrint('Error fetching transactions: $e');
     }
   }
 
@@ -137,26 +288,45 @@ class _NotificationPageState extends State<NotificationPage> {
                 alignment: Alignment.topLeft,
                 child: Row(
                   children: [
-                    Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 0),
-                      child: IconButton(
-                        onPressed: () {
-                          Navigator.pop(context);
-                        },
-                        icon: const Icon(
-                          Icons.arrow_back_ios_new,
-                          color: Colors.white,
-                          size: 20,
-                        ),
+                    IconButton(
+                      onPressed: () {
+                        Navigator.pop(context);
+                      },
+                      icon: const Icon(
+                        Icons.arrow_back_ios_new,
+                        color: Colors.white,
+                        size: 20,
                       ),
                     ),
                     const SizedBox(width: 12),
-                    Text(
-                      'notification'.tr(),
-                      style: TextStyle(
-                        fontFamily: 'KhmerFont',
-                        fontSize: 20,
-                        color: Colors.white,
+                    Expanded(
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Text(
+                            'notification'.tr(),
+                            style: const TextStyle(
+                              fontFamily: 'KhmerFont',
+                              fontSize: 20,
+                              color: Colors.white,
+                            ),
+                          ),
+                          TextButton(
+                            onPressed:
+                                _transactions.isNotEmpty
+                                    ? _markAllAsRead
+                                    : null,
+                            child: Text(
+                              'read_all'.tr(),
+                              style: TextStyle(
+                                fontFamily: 'KhmerFont',
+                                fontSize: 14,
+                                fontWeight: FontWeight.w500,
+                                color: Colors.white,
+                              ),
+                            ),
+                          ),
+                        ],
                       ),
                     ),
                   ],
@@ -216,8 +386,7 @@ class _NotificationPageState extends State<NotificationPage> {
       );
     }
 
-    if (_errorMessage.isNotEmpty) {
-      // Show a friendly, styled server error message
+    if (_hasNoInternet) {
       return Center(
         child: Container(
           margin: const EdgeInsets.symmetric(horizontal: 28, vertical: 32),
@@ -236,7 +405,54 @@ class _NotificationPageState extends State<NotificationPage> {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              const Icon(Icons.cloud_off, color: Colors.red, size: 48),
+              const Icon(Icons.wifi_off_rounded, color: Colors.red, size: 60),
+              const SizedBox(height: 18),
+              Text(
+                'no_internet'.tr(),
+                textAlign: TextAlign.center,
+                style: const TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.w600,
+                  color: Colors.red,
+                  fontFamily: 'KhmerFont',
+                ),
+              ),
+              const SizedBox(height: 12),
+              Text(
+                'check_connection'.tr(),
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  fontSize: 16,
+                  color: Colors.grey[600],
+                  fontFamily: 'KhmerFont',
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
+    if (_hasServerError) {
+      return Center(
+        child: Container(
+          margin: const EdgeInsets.symmetric(horizontal: 28, vertical: 32),
+          padding: const EdgeInsets.all(24),
+          decoration: BoxDecoration(
+            color: Colors.white.withOpacity(0.97),
+            borderRadius: BorderRadius.circular(18),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.13),
+                blurRadius: 16,
+                offset: const Offset(0, 8),
+              ),
+            ],
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Icon(Icons.cloud_off, color: Colors.red, size: 60),
               const SizedBox(height: 18),
               Text(
                 'server_problem_message'.tr(),
@@ -248,12 +464,12 @@ class _NotificationPageState extends State<NotificationPage> {
                   fontFamily: 'KhmerFont',
                 ),
               ),
+              const SizedBox(height: 12),
             ],
           ),
         ),
       );
     }
-
     // Replace the empty transactions message in _buildTransactionsTab():
     if (_transactions.isEmpty) {
       return Center(
@@ -273,14 +489,25 @@ class _NotificationPageState extends State<NotificationPage> {
     return RefreshIndicator(
       backgroundColor: Colors.white,
       color: AppColors.primaryColor,
-      onRefresh: _fetchTransactions,
+      onRefresh: () => _fetchTransactions(isRefresh: true),
       child: ListView.builder(
-        controller: _scrollController, // <-- Add this line!
+        controller: _scrollController,
         padding: const EdgeInsets.all(16),
-        itemCount: _transactions.length,
+        itemCount: _transactions.length + (_isLoadingMore ? 1 : 0),
         itemBuilder: (context, index) {
-          final tx = _transactions[index];
-          return _buildTransactionCard(transaction: tx, index: index);
+          if (index < _transactions.length) {
+            final tx = _transactions[index];
+            return _buildTransactionCard(transaction: tx, index: index);
+          } else {
+            return const Center(
+              child: Padding(
+                padding: EdgeInsets.symmetric(vertical: 16),
+                child: CircularProgressIndicator(
+                  color: AppColors.backgroundColor,
+                ),
+              ),
+            );
+          }
         },
       ),
     );
@@ -310,12 +537,7 @@ class _NotificationPageState extends State<NotificationPage> {
           fit: BoxFit.contain,
         );
       case 'dm':
-        return Image.asset(
-          'assets/images/dmond.png',
-          width: 26,
-          height: 26,
-          fit: BoxFit.contain,
-        );
+        return Icon(Icons.diamond, size: 26, color: AppColors.textColor);
       default:
         return const Icon(
           Icons.account_balance_wallet,
@@ -391,19 +613,68 @@ class _NotificationPageState extends State<NotificationPage> {
     final String unitValue = (transaction['unit'] ?? '').toString();
 
     // Format phone numbers
+    // Format phone numbers
     String formatPhoneNumber(String phone) {
-      if (phone.isEmpty) return '';
-      String digits = phone.replaceAll(RegExp(r'\D'), '');
+      if (phone.isEmpty || phone == 'N/A' || phone == 'null') return '';
+
+      // Remove all non-digit characters
+      String digits = phone.replaceAll(RegExp(r'[^\d]'), '');
+
+      // Handle empty case after cleaning
+      if (digits.isEmpty) return '';
+
+      // Remove country code if present
       if (digits.startsWith('855')) {
         digits = digits.substring(3);
       }
+
+      // Ensure it starts with 0
       if (!digits.startsWith('0') && digits.isNotEmpty) {
         digits = '0$digits';
       }
-      if (digits.length == 9 || digits.length == 10) {
+
+      // Format based on length
+      if (digits.length == 10) {
+        // Format: 012 345 6789
+        return '${digits.substring(0, 3)} ${digits.substring(3, 6)} ${digits.substring(6)}';
+      } else if (digits.length == 9) {
+        // Format: 012 345 678
+        return '${digits.substring(0, 3)} ${digits.substring(3, 6)} ${digits.substring(6)}';
+      } else if (digits.length == 8) {
+        // Format: 012 345 67
         return '${digits.substring(0, 3)} ${digits.substring(3, 6)} ${digits.substring(6)}';
       }
+
+      // Return as is if doesn't match expected lengths
       return digits;
+    }
+
+    String displayNameOrPhone(String phone, String name) {
+      bool isValidName =
+          // ignore: unnecessary_null_comparison
+          name != null &&
+          name.trim().isNotEmpty &&
+          name != 'N/A' &&
+          name != 'null' &&
+          name != 'Unknown' &&
+          !RegExp(r'^\d+$').hasMatch(name.replaceAll(RegExp(r'[^\d]'), ''));
+
+      if (isValidName) {
+        return name;
+      }
+
+      final formattedPhone = formatPhoneNumber(phone);
+
+      // ignore: unnecessary_null_comparison
+      if (formattedPhone.isEmpty && name != null && name.isNotEmpty) {
+        final formattedNameAsPhone = formatPhoneNumber(name);
+        if (formattedNameAsPhone.isNotEmpty) {
+          return formattedNameAsPhone;
+        }
+      }
+
+      // Return formatted phone or fallback
+      return formattedPhone.isNotEmpty ? formattedPhone : 'Unknown';
     }
 
     // Helper to translate unit
@@ -449,18 +720,14 @@ class _NotificationPageState extends State<NotificationPage> {
       _updateUnreadStatus();
     }
 
-    final String formattedFromPhone = formatPhoneNumber(fromPhoneNumber);
-    final String formattedToPhone = formatPhoneNumber(toPhoneNumber);
-
     // Title setup
     String title;
     Widget iconWidget;
     Color amountColor = Colors.grey;
 
     if (transactionType == 'transfer_out') {
-      final displayPhone =
-          formattedToPhone.isNotEmpty ? formattedToPhone : toUserName;
-      title = 'transferred_to'.tr(namedArgs: {'phoneNumber': displayPhone});
+      final displayName = displayNameOrPhone(toPhoneNumber, toUserName);
+      title = 'transferred_to'.tr(namedArgs: {'phoneNumber': displayName});
       iconWidget = const Icon(
         Icons.qr_code_scanner,
         size: 24,
@@ -468,9 +735,8 @@ class _NotificationPageState extends State<NotificationPage> {
       );
       amountColor = Colors.red;
     } else if (transactionType == 'transfer_in') {
-      final displayPhone =
-          formattedFromPhone.isNotEmpty ? formattedFromPhone : fromUserName;
-      title = 'received_from'.tr(namedArgs: {'phoneNumber': displayPhone});
+      final displayName = displayNameOrPhone(fromPhoneNumber, fromUserName);
+      title = 'received_from'.tr(namedArgs: {'phoneNumber': displayName});
       iconWidget = _getWalletLogo(walletType);
       amountColor = Colors.green;
     } else {
@@ -487,13 +753,9 @@ class _NotificationPageState extends State<NotificationPage> {
     return GestureDetector(
       onTap: () {
         setState(() {
-          _readTransactions.add(
-            transaction['id'].toString(),
-          ); // or created_at if no ID
+          _readTransactions.add(transaction['id'].toString());
         });
         _saveReadTransactions();
-        // Show transaction detail modal
-        // Ensure 'remark' is present (for demo/testing; remove if backend already provides it)
         final txWithRemark = Map<String, dynamic>.from(transaction);
         txWithRemark['remark'] =
             txWithRemark['remark']?.isNotEmpty == true
@@ -597,14 +859,36 @@ class _NotificationPageState extends State<NotificationPage> {
                         fontFamily: localeCode == 'km' ? 'KhmerFont' : null,
                       ),
                       children: [
+                        // Amount number (bold)
                         TextSpan(
-                          text:
-                              '${amount.abs()} ${"score".tr()} ', // ✅ Bold part
+                          text: '${amount.abs()} ',
                           style: const TextStyle(fontWeight: FontWeight.bold),
                         ),
+
+                        // If wallet is DM show a diamond icon inline; otherwise show the unit text ("score")
+                        if (walletType.toString().toLowerCase() == 'dm') ...[
+                          WidgetSpan(
+                            alignment: PlaceholderAlignment.middle,
+                            child: Padding(
+                              padding: const EdgeInsets.only(right: 6.0),
+                              child: Icon(
+                                Icons.diamond,
+                                size: 18,
+                                color: Colors.black54,
+                              ),
+                            ),
+                          ),
+                        ] else ...[
+                          TextSpan(
+                            text: '${"score".tr()} ',
+                            style: const TextStyle(fontWeight: FontWeight.bold),
+                          ),
+                        ],
+
+                        // The rest of the sentence: added_to / deducted_from + wallet name
                         TextSpan(
                           text:
-                              '${isCredit ? 'added_to'.tr() : 'deducted_from'.tr()} $walletType', // ✅ Normal text
+                              '${isCredit ? 'added_to'.tr() : 'deducted_from'.tr()} $walletType',
                         ),
                       ],
                     ),
@@ -629,14 +913,36 @@ class _NotificationPageState extends State<NotificationPage> {
                     unitValue.isNotEmpty)
                   Padding(
                     padding: const EdgeInsets.only(top: 4.0),
-                    child: Text(
-                      'x $qtyValue ${_translateUnit(unitValue)}',
-                      style: TextStyle(
-                        fontSize: 13,
-                        color: isCredit ? Colors.red : Colors.green,
-                        fontWeight: FontWeight.w600,
-                        fontFamily: 'KhmerFont',
-                      ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(
+                          'x $qtyValue ',
+                          style: TextStyle(
+                            fontSize: 13,
+                            color: isCredit ? Colors.red : Colors.green,
+                            fontWeight: FontWeight.w600,
+                            fontFamily: 'KhmerFont',
+                          ),
+                        ),
+                        // If wallet is DM show icon instead of text unit
+                        if (walletType.toString().toLowerCase() == 'dm')
+                          Icon(
+                            Icons.diamond,
+                            size: 14,
+                            color: isCredit ? Colors.red : Colors.green,
+                          )
+                        else
+                          Text(
+                            _translateUnit(unitValue),
+                            style: TextStyle(
+                              fontSize: 13,
+                              color: isCredit ? Colors.red : Colors.green,
+                              fontWeight: FontWeight.w600,
+                              fontFamily: 'KhmerFont',
+                            ),
+                          ),
+                      ],
                     ),
                   ),
               ],
@@ -827,4 +1133,4 @@ class _NotificationPageState extends State<NotificationPage> {
   }
 }
 
-//Correct with 830 line code changes
+//Correct with 1136 line code changes

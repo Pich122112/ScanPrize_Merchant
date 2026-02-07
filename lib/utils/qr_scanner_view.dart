@@ -279,12 +279,12 @@ import 'dart:async';
 import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
-import 'package:gb_merchant/utils/constants.dart';
+import '../utils//constants.dart';
 
 class QrScannerView extends StatefulWidget {
   final void Function(String code)? onDetect;
   final bool showOverlay;
-  final MobileScannerController controller; // make required
+  final MobileScannerController controller;
 
   const QrScannerView({
     super.key,
@@ -303,6 +303,12 @@ class _QrScannerViewState extends State<QrScannerView>
   double _defaultZoom = 1.0;
   double _currentZoom = 1.0;
   Timer? _zoomTimer;
+  double _targetZoom = 1.0;
+  // ignore: unused_field
+  bool _isAnimatingZoom = false;
+  VoidCallback? _zoomTickListener;
+  AnimationStatusListener? _zoomStatusListener;
+  bool _userZoomed = false; // true when user double-tapped to zoom in
 
   static const double scanBoxSize = 250.0;
 
@@ -399,6 +405,7 @@ class _QrScannerViewState extends State<QrScannerView>
     // Build a Rect from corner points if available
     Rect? rect;
     final corners = barcode.corners;
+    // ignore: unnecessary_null_comparison
     if (corners != null && corners.isNotEmpty) {
       final xs = corners.map((p) => p.dx);
       final ys = corners.map((p) => p.dy);
@@ -442,36 +449,174 @@ class _QrScannerViewState extends State<QrScannerView>
   }
 
   void _animateZoom(double targetZoom) {
-    // Guard target
+    // clamp and cancel pending auto-zoom timer
     targetZoom = targetZoom.clamp(1.0, 5.0);
+    _zoomTimer?.cancel();
+    _targetZoom = targetZoom;
+
+    // stop any existing animation and remove listeners
+    try {
+      if (_zoomTickListener != null) {
+        _animController.removeListener(_zoomTickListener!);
+      }
+    } catch (_) {}
+    _zoomTickListener = null;
+
+    try {
+      if (_zoomStatusListener != null) {
+        _animController.removeStatusListener(_zoomStatusListener!);
+      }
+    } catch (_) {}
+    _zoomStatusListener = null;
+
+    // Create fresh animation from current zoom to target
+    _animController.reset();
     _zoomAnimation = Tween<double>(
       begin: _currentZoom,
-      end: targetZoom,
+      end: _targetZoom,
     ).animate(
       CurvedAnimation(parent: _animController, curve: Curves.easeInOut),
     );
 
-    // Remove previous listeners to avoid duplicates
-    _zoomAnimation.removeListener(() {});
-
-    // Each frame set controller zoom (best-effort)
-    _zoomAnimation.addListener(() async {
+    // Tick listener: update controller with animation frames
+    _zoomTickListener = () {
       final val = _zoomAnimation.value;
-      try {
-        await widget.controller.setZoomScale(val);
-      } catch (_) {
-        // ignore if not supported
-      }
-    });
+      // best-effort; don't await to avoid blocking UI
+      widget.controller.setZoomScale(val).catchError((_) {});
+    };
+    _animController.addListener(_zoomTickListener!);
 
-    _currentZoom = targetZoom;
+    // Replace the existing status handler inside _animateZoom with this block
+    _zoomStatusListener = (AnimationStatus status) {
+      if (status == AnimationStatus.completed ||
+          status == AnimationStatus.dismissed) {
+        // finalize current zoom
+        _currentZoom = _targetZoom;
+        _isAnimatingZoom = false;
+
+        // Debug print — show zoom finished and flags
+        debugPrint(
+          'zoom finished: _currentZoom=$_currentZoom target=$_targetZoom _userZoomed=$_userZoomed',
+        );
+
+        // If we've returned to default, allow auto-zoom again
+        if ((_currentZoom - _defaultZoom).abs() < 0.05) {
+          _userZoomed = false;
+          debugPrint('zoom returned to default -> userZoomed cleared');
+        }
+
+        // if we just returned to default, restart the camera to refresh the preview.
+        widget.controller
+            .setZoomScale(_currentZoom)
+            .then((_) async {
+              debugPrint('setZoomScale succeeded -> currentZoom=$_currentZoom');
+
+              // If returned to default, restart the camera to force preview refresh (platform-specific fix)
+              if ((_currentZoom - _defaultZoom).abs() < 0.05) {
+                try {
+                  debugPrint('Restarting camera to refresh preview...');
+                  await widget.controller.stop();
+                  // tiny delay to let the camera fully stop
+                  await Future.delayed(const Duration(milliseconds: 150));
+                  await widget.controller.start();
+                  debugPrint('Camera restart succeeded');
+                } catch (e) {
+                  debugPrint('Camera restart failed: $e');
+                }
+              }
+            })
+            .catchError((err) async {
+              debugPrint(
+                'setZoomScale failed on finalize: $err. Trying fallback.',
+              );
+              // Fallback: attempt to force default zoom then restart camera
+              try {
+                await widget.controller.setZoomScale(_defaultZoom);
+                _currentZoom = _defaultZoom;
+                debugPrint(
+                  'fallback setZoomScale succeeded -> forced default zoom',
+                );
+                try {
+                  await widget.controller.stop();
+                  await Future.delayed(const Duration(milliseconds: 150));
+                  await widget.controller.start();
+                  debugPrint('Camera restart after fallback succeeded');
+                } catch (e2) {
+                  debugPrint('Camera restart after fallback failed: $e2');
+                }
+              } catch (err2) {
+                debugPrint('fallback setZoomScale failed: $err2');
+              }
+            });
+
+        // cleanup listeners
+        try {
+          if (_zoomTickListener != null)
+            _animController.removeListener(_zoomTickListener!);
+        } catch (_) {}
+        _zoomTickListener = null;
+
+        try {
+          if (_zoomStatusListener != null)
+            _animController.removeStatusListener(_zoomStatusListener!);
+        } catch (_) {}
+        _zoomStatusListener = null;
+      }
+    };
+    _animController.addStatusListener(_zoomStatusListener!);
+
+    _isAnimatingZoom = true;
     _animController.forward(from: 0);
   }
 
-  // New: handle double-tap from user to reset zoom immediately
   void _onDoubleTap() {
+    // cancel any auto-zoom timer (user action overrides auto)
     _zoomTimer?.cancel();
-    _animateZoom(_defaultZoom);
+
+    const double userTargetZoom = 2.0;
+
+    // Toggle user zoom state
+    _userZoomed = !_userZoomed;
+
+    final double target = _userZoomed ? userTargetZoom : _defaultZoom;
+
+    debugPrint(
+      'doubleTap -> userZoomed=$_userZoomed target=$target (current=$_currentZoom)',
+    );
+
+    // Animate toward the chosen target
+    _animateZoom(target);
+
+    // If user tapped to return to default, schedule a fallback check and restart
+    if (!_userZoomed) {
+      Future.delayed(const Duration(milliseconds: 400), () async {
+        try {
+          await widget.controller.setZoomScale(_defaultZoom);
+          _currentZoom = _defaultZoom;
+          debugPrint(
+            'doubleTap -> forced reset to default zoom succeeded (setZoomScale)',
+          );
+        } catch (e) {
+          debugPrint(
+            'doubleTap -> forced setZoomScale failed: $e. Trying camera restart...',
+          );
+        }
+
+        // Ensure preview updates by restarting camera as final fallback
+        try {
+          await widget.controller.stop();
+          await Future.delayed(const Duration(milliseconds: 150));
+          await widget.controller.start();
+          _currentZoom = _defaultZoom;
+          _userZoomed = false;
+          debugPrint(
+            'doubleTap -> camera restart fallback succeeded, preview refreshed',
+          );
+        } catch (e) {
+          debugPrint('doubleTap -> camera restart fallback failed: $e');
+        }
+      });
+    }
   }
 
   void _onDetect(BarcodeCapture capture) async {
@@ -492,7 +637,7 @@ class _QrScannerViewState extends State<QrScannerView>
 
     _colorAnimation = ColorTween(
       begin: Colors.white,
-      end: isValid ? AppColors.primaryColor : Colors.red,
+      end: isValid ? Colors.yellowAccent : Colors.red,
     ).animate(_colorAnimController);
     _colorAnimController.forward(from: 0);
 
@@ -527,13 +672,11 @@ class _QrScannerViewState extends State<QrScannerView>
           if (widget.showOverlay)
             IgnorePointer(
               ignoring: true,
-              child: Center(
-                child: CustomPaint(
-                  size: const Size(
-                    scanBoxSize,
-                    scanBoxSize,
-                  ), // fixed size scan box
-                  painter: _QrOverlayPainter(borderColor: _borderColor),
+              child: CustomPaint(
+                size: Size.infinite,
+                painter: _QrOverlayPainter(
+                  borderColor: _borderColor,
+                  scanBoxSize: scanBoxSize,
                 ),
               ),
             ),
@@ -545,10 +688,60 @@ class _QrScannerViewState extends State<QrScannerView>
 
 class _QrOverlayPainter extends CustomPainter {
   final Color borderColor;
-  _QrOverlayPainter({required this.borderColor});
+  final double scanBoxSize;
+
+  _QrOverlayPainter({required this.borderColor, required this.scanBoxSize});
 
   @override
   void paint(Canvas canvas, Size size) {
+    // Calculate centered scan box position
+    final centerX = size.width / 2;
+    final centerY = size.height / 2;
+
+    final scanBoxRect = Rect.fromCenter(
+      center: Offset(centerX, centerY),
+      width: scanBoxSize,
+      height: scanBoxSize,
+    );
+
+    // Draw dark overlay areas around the scan box
+    final darkPaint = Paint()..color = Colors.black.withOpacity(0.2);
+
+    // Top dark area
+    canvas.drawRect(
+      Rect.fromLTWH(0, 0, size.width, scanBoxRect.top),
+      darkPaint,
+    );
+
+    // Bottom dark area
+    canvas.drawRect(
+      Rect.fromLTWH(
+        0,
+        scanBoxRect.bottom,
+        size.width,
+        size.height - scanBoxRect.bottom,
+      ),
+      darkPaint,
+    );
+
+    // Left dark area
+    canvas.drawRect(
+      Rect.fromLTWH(0, scanBoxRect.top, scanBoxRect.left, scanBoxSize),
+      darkPaint,
+    );
+
+    // Right dark area
+    canvas.drawRect(
+      Rect.fromLTWH(
+        scanBoxRect.right,
+        scanBoxRect.top,
+        size.width - scanBoxRect.right,
+        scanBoxSize,
+      ),
+      darkPaint,
+    );
+
+    // Draw border corners
     final borderPaint =
         Paint()
           ..color = borderColor
@@ -558,42 +751,62 @@ class _QrOverlayPainter extends CustomPainter {
     final borderLength = 40.0;
 
     // Top-left
-    canvas.drawLine(Offset(0, 0), Offset(borderLength, 0), borderPaint);
-    canvas.drawLine(Offset(0, 0), Offset(0, borderLength), borderPaint);
-
-    // Top-right
     canvas.drawLine(
-      Offset(size.width, 0),
-      Offset(size.width - borderLength, 0),
+      scanBoxRect.topLeft,
+      Offset(scanBoxRect.topLeft.dx + borderLength, scanBoxRect.topLeft.dy),
       borderPaint,
     );
     canvas.drawLine(
-      Offset(size.width, 0),
-      Offset(size.width, borderLength),
+      scanBoxRect.topLeft,
+      Offset(scanBoxRect.topLeft.dx, scanBoxRect.topLeft.dy + borderLength),
+      borderPaint,
+    );
+
+    // Top-right
+    canvas.drawLine(
+      scanBoxRect.topRight,
+      Offset(scanBoxRect.topRight.dx - borderLength, scanBoxRect.topRight.dy),
+      borderPaint,
+    );
+    canvas.drawLine(
+      scanBoxRect.topRight,
+      Offset(scanBoxRect.topRight.dx, scanBoxRect.topRight.dy + borderLength),
       borderPaint,
     );
 
     // Bottom-left
     canvas.drawLine(
-      Offset(0, size.height),
-      Offset(borderLength, size.height),
+      scanBoxRect.bottomLeft,
+      Offset(
+        scanBoxRect.bottomLeft.dx + borderLength,
+        scanBoxRect.bottomLeft.dy,
+      ),
       borderPaint,
     );
     canvas.drawLine(
-      Offset(0, size.height),
-      Offset(0, size.height - borderLength),
+      scanBoxRect.bottomLeft,
+      Offset(
+        scanBoxRect.bottomLeft.dx,
+        scanBoxRect.bottomLeft.dy - borderLength,
+      ),
       borderPaint,
     );
 
     // Bottom-right
     canvas.drawLine(
-      Offset(size.width, size.height),
-      Offset(size.width - borderLength, size.height),
+      scanBoxRect.bottomRight,
+      Offset(
+        scanBoxRect.bottomRight.dx - borderLength,
+        scanBoxRect.bottomRight.dy,
+      ),
       borderPaint,
     );
     canvas.drawLine(
-      Offset(size.width, size.height),
-      Offset(size.width, size.height - borderLength),
+      scanBoxRect.bottomRight,
+      Offset(
+        scanBoxRect.bottomRight.dx,
+        scanBoxRect.bottomRight.dy - borderLength,
+      ),
       borderPaint,
     );
   }
@@ -602,3 +815,5 @@ class _QrOverlayPainter extends CustomPainter {
   bool shouldRepaint(covariant _QrOverlayPainter oldDelegate) =>
       oldDelegate.borderColor != borderColor;
 }
+
+//Correct with 819 line code changes

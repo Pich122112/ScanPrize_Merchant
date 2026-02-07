@@ -217,7 +217,25 @@ class WalletPointsTab extends StatelessWidget {
                 padding: const EdgeInsets.all(
                   8,
                 ), // space between border and image
-                child: Image.asset(image, fit: BoxFit.contain),
+                child:
+                    walletKey.toLowerCase() == 'diamond'
+                        ? Container(
+                          decoration: const BoxDecoration(),
+                          child: const Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(
+                                Icons.diamond,
+                                color: Colors.black,
+                                size: 44,
+                                shadows: [
+                                  Shadow(color: Colors.white, blurRadius: 10),
+                                ],
+                              ),
+                            ],
+                          ),
+                        )
+                        : Image.asset(image, fit: BoxFit.contain),
               ),
               SizedBox(width: 16),
               Expanded(

@@ -1,7 +1,9 @@
 import 'dart:convert';
 
 import 'package:flutter/material.dart';
-import 'package:gb_merchant/merchant/user_information.dart';
+import 'package:gb_merchant/components/ExchangePrizeList.dart';
+import 'package:gb_merchant/stores/merchant_dashboard.dart';
+import 'package:gb_merchant/stores/user_information.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:gb_merchant/components/privacy_policy.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -493,7 +495,7 @@ class _ProfileDrawerState extends State<ProfileDrawer> {
             color: Colors.grey.shade300,
             thickness: 1.5, // optional, keep the divider thickness
           ),
-          const SizedBox(height: 40),
+          const SizedBox(height: 15),
           Expanded(
             child: ListView(
               padding: const EdgeInsets.all(16),
@@ -523,6 +525,53 @@ class _ProfileDrawerState extends State<ProfileDrawer> {
                 _buildMenuCard(Icons.support_agent, 'contactus'.tr(), () {
                   _showContactDialog(context);
                 }),
+                _buildMenuCard(
+                  Icons.account_balance,
+                  'transfer_to_company'.tr(),
+                  () async {
+                    const String companyQrJson =
+                        '{"userId": "12345", "phoneNumber": "85599666555"}';
+                    final transferData =
+                        json.decode(companyQrJson) as Map<String, dynamic>;
+                    if (transferData.containsKey('userId') &&
+                        transferData.containsKey('phoneNumber')) {
+                      await showGeneralDialog(
+                        context: context,
+                        barrierDismissible: true,
+                        barrierLabel: "ExchangePrizeDialog",
+                        barrierColor: Colors.black.withOpacity(0.5),
+                        transitionDuration: Duration.zero,
+                        pageBuilder: (context, animation, secondaryAnimation) {
+                          return Scaffold(
+                            backgroundColor: Colors.white,
+                            body: ExchangePrizeDialog(
+                              phoneNumber:
+                                  transferData['phoneNumber'] ?? 'Unknown',
+                              scannedQr: companyQrJson,
+                              userId: transferData['userId'].toString(),
+                            ),
+                          );
+                        },
+                      );
+                    } else {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(content: Text('Invalid company QR code data')),
+                      );
+                    }
+                  },
+                ),
+                _buildMenuCard(
+                  Icons.dashboard, // or Icons.compare_arrows
+                  'My_Dashboard'.tr(),
+                  () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => const MerchantDashboard(),
+                      ),
+                    );
+                  },
+                ),
                 _buildMenuCard(Icons.language, 'language'.tr(), () {
                   _showLanguageDialog(context);
                 }),
@@ -555,7 +604,11 @@ class _ProfileDrawerState extends State<ProfileDrawer> {
                             ),
                             content: Text(
                               'confirmlogout'.tr(),
-                              style: const TextStyle(fontFamily: 'KhmerFont'),
+                              style: const TextStyle(
+                                fontSize: 16,
+                                fontFamily: 'KhmerFont',
+                                fontWeight: FontWeight.w500,
+                              ),
                             ),
                             shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(15),
@@ -593,7 +646,10 @@ class _ProfileDrawerState extends State<ProfileDrawer> {
                                 ),
                                 child: const Text(
                                   'បាទ/ចាស',
-                                  style: TextStyle(fontFamily: 'KhmerFont'),
+                                  style: TextStyle(
+                                    fontFamily: 'KhmerFont',
+                                    fontWeight: FontWeight.bold,
+                                  ),
                                 ),
                               ),
                             ],
@@ -601,13 +657,13 @@ class _ProfileDrawerState extends State<ProfileDrawer> {
                         },
                       );
                     },
-                    icon: const Icon(Icons.logout, color: Colors.red),
+                    icon: const Icon(Icons.logout, color: Colors.black),
                     label: Text(
                       'logout'.tr(),
                       style: TextStyle(
                         fontWeight: FontWeight.bold,
                         fontSize: 18,
-                        color: Colors.red,
+                        color: Colors.black,
                         fontFamily: localeCode == 'km' ? 'KhmerFont' : null,
                       ),
                     ),
@@ -623,13 +679,26 @@ class _ProfileDrawerState extends State<ProfileDrawer> {
 
   Widget _buildMenuCard(IconData icon, String title, VoidCallback onTap) {
     final localeCode = context.locale.languageCode; // 'km' or 'en'
+
+    // Check if this is the transfer icon
+    final bool isTransferIcon = icon == Icons.account_balance;
+
     return Card(
       color: Colors.white,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(50)),
       elevation: 1,
       margin: const EdgeInsets.symmetric(vertical: 8),
       child: ListTile(
-        leading: Icon(icon, color: AppColors.primaryColor),
+        leading:
+            isTransferIcon
+                ? Transform.rotate(
+                  angle: 45 * 3.1415926535 / 180, // Rotate 45° counterclockwise
+                  child: Icon(
+                    Icons.arrow_upward,
+                    color: AppColors.primaryColor,
+                  ),
+                )
+                : Icon(icon, color: AppColors.primaryColor),
         title: Text(
           title,
           style: TextStyle(
@@ -649,4 +718,4 @@ class _ProfileDrawerState extends State<ProfileDrawer> {
   }
 }
 
-//Correct wirh 598 line code changes
+//Correct wirh 721 line code changes

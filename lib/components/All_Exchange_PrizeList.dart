@@ -585,7 +585,7 @@ class AllExchangePrizeListState extends State<AllExchangePrizeList> {
         GridView.builder(
           padding: EdgeInsets.symmetric(
             horizontal: screenWidth * 0.04,
-            vertical: screenHeight * 0.004,
+            vertical: screenHeight * 0.006,
           ),
           shrinkWrap: true,
           physics: const NeverScrollableScrollPhysics(),
@@ -720,75 +720,76 @@ class AllExchangePrizeListState extends State<AllExchangePrizeList> {
                                     fontFamily: 'KhmerFont',
                                   ),
                                 ),
-                              )
-                            else
-                              SizedBox(
-                                height: screenHeight * 0.018,
-                              ), // keeps spacing consistent
+                              ),
                           ],
                         ),
                         Expanded(
-                          flex: 3, // Give more space to the image
-                          child: CachedNetworkImage(
-                            imageUrl: prize.imageUrl,
-                            fit: BoxFit.contain,
-                            placeholder:
-                                (context, url) =>
-                                    Center(child: CircularProgressIndicator()),
-                            errorWidget: (context, url, error) {
-                              print(
-                                "❌ Cached image load error: ${prize.imageUrl}, error: $error",
-                              );
-                              return SizedBox.expand(
-                                child: Container(
-                                  decoration: BoxDecoration(
-                                    color: Colors.grey[200],
-                                    borderRadius: BorderRadius.circular(8),
+                          flex: 5, // Give more space to the image
+                          child: ClipRRect(
+                            borderRadius: BorderRadius.circular(12),
+                            child: CachedNetworkImage(
+                              imageUrl: prize.imageUrl,
+                              fit: BoxFit.fill,
+                              placeholder:
+                                  (context, url) => Center(
+                                    child: CircularProgressIndicator(
+                                      color: AppColors.primaryColor,
+                                    ),
                                   ),
-                                  child: Icon(
-                                    Icons.image_not_supported,
-                                    size: 50,
-                                    color: Colors.grey[400],
+                              errorWidget: (context, url, error) {
+                                print(
+                                  "❌ Cached image load error: ${prize.imageUrl}, error: $error",
+                                );
+                                return SizedBox.expand(
+                                  child: Container(
+                                    decoration: BoxDecoration(
+                                      color: Colors.grey[200],
+                                      borderRadius: BorderRadius.circular(8),
+                                    ),
+                                    child: Icon(
+                                      Icons.image_not_supported,
+                                      size: 50,
+                                      color: Colors.grey[400],
+                                    ),
                                   ),
-                                ),
-                              );
-                            },
+                                );
+                              },
+                            ),
                           ),
                         ),
-                        SizedBox(height: screenHeight * 0.01),
                         Column(
                           children: [
-                            Text(
-                              "${prize.point} ${prize.walletName}",
-                              style: TextStyle(
-                                fontSize: isTablet ? 20 : 18,
-                                fontWeight: FontWeight.bold,
-                                fontFamily: 'KhmerFont',
-                                color:
-                                    canExchange
-                                        ? Colors.blueGrey[800]
-                                        : Colors.grey[600],
-                              ),
-                              textAlign: TextAlign.center,
-                            ),
-                            if (!canExchange) ...[
-                              SizedBox(height: screenHeight * 0.01),
-                              Text(
-                                "notenoughbalance".tr(),
-                                style: TextStyle(
-                                  color: Colors.grey[600],
-                                  fontSize: isTablet ? 16 : 14,
-                                  fontWeight: FontWeight.w600,
-                                  fontFamily:
-                                      localeCode == 'km' ? 'KhmerFont' : null,
-                                ),
-                              ),
-                            ],
+                            // Text(
+                            //   "${prize.point} ${prize.walletName}",
+                            //   style: TextStyle(
+                            //     fontSize: isTablet ? 20 : 18,
+                            //     fontWeight: FontWeight.bold,
+                            //     fontFamily: 'KhmerFont',
+                            //     color:
+                            //         canExchange
+                            //             ? Colors.blueGrey[800]
+                            //             : Colors.grey[600],
+                            //   ),
+                            //   textAlign: TextAlign.center,
+                            // ),
+                            // if (!canExchange) ...[
+                            //   SizedBox(height: screenHeight * 0.01),
+                            //   Text(
+                            //     "notenoughbalance".tr(),
+                            //     style: TextStyle(
+                            //       color: Colors.grey[600],
+                            //       fontSize: isTablet ? 16 : 14,
+                            //       fontWeight: FontWeight.w600,
+                            //       fontFamily:
+                            //           localeCode == 'km' ? 'KhmerFont' : null,
+                            //     ),
+                            //   ),
+                            // ],
                           ],
                         ),
-                        const SizedBox(height: 10),
+                        const SizedBox(height: 14),
                         AnimatedGradientButton(
-                          text: "exchange_now",
+                          text: "${prize.point} ${prize.walletName}",
                           onPressed: () {
                             if (canExchange) {
                               widget.onPrizeSelected(prize);

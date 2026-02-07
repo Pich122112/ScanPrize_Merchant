@@ -791,7 +791,7 @@ class _ExchangePrizeDialogState extends State<ExchangePrizeDialog> {
     final walletKey = _mapWalletNameToBalanceKey(prize.walletName);
     final userBalance = userBalances[walletKey] ?? 0;
     final canExchange = userBalance >= prize.point;
-    final localeCode = context.locale.languageCode; // 'km' or 'en'
+    // final localeCode = context.locale.languageCode; // 'km' or 'en'
     final screenWidth = MediaQuery.of(context).size.width;
     final screenHeight = MediaQuery.of(context).size.height;
     final isTablet = screenWidth > 600;
@@ -923,70 +923,69 @@ class _ExchangePrizeDialogState extends State<ExchangePrizeDialog> {
                   mainAxisAlignment: MainAxisAlignment.center,
                   crossAxisAlignment: CrossAxisAlignment.center,
                   children: [
-                    // Image
-                    // Replace the image container with this:
                     Container(
                       alignment: Alignment.center,
-                      height: screenHeight * 0.15,
+                      height: screenHeight * 0.20,
                       decoration: BoxDecoration(
                         borderRadius: BorderRadius.circular(12),
                       ),
                       padding: const EdgeInsets.all(8),
-                      child: CachedNetworkImage(
-                        imageUrl: prize.imageUrl,
-                        fit: BoxFit.contain,
-                        placeholder:
-                            (context, url) =>
-                                Center(child: CircularProgressIndicator()),
-                        errorWidget: (context, url, error) {
-                          print(
-                            "❌ Cached image load error: ${prize.imageUrl}, error: $error",
-                          );
-                          return SizedBox.expand(
-                            child: Container(
-                              margin: const EdgeInsets.all(4),
-                              decoration: BoxDecoration(
-                                color: Colors.grey[200],
-                                borderRadius: BorderRadius.circular(8),
+                      child: ClipRRect(
+                        borderRadius: BorderRadius.circular(12),
+                        child: CachedNetworkImage(
+                          imageUrl: prize.imageUrl,
+                          fit: BoxFit.contain,
+                          placeholder:
+                              (context, url) =>
+                                  Center(child: CircularProgressIndicator()),
+                          errorWidget: (context, url, error) {
+                            print(
+                              "❌ Cached image load error: ${prize.imageUrl}, error: $error",
+                            );
+                            return SizedBox.expand(
+                              child: Container(
+                                margin: const EdgeInsets.all(4),
+                                decoration: BoxDecoration(
+                                  color: Colors.grey[200],
+                                  borderRadius: BorderRadius.circular(8),
+                                ),
+                                child: Icon(
+                                  Icons.image_not_supported,
+                                  size: 50,
+                                  color: Colors.grey[400],
+                                ),
                               ),
-                              child: Icon(
-                                Icons.image_not_supported,
-                                size: 50,
-                                color: Colors.grey[400],
-                              ),
-                            ),
-                          );
-                        },
+                            );
+                          },
+                        ),
                       ),
                     ),
 
-                    const SizedBox(height: 6),
+                    const SizedBox(height: 4),
 
                     Text(
                       "${prize.point} ${prize.walletName}",
                       style: TextStyle(
                         fontSize: 20,
-                        fontWeight: FontWeight.w500,
+                        fontWeight: FontWeight.bold,
                         fontFamily: 'KhmerFont',
                         color:
-                            canExchange
-                                ? Colors.blueGrey[900]
-                                : Colors.red[400],
+                            canExchange ? Colors.grey[600] : Colors.grey[600],
                       ),
                     ),
 
                     // Insufficient balance warning
-                    if (!canExchange) ...[
-                      Text(
-                        "notenoughbalance".tr(),
-                        style: TextStyle(
-                          color: Colors.red,
-                          fontSize: 13,
-                          fontWeight: FontWeight.w500,
-                          fontFamily: localeCode == 'km' ? 'KhmerFont' : null,
-                        ),
-                      ),
-                    ],
+                    // if (!canExchange) ...[
+                    //   Text(
+                    //     "notenoughbalance".tr(),
+                    //     style: TextStyle(
+                    //       color: Colors.grey[600],
+                    //       fontSize: 14,
+                    //       fontWeight: FontWeight.bold,
+                    //       fontFamily: localeCode == 'km' ? 'KhmerFont' : null,
+                    //     ),
+                    //   ),
+                    // ],
                   ],
                 ),
               ),
@@ -1050,13 +1049,13 @@ class _ExchangePrizeDialogState extends State<ExchangePrizeDialog> {
                     ),
                     decoration: BoxDecoration(
                       color: AppColors.primaryColor,
-                      borderRadius: BorderRadius.circular(12),
+                      borderRadius: BorderRadius.circular(50),
                     ),
                     child: Text(
                       "${(userBalance / prize.point).floor()} ${_translateUnit(prize.unit, context)}",
                       style: TextStyle(
                         color: Colors.white,
-                        fontSize: isTablet ? 14 : 12,
+                        fontSize: isTablet ? 14 : 14,
                         fontWeight: FontWeight.bold,
                         fontFamily: 'KhmerFont',
                       ),

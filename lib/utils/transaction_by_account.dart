@@ -9,12 +9,14 @@ import 'dart:async';
 
 class TransactionByAccount extends StatefulWidget {
   final String account; // 'GB', 'BS', 'ID', 'DM'
-  final String logoPath;
+  final String? logoPath;
+  final Widget? logoWidget;
   final int balance;
   const TransactionByAccount({
     super.key,
     required this.account,
-    required this.logoPath,
+    this.logoPath,
+    this.logoWidget,
     required this.balance,
   });
 
@@ -263,15 +265,23 @@ class _TransactionByAccountState extends State<TransactionByAccount> {
                                   ),
                                 ],
                               ),
-                              child: ClipRRect(
-                                borderRadius: BorderRadius.circular(50),
-                                child: Image.asset(
-                                  widget.logoPath,
-                                  width: 60,
-                                  height: 60,
-                                  fit: BoxFit.contain,
-                                ),
-                              ),
+                              child:
+                                  widget.logoWidget ??
+                                  (widget.logoPath != null
+                                      ? ClipRRect(
+                                        borderRadius: BorderRadius.circular(50),
+                                        child: Image.asset(
+                                          widget.logoPath!,
+                                          width: 60,
+                                          height: 60,
+                                          fit: BoxFit.contain,
+                                        ),
+                                      )
+                                      : Icon(
+                                        Icons.account_circle, // fallback icon
+                                        size: 60,
+                                        color: Colors.grey.shade400,
+                                      )),
                             ),
                             const SizedBox(width: 16),
                             Column(
@@ -308,36 +318,55 @@ class _TransactionByAccountState extends State<TransactionByAccount> {
                   Expanded(
                     child:
                         _noInternet
-                            ? Center(
-                              child: Column(
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                children: [
-                                  Icon(
-                                    Icons.wifi_off,
-                                    color: Colors.red,
-                                    size: 60,
+                            ? Padding(
+                              padding: const EdgeInsets.only(
+                                left: 16,
+                                right: 16,
+                              ),
+                              child: Center(
+                                child: Card(
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(20),
                                   ),
-                                  const SizedBox(height: 16),
-                                  const Text(
-                                    'មិនមានការតភ្ជាប់អ៊ីនធឺណិត',
-                                    style: TextStyle(
-                                      fontSize: 18,
-                                      color: Colors.red,
-                                      fontWeight: FontWeight.w500,
-                                      fontFamily: 'KhmerFont',
+                                  elevation: 6,
+                                  shadowColor: Colors.red.withOpacity(0.2),
+                                  child: Padding(
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 24,
+                                      vertical: 32,
+                                    ),
+                                    child: Column(
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        Icon(
+                                          Icons.wifi_off_rounded,
+                                          color: Colors.red.shade400,
+                                          size: 80,
+                                        ),
+                                        const SizedBox(height: 20),
+                                        Text(
+                                          'no_internet'.tr(),
+                                          style: TextStyle(
+                                            fontSize: 20,
+                                            color: Colors.black87,
+                                            fontWeight: FontWeight.bold,
+                                            fontFamily: 'KhmerFont',
+                                          ),
+                                        ),
+                                        const SizedBox(height: 12),
+                                        Text(
+                                          'check_connection'.tr(),
+                                          textAlign: TextAlign.center,
+                                          style: TextStyle(
+                                            fontSize: 16,
+                                            color: Colors.grey[600],
+                                            fontFamily: 'KhmerFont',
+                                          ),
+                                        ),
+                                      ],
                                     ),
                                   ),
-                                  const SizedBox(height: 16),
-                                  Text(
-                                    'សូមភ្ជាប់អ៊ីនធឺណិត ដើម្បីមើលប្រវត្តិប្រតិបត្តិការ',
-                                    textAlign: TextAlign.center,
-                                    style: TextStyle(
-                                      fontSize: 16,
-                                      color: Colors.red[300],
-                                      fontFamily: 'KhmerFont',
-                                    ),
-                                  ),
-                                ],
+                                ),
                               ),
                             )
                             : FutureBuilder<List<Map<String, dynamic>>>(
@@ -577,6 +606,8 @@ class _TransactionByAccountState extends State<TransactionByAccount> {
       }
       if (digits.length == 9) {
         return '${digits.substring(0, 3)} ${digits.substring(3, 6)} ${digits.substring(6)}';
+      } else if (digits.length == 10) {
+        return '${digits.substring(0, 3)} ${digits.substring(3, 6)} ${digits.substring(6)}';
       }
       return digits;
     }
@@ -588,15 +619,24 @@ class _TransactionByAccountState extends State<TransactionByAccount> {
     }
 
     String getDisplayName() {
+      // If name is present and looks like a phone number, format it!
+      final digits = name.replaceAll(RegExp(r'\D'), '');
+      if (name != 'N/A' &&
+          name.isNotEmpty &&
+          digits.length >= 9 &&
+          (digits.startsWith('855') || digits.startsWith('0'))) {
+        return formatPhoneNumber(name);
+      }
+      // If name is present and not a phone number, show as is
       if (name != 'N/A' && name.isNotEmpty) {
         return name;
       }
-
+      // Fallback to phone, format if possible
       final displayPhone = formatPhoneNumber(phone);
       if (displayPhone.isNotEmpty) {
         return displayPhone;
       }
-
+      // Fallback default
       return isIn ? 'អ្នកប្រើប្រាស់' : 'អ្នកទទួល';
     }
 
@@ -741,27 +781,72 @@ class _TransactionByAccountState extends State<TransactionByAccount> {
             mainAxisAlignment: MainAxisAlignment.center,
             crossAxisAlignment: CrossAxisAlignment.end,
             children: [
-              Text(
-                "${isIn ? "+" : "-"}$points $unit",
-                style: TextStyle(
-                  fontWeight: FontWeight.bold,
-                  color: isIn ? Colors.green : Colors.red,
-                  fontSize: 16,
-                  fontFamily: 'KhmerFont',
-                ),
+              Row(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.center,
+                children: [
+                  Text(
+                    "${isIn ? "+" : "-"}$points ",
+                    style: TextStyle(
+                      fontWeight: FontWeight.bold,
+                      color: isIn ? Colors.green : Colors.red,
+                      fontSize: 20,
+                      fontFamily: 'KhmerFont',
+                    ),
+                  ),
+                  // Show diamond icon when account is DM, otherwise show unit text
+                  if (account.toUpperCase() == 'DM')
+                    Icon(
+                      Icons.diamond,
+                      size: 22,
+                      color: isIn ? Colors.green : Colors.red,
+                    )
+                  else
+                    Text(
+                      unit,
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        color: isIn ? Colors.green : Colors.red,
+                        fontSize: 16,
+                        fontFamily: 'KhmerFont',
+                      ),
+                    ),
+                ],
               ),
-              // Only show quantity if it's not null
+              // Only show quantity if available
               if (showQuantity) const SizedBox(height: 4),
               if (showQuantity)
-                Text(
-                  'x $qtyValue $quantityUnit',
-                  style: TextStyle(
-                    fontSize: 12,
-                    color:
-                        isIn ? Colors.red : Colors.green, // <-- use isIn here
-                    fontWeight: FontWeight.bold,
-                    fontFamily: 'KhmerFont',
-                  ),
+                Row(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.center,
+                  children: [
+                    Text(
+                      'x $qtyValue ',
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: isIn ? Colors.red : Colors.green,
+                        fontWeight: FontWeight.bold,
+                        fontFamily: 'KhmerFont',
+                      ),
+                    ),
+                    // For DM show a small diamond icon as the unit, otherwise show translated unit text
+                    if (account.toUpperCase() == 'DM')
+                      Icon(
+                        Icons.diamond,
+                        size: 12,
+                        color: isIn ? Colors.red : Colors.green,
+                      )
+                    else
+                      Text(
+                        quantityUnit,
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: isIn ? Colors.red : Colors.green,
+                          fontWeight: FontWeight.bold,
+                          fontFamily: 'KhmerFont',
+                        ),
+                      ),
+                  ],
                 ),
             ],
           ),
@@ -784,4 +869,4 @@ class _TransactionByAccountState extends State<TransactionByAccount> {
   }
 }
 
-//Correct with 788 line code changes
+//Correct with 872 line code changes

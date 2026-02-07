@@ -2,7 +2,7 @@ import 'dart:async';
 import 'dart:convert';
 
 import 'package:flutter/material.dart';
-import 'package:gb_merchant/merchant/passcode_cache.dart';
+import 'package:gb_merchant/stores/passcode_cache.dart';
 import 'package:gb_merchant/services/user_balance_service.dart';
 import 'package:gb_merchant/utils/constants.dart';
 import 'package:gb_merchant/utils/transaction_by_account.dart';
@@ -630,8 +630,8 @@ class ThreeBoxSectionState extends State<ThreeBoxSection> {
                 BoxShadow(
                   color: const Color.fromARGB(229, 255, 255, 255),
                   blurRadius: 6,
-                  spreadRadius: 2, // makes it expand in all directions
-                  offset: Offset(0, 0), // no shift
+                  spreadRadius: 2,
+                  offset: Offset(0, 0),
                 ),
               ],
             ),
@@ -653,8 +653,6 @@ class ThreeBoxSectionState extends State<ThreeBoxSection> {
                   ),
                 ),
                 GestureDetector(
-                  // For diamond
-                  // For Diamond tap:
                   onTap: () async {
                     await _handleWalletTap(() async {
                       try {
@@ -688,7 +686,22 @@ class ThreeBoxSectionState extends State<ThreeBoxSection> {
                                   backgroundColor: Colors.white,
                                   body: TransactionByAccount(
                                     account: 'DM',
-                                    logoPath: 'assets/images/diamond.png',
+                                    // Instead of passing an asset path, pass a widget for the icon
+                                    logoWidget: Container(
+                                      decoration: const BoxDecoration(),
+                                      child: const Row(
+                                        mainAxisSize: MainAxisSize.min,
+                                        children: [
+                                          Icon(
+                                            Icons.diamond,
+                                            color:
+                                                Colors
+                                                    .black, // or Colors.white, your preference
+                                            size: 60,
+                                          ),
+                                        ],
+                                      ),
+                                    ),
                                     balance: diamondAmount.toInt(),
                                   ),
                                 );
@@ -730,7 +743,22 @@ class ThreeBoxSectionState extends State<ThreeBoxSection> {
                                 backgroundColor: Colors.white,
                                 body: TransactionByAccount(
                                   account: 'DM',
-                                  logoPath: 'assets/images/diamond.png',
+                                  // Instead of passing an asset path, pass a widget for the icon
+                                  logoWidget: Container(
+                                    decoration: const BoxDecoration(),
+                                    child: const Row(
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        Icon(
+                                          Icons.diamond,
+                                          color:
+                                              Colors
+                                                  .black, // or Colors.white, your preference
+                                          size: 60,
+                                        ),
+                                      ],
+                                    ),
+                                  ),
                                   balance: diamondAmount.toInt(),
                                 ),
                               );
@@ -752,7 +780,7 @@ class ThreeBoxSectionState extends State<ThreeBoxSection> {
                               ? Text(
                                 formatDiamond(diamondAmount),
                                 style: const TextStyle(
-                                  fontSize: 22,
+                                  fontSize: 25,
                                   color: Colors.white,
                                   fontWeight: FontWeight.bold,
                                   letterSpacing: 1.1,
@@ -763,7 +791,7 @@ class ThreeBoxSectionState extends State<ThreeBoxSection> {
                                 highlightColor: Colors.white.withOpacity(0.5),
                                 child: Container(
                                   width: screenWidth * 0.2,
-                                  height: 32,
+                                  height: 28,
                                   decoration: BoxDecoration(
                                     color: Colors.white.withOpacity(0.70),
                                     borderRadius: BorderRadius.circular(20),
@@ -794,15 +822,22 @@ class ThreeBoxSectionState extends State<ThreeBoxSection> {
                               ),
                           const SizedBox(width: 12),
                           Container(
-                            padding: const EdgeInsets.all(6),
-                            decoration: const BoxDecoration(
-                              color: Colors.white,
-                              shape: BoxShape.circle,
-                            ),
-                            child: const Icon(
-                              Icons.diamond_outlined,
-                              color: Colors.black,
-                              size: 24,
+                            decoration: BoxDecoration(),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Icon(
+                                  Icons.diamond,
+                                  color: Colors.white,
+                                  size: 44,
+                                  shadows: [
+                                    Shadow(
+                                      color: Colors.white.withOpacity(0.9),
+                                      blurRadius: 10,
+                                    ),
+                                  ],
+                                ),
+                              ],
                             ),
                           ),
                         ],
@@ -830,7 +865,6 @@ class ThreeBoxSectionState extends State<ThreeBoxSection> {
               ],
             ),
             child: SizedBox(
-              height: 140,
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                 children: [
@@ -1061,7 +1095,7 @@ class ThreeBoxSectionState extends State<ThreeBoxSection> {
                                     backgroundColor: Colors.white,
                                     body: TransactionByAccount(
                                       account: 'BS', // Use 'BS' consistently
-                                      logoPath: 'assets/images/boostrong.png',
+                                      logoPath: 'assets/images/newbslogo.png',
                                       balance: boostrongPoints,
                                     ),
                                   );
@@ -1103,7 +1137,7 @@ class ThreeBoxSectionState extends State<ThreeBoxSection> {
                                   backgroundColor: Colors.white,
                                   body: TransactionByAccount(
                                     account: 'BS',
-                                    logoPath: 'assets/images/boostrong.png',
+                                    logoPath: 'assets/images/newbslogo.png',
                                     balance: boostrongPoints,
                                   ),
                                 );
@@ -1136,15 +1170,27 @@ class ThreeBoxSectionState extends State<ThreeBoxSection> {
     Widget content = Column(
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
-        CircleAvatar(
-          radius: 22,
-          backgroundColor: Colors.white,
-          child: ClipOval(
-            child: Image.asset(
-              imagePath,
-              width: 36,
-              height: 36,
-              fit: BoxFit.contain,
+        Container(
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.20), // shadow color
+                blurRadius: 8, // softness
+                offset: const Offset(0, 4), // shadow position
+              ),
+            ],
+          ),
+          child: CircleAvatar(
+            radius: 24,
+            backgroundColor: Colors.white,
+            child: ClipOval(
+              child: Image.asset(
+                imagePath,
+                width: 38,
+                height: 38,
+                fit: BoxFit.contain,
+              ),
             ),
           ),
         ),
@@ -1163,7 +1209,7 @@ class ThreeBoxSectionState extends State<ThreeBoxSection> {
               highlightColor: Colors.white.withOpacity(0.5),
               child: Container(
                 width: 80,
-                height: 24,
+                height: 28,
                 decoration: BoxDecoration(
                   color: Colors.white.withOpacity(0.70),
                   borderRadius: BorderRadius.circular(50),

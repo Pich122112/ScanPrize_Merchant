@@ -1,3 +1,4 @@
+import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
 import 'package:gb_merchant/utils/constants.dart';
 
@@ -13,7 +14,7 @@ class _StartScreenState extends State<StartScreen> {
   @override
   void initState() {
     super.initState();
-    Future.delayed(const Duration(seconds: 4), () {
+    Future.delayed(const Duration(seconds: 2), () {
       if (mounted) widget.onContinue();
     });
   }
@@ -63,7 +64,7 @@ class _StartScreenState extends State<StartScreen> {
                 ),
                 const SizedBox(height: 22),
                 Text(
-                  'សន្សំពិន្ទុដោយការស្កេន, ប្តូរយករង្វាន់ផ្សេងៗ រីករាយជាមួយបទពិសោធន៍ថ្មីរបស់អ្នក!',
+                  'start_screen_msg'.tr(),
                   textAlign: TextAlign.center,
                   style: TextStyle(
                     fontSize: 16,

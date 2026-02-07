@@ -3,11 +3,11 @@ import 'dart:typed_data';
 
 import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
-import 'package:qr_code_scanner_plus/qr_code_scanner_plus.dart';
+import 'package:mobile_scanner/mobile_scanner.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:permission_handler/permission_handler.dart';
 import 'package:gb_merchant/components/qr_scan_action_button.dart';
 import 'package:gb_merchant/services/transfer_service.dart';
-import 'package:gb_merchant/utils/constants.dart';
 import 'package:gb_merchant/utils/qr_code_parser.dart';
 import 'package:zxing2/qrcode.dart';
 import 'package:image/image.dart' as img;
@@ -130,8 +130,7 @@ class TransferPrizeScan extends StatefulWidget {
 
 class _TransferPrizeScanState extends State<TransferPrizeScan>
     with TickerProviderStateMixin {
-  final GlobalKey qrKey = GlobalKey(debugLabel: 'QR');
-  QRViewController? controller;
+  late MobileScannerController controller;
   bool isFlashOn = false;
   // String? scannedCode;
   bool _isProcessing = false;
@@ -153,6 +152,13 @@ class _TransferPrizeScanState extends State<TransferPrizeScan>
   @override
   void initState() {
     super.initState();
+
+    // Initialize MobileScannerController
+    controller = MobileScannerController(
+      detectionSpeed: DetectionSpeed.normal,
+      returnImage: false,
+    );
+
     _animationController = AnimationController(
       duration: const Duration(milliseconds: 2000),
       vsync: this,
@@ -196,35 +202,50 @@ class _TransferPrizeScanState extends State<TransferPrizeScan>
     _isZooming = false;
     _colorController.dispose();
 
-    // Dispose camera controller safely
-    if (controller != null) {
-      try {
-        controller!.dispose();
-      } catch (e) {
-        print("Camera dispose error: $e");
-      }
+    // Dispose mobile scanner controller
+    try {
+      controller.dispose();
+    } catch (e) {
+      print("Camera dispose error: $e");
     }
 
     super.dispose();
   }
 
-  void _onQRViewCreated(QRViewController ctrl) {
-    controller = ctrl;
-    controller?.scannedDataStream.listen((scanData) async {
-      if (scanData.code != null && !_isProcessing && mounted) {
+  // Custom overlay builder for MobileScanner
+  Widget _buildCustomOverlay(double cutOutSize) {
+    return Positioned.fill(
+      child: CustomPaint(
+        painter: ScannerOverlayPainter(
+          boxSize: cutOutSize,
+          borderColor: _currentBorderColor,
+          borderLength: 40,
+          borderWidth: 5,
+        ),
+      ),
+    );
+  }
+
+  void _handleQRDetection(BarcodeCapture barcodeCapture) async {
+    final List<Barcode> barcodes = barcodeCapture.barcodes;
+
+    if (barcodes.isNotEmpty && !_isProcessing && mounted) {
+      final String scanData = barcodes.first.rawValue ?? '';
+
+      if (scanData.isNotEmpty) {
         setState(() {
           _isProcessing = true;
         });
 
         // Validate QR format
-        final isValid = _validateQrFormat(scanData.code!);
+        final isValid = _validateQrFormat(scanData);
         setState(() {
           _isValidQr = isValid;
         });
         // Animate border color: green for correct, red for incorrect
         _colorAnimation = ColorTween(
           begin: Colors.white,
-          end: isValid ? AppColors.successCOlor : AppColors.primaryColor,
+          end: isValid ? Colors.yellowAccent : Colors.red,
         ).animate(_colorController);
 
         _colorController.forward(from: 0);
@@ -233,7 +254,7 @@ class _TransferPrizeScanState extends State<TransferPrizeScan>
         Future.delayed(const Duration(milliseconds: 700), () {
           if (mounted) {
             _colorAnimation = ColorTween(
-              begin: isValid ? AppColors.primaryColor : AppColors.primaryColor,
+              begin: isValid ? Colors.yellowAccent : Colors.red,
               end: Colors.white,
             ).animate(_colorController);
             _colorController.forward(from: 0);
@@ -241,7 +262,7 @@ class _TransferPrizeScanState extends State<TransferPrizeScan>
         });
 
         if (isValid && mounted) {
-          print("✅ Valid TRANSFER QR detected: ${scanData.code!}");
+          print("✅ Valid TRANSFER QR detected: $scanData");
 
           // Start zoom animation
           setState(() {
@@ -253,12 +274,12 @@ class _TransferPrizeScanState extends State<TransferPrizeScan>
           await Future.delayed(_zoomController.duration!);
 
           if (mounted) {
-            widget.onScanned(scanData.code!);
+            widget.onScanned(scanData);
             Navigator.of(context).pop();
           }
         } else if (mounted) {
           final errorMessage =
-              _isPrizeQrCode(scanData.code!)
+              _isPrizeQrCode(scanData)
                   ? 'QR មិនត្រឺមត្រូវសូមជ្រើសរើសម្តងទៀត'
                   : 'Incorrect transfer QR code format'.tr();
 
@@ -273,7 +294,7 @@ class _TransferPrizeScanState extends State<TransferPrizeScan>
           }
         }
       }
-    });
+    }
   }
 
   void _showModernErrorSnackBar(String message) {
@@ -432,12 +453,14 @@ class _TransferPrizeScanState extends State<TransferPrizeScan>
   }
 
   Future<void> _toggleFlash() async {
-    if (controller != null) {
-      await controller!.toggleFlash();
-      final flashStatus = await controller!.getFlashStatus();
+    try {
+      await controller.toggleTorch();
+      // Toggle the local state since mobile_scanner doesn't provide getTorchState
       setState(() {
-        isFlashOn = flashStatus ?? false;
+        isFlashOn = !isFlashOn;
       });
+    } catch (e) {
+      print("Toggle flash error: $e");
     }
   }
 
@@ -446,13 +469,59 @@ class _TransferPrizeScanState extends State<TransferPrizeScan>
 
     setState(() => _isProcessing = true);
 
-    // Pause camera before opening gallery
-    if (controller != null && mounted) {
-      try {
-        await controller!.pauseCamera();
-      } catch (e) {
-        print("Camera pause error: $e");
+    // Request runtime permission for gallery access on Android (and Photos on iOS)
+    try {
+      if (Platform.isAndroid) {
+        final storageStatus = await Permission.storage.status;
+        final photosStatus = await Permission.photos.status;
+
+        if (!storageStatus.isGranted && !photosStatus.isGranted) {
+          final result =
+              await [Permission.storage, Permission.photos].request();
+          final grantedStorage = result[Permission.storage]?.isGranted ?? false;
+          final grantedPhotos = result[Permission.photos]?.isGranted ?? false;
+          if (!grantedStorage && !grantedPhotos) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text(
+                  "Failed to access gallery. Please check permissions.",
+                  textAlign: TextAlign.center,
+                ),
+                duration: Duration(seconds: 3),
+              ),
+            );
+            setState(() => _isProcessing = false);
+            return;
+          }
+        }
+      } else if (Platform.isIOS) {
+        final photosStatus = await Permission.photos.status;
+        if (!photosStatus.isGranted) {
+          final result = await Permission.photos.request();
+          if (!result.isGranted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text(
+                  "Failed to access gallery. Please check permissions.",
+                  textAlign: TextAlign.center,
+                ),
+                duration: Duration(seconds: 3),
+              ),
+            );
+            setState(() => _isProcessing = false);
+            return;
+          }
+        }
       }
+    } catch (e) {
+      print("Permission check error: $e");
+    }
+
+    // Stop camera before opening gallery
+    try {
+      await controller.stop();
+    } catch (e) {
+      print("Camera stop error: $e");
     }
 
     try {
@@ -468,11 +537,11 @@ class _TransferPrizeScanState extends State<TransferPrizeScan>
         String? qrText = await _decodeQRFromImage(File(image.path));
 
         // Resume camera
-        if (mounted && controller != null) {
+        if (mounted) {
           try {
-            await controller!.resumeCamera();
+            await controller.start();
           } catch (e) {
-            print("Camera resume error: $e");
+            print("Camera start error: $e");
           }
         }
 
@@ -512,22 +581,22 @@ class _TransferPrizeScanState extends State<TransferPrizeScan>
         }
       } else {
         // User cancelled gallery selection
-        if (mounted && controller != null) {
+        if (mounted) {
           try {
-            await controller!.resumeCamera();
+            await controller.start();
           } catch (e) {
-            print("Camera resume error: $e");
+            print("Camera start error: $e");
           }
         }
         setState(() => _isProcessing = false);
       }
     } catch (e) {
       print("Gallery picker error: $e");
-      if (mounted && controller != null) {
+      if (mounted) {
         try {
-          await controller!.resumeCamera();
+          await controller.start();
         } catch (e) {
-          print("Camera resume error: $e");
+          print("Camera start error: $e");
         }
       }
       setState(() => _isProcessing = false);
@@ -715,18 +784,13 @@ class _TransferPrizeScanState extends State<TransferPrizeScan>
             return Stack(
               children: [
                 Positioned.fill(
-                  child: QRView(
-                    key: qrKey,
-                    onQRViewCreated: _onQRViewCreated,
-                    overlay: QrScannerOverlayShape(
-                      borderColor: _currentBorderColor,
-                      borderRadius: 16,
-                      borderLength: 40,
-                      borderWidth: 12,
-                      cutOutSize: cutOutSize,
-                    ),
+                  child: MobileScanner(
+                    controller: controller,
+                    onDetect: _handleQRDetection,
                   ),
                 ),
+                // Custom overlay on top of the scanner
+                _buildCustomOverlay(cutOutSize),
                 // Scanning Animation
                 Positioned.fill(
                   child: Center(
@@ -843,4 +907,137 @@ class _TransferPrizeScanState extends State<TransferPrizeScan>
   }
 }
 
-//Correct with 847 line code changes
+// Custom painter for the QR scanner overlay
+class ScannerOverlayPainter extends CustomPainter {
+  final double boxSize;
+  final Color borderColor;
+  final double borderLength;
+  final double borderWidth;
+
+  ScannerOverlayPainter({
+    required this.boxSize,
+    required this.borderColor,
+    required this.borderLength,
+    required this.borderWidth,
+  });
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final centeredRect = Alignment.center.inscribe(
+      Size(boxSize, boxSize),
+      Offset.zero & size,
+    );
+
+    // Draw dark overlay areas
+    final darkPaint = Paint()..color = Colors.black.withOpacity(0.2);
+
+    // Top dark area
+    canvas.drawRect(
+      Rect.fromLTWH(0, 0, size.width, centeredRect.top),
+      darkPaint,
+    );
+
+    // Bottom dark area
+    canvas.drawRect(
+      Rect.fromLTWH(
+        0,
+        centeredRect.bottom,
+        size.width,
+        size.height - centeredRect.bottom,
+      ),
+      darkPaint,
+    );
+
+    // Left dark area
+    canvas.drawRect(
+      Rect.fromLTWH(0, centeredRect.top, centeredRect.left, boxSize),
+      darkPaint,
+    );
+
+    // Right dark area
+    canvas.drawRect(
+      Rect.fromLTWH(
+        centeredRect.right,
+        centeredRect.top,
+        size.width - centeredRect.right,
+        boxSize,
+      ),
+      darkPaint,
+    );
+
+    // Draw border corners
+    final borderPaint =
+        Paint()
+          ..color = borderColor
+          ..strokeWidth = borderWidth
+          ..style = PaintingStyle.stroke;
+
+    // Top-left corner
+    canvas.drawLine(
+      centeredRect.topLeft,
+      Offset(centeredRect.topLeft.dx + borderLength, centeredRect.topLeft.dy),
+      borderPaint,
+    );
+    canvas.drawLine(
+      centeredRect.topLeft,
+      Offset(centeredRect.topLeft.dx, centeredRect.topLeft.dy + borderLength),
+      borderPaint,
+    );
+
+    // Top-right corner
+    canvas.drawLine(
+      centeredRect.topRight,
+      Offset(centeredRect.topRight.dx - borderLength, centeredRect.topRight.dy),
+      borderPaint,
+    );
+    canvas.drawLine(
+      centeredRect.topRight,
+      Offset(centeredRect.topRight.dx, centeredRect.topRight.dy + borderLength),
+      borderPaint,
+    );
+
+    // Bottom-left corner
+    canvas.drawLine(
+      centeredRect.bottomLeft,
+      Offset(
+        centeredRect.bottomLeft.dx + borderLength,
+        centeredRect.bottomLeft.dy,
+      ),
+      borderPaint,
+    );
+    canvas.drawLine(
+      centeredRect.bottomLeft,
+      Offset(
+        centeredRect.bottomLeft.dx,
+        centeredRect.bottomLeft.dy - borderLength,
+      ),
+      borderPaint,
+    );
+
+    // Bottom-right corner
+    canvas.drawLine(
+      centeredRect.bottomRight,
+      Offset(
+        centeredRect.bottomRight.dx - borderLength,
+        centeredRect.bottomRight.dy,
+      ),
+      borderPaint,
+    );
+    canvas.drawLine(
+      centeredRect.bottomRight,
+      Offset(
+        centeredRect.bottomRight.dx,
+        centeredRect.bottomRight.dy - borderLength,
+      ),
+      borderPaint,
+    );
+  }
+
+  @override
+  bool shouldRepaint(ScannerOverlayPainter oldDelegate) {
+    return oldDelegate.borderColor != borderColor ||
+        oldDelegate.boxSize != boxSize;
+  }
+}
+
+//Correct with 1043 line code changes

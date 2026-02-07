@@ -79,7 +79,7 @@ class _LockTimerDialogState extends State<LockTimerDialog> {
               'attemp_lock'.tr(),
               style: TextStyle(
                 color: Colors.white,
-                fontSize: 16,
+                fontSize: 20,
                 fontWeight: FontWeight.w600,
                 fontFamily: localeCode == 'km' ? 'KhmerFont' : null,
               ),

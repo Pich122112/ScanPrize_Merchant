@@ -58,33 +58,7 @@ class _BlogDetailPageState extends State<BlogDetailPage> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Stack(
-            children: [
-              ModernImageSlider(imageUrls: slider.imageUrls),
-              Positioned(
-                right: 25,
-                bottom: 55,
-                child: Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 10,
-                    vertical: 5,
-                  ),
-                  decoration: BoxDecoration(
-                    color: Colors.black.withOpacity(0.5),
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: Text(
-                    '${index + 1}/${allSlides.length}',
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 16,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                ),
-              ),
-            ],
-          ),
+          Stack(children: [ModernImageSlider(imageUrls: slider.imageUrls)]),
           const SizedBox(height: 24),
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 20),
@@ -219,20 +193,35 @@ class _BlogDetailPageState extends State<BlogDetailPage> {
                           child: DecoratedBox(
                             decoration: BoxDecoration(
                               color: Colors.black.withOpacity(0.10),
-                              borderRadius: BorderRadius.circular(20),
+                              borderRadius: BorderRadius.circular(8),
                             ),
                             child: Padding(
-                              padding: EdgeInsets.symmetric(
+                              padding: const EdgeInsets.symmetric(
                                 horizontal: 16.0,
                                 vertical: 8.5,
                               ),
-                              child: Text(
-                                'scroll'.tr(),
-                                style: TextStyle(
-                                  color: Colors.white,
-                                  fontFamily: 'KhmerFont',
-                                  fontWeight: FontWeight.w500,
-                                ),
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 10,
+                                      vertical: 4,
+                                    ),
+                                    decoration: BoxDecoration(
+                                      color: Colors.black.withOpacity(0.4),
+                                      borderRadius: BorderRadius.circular(8),
+                                    ),
+                                    child: Text(
+                                      '${_currentIndex + 1}/${allSlides.length}',
+                                      style: const TextStyle(
+                                        color: Colors.white,
+                                        fontSize: 15,
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    ),
+                                  ),
+                                ],
                               ),
                             ),
                           ),
@@ -250,4 +239,4 @@ class _BlogDetailPageState extends State<BlogDetailPage> {
   }
 }
 
-//Correct with 250 line code changes
+//Correct with 251 line code changes

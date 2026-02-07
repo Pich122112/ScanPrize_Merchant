@@ -260,7 +260,7 @@ class UserQrCodeComponent extends StatelessWidget {
                   'showyourqr'.tr(),
                   style: TextStyle(
                     fontWeight: FontWeight.bold,
-                    fontSize: 16,
+                    fontSize: 14,
                     color: Colors.white,
                     fontFamily: localeCode == 'km' ? 'KhmerFont' : null,
                   ),

@@ -283,7 +283,7 @@ class _UserInformationState extends State<UserInformation> {
                       buildInfoTile(
                         context,
                         icon: Icons.location_on,
-                        text: "ទីតាំង, ភូមិអង្គ, ស្រុកសំរោង, កំពង់ស្ពឺ",
+                        text: "ទីតាំងបច្ចុប្បន្នមិនទាន់មាន",
                         editable: true,
                       ),
 
@@ -293,7 +293,7 @@ class _UserInformationState extends State<UserInformation> {
                       buildInfoTile(
                         context,
                         icon: Icons.store,
-                        text: "មួយណាក៏បាន",
+                        text: "ឈ្មោះហាងមិនទាន់មាន",
                         editable: true,
                       ),
 

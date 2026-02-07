@@ -11,7 +11,7 @@ class QrScanSpinWheelDialog extends StatefulWidget {
   final String prize;
   final List<String> defaultItems;
   final VoidCallback onClose;
-  final String prizeLogo; // Add this parameter
+  final String prizeLogo;
 
   const QrScanSpinWheelDialog({
     required this.prize,
@@ -104,7 +104,7 @@ class _QrScanSpinWheelDialogState extends State<QrScanSpinWheelDialog> {
                         fontSize: 14,
                         fontWeight: FontWeight.bold,
                         color: Colors.white,
-                        fontFamily: 'KhmerFont'
+                        fontFamily: 'KhmerFont',
                       ),
                     ),
                 ],
@@ -123,30 +123,71 @@ class _QrScanSpinWheelDialogState extends State<QrScanSpinWheelDialog> {
       duration: const Duration(seconds: 3),
     );
 
-    // Combine default items with the scanned prize
+    // Start with provided defaults
     items = List.from(widget.defaultItems);
 
-    if (!items.contains(widget.prize)) {
-      items.add(widget.prize);
-    }
-
-    // Start spinning automatically
+    // We will ensure the scanned prize is present and correctly targeted in _startSpin
     WidgetsBinding.instance.addPostFrameCallback((_) => _startSpin());
   }
 
-  void _startSpin() async {
-    // Always include the scanned prize in the wheel
-    if (!items.contains(widget.prize)) {
+  /// Ensure the prize is present on the wheel and return the index the wheel
+  /// should stop at. This function gives special handling for "diamond"
+  /// prize formats like "30 D" (digits + 'D'). If the wheel doesn't contain
+  /// the exact diamond item it'll add it so the wheel can point to it.
+  int _ensurePrizeIndexFor(String rawPrize) {
+    final prize = rawPrize.trim();
+
+    // If prize is diamond formatted like "30 D" or "30D"
+    final diamondMatch = RegExp(
+      r'^(\d+)\s*D$',
+      caseSensitive: false,
+    ).firstMatch(prize);
+    if (diamondMatch != null) {
+      final number = diamondMatch.group(1)!;
+      // Find existing diamond item with the same number
+      final foundIndex = items.indexWhere(
+        (it) => RegExp(
+          r'^\s*' + RegExp.escape(number) + r'\s*D$',
+          caseSensitive: false,
+        ).hasMatch(it),
+      );
+      if (foundIndex >= 0) return foundIndex;
+
+      // Not found: add the diamond prize to the wheel so we can point to it
       setState(() {
-        items.add(widget.prize);
+        items.add('$number D');
       });
+      return items.length - 1;
     }
 
-    // Find index of the prize (it will be there now)
-    selectedIndex = items.indexOf(widget.prize);
+    // Not a diamond prize: try exact match first
+    final exactIndex = items.indexOf(prize);
+    if (exactIndex >= 0) return exactIndex;
 
+    // Try to match by numeric prefix (e.g. prize "30 score" -> wheel "30 ពិន្ទុ")
+    final numberPrefix = RegExp(r'^(\d+)').firstMatch(prize)?.group(1);
+    if (numberPrefix != null) {
+      final found = items.indexWhere(
+        (it) => it.trim().startsWith(numberPrefix),
+      );
+      if (found >= 0) return found;
+    }
+
+    // Last resort: add the prize to the wheel and return its index
+    setState(() {
+      items.add(prize);
+    });
+    return items.indexOf(prize);
+  }
+
+  void _startSpin() async {
+    // Ensure the scanned prize is present and compute the index we want the wheel to land on.
+    selectedIndex = _ensurePrizeIndexFor(widget.prize);
+
+    // Push selected index to the FortuneWheel stream so it animates to that segment
     selected.add(selectedIndex);
 
+    // Small delay so the wheel animation can run (adjust if needed)
     await Future.delayed(const Duration(seconds: 1));
 
     if (mounted) {
@@ -262,7 +303,7 @@ class _QrScanSpinWheelDialogState extends State<QrScanSpinWheelDialog> {
                         fontSize: 18,
                         fontWeight: FontWeight.w600,
                         letterSpacing: 1.1,
-                        fontFamily: 'KhmerFont'
+                        fontFamily: localeCode == 'km' ? 'KhmerFont' : null,
                       ),
                     ),
                   ),
@@ -300,6 +341,11 @@ class _QrScanSpinWheelDialogState extends State<QrScanSpinWheelDialog> {
   Widget _buildCongratulationDialog() {
     final localeCode = context.locale.languageCode;
 
+    // Show diamond Icon when the prizeLogo indicates Diamond (adjust the matching string if needed)
+    final isDiamondLogo =
+        widget.prizeLogo.toLowerCase().contains('dmond') ||
+        widget.prizeLogo.toLowerCase().contains('diamond');
+
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
@@ -330,12 +376,21 @@ class _QrScanSpinWheelDialogState extends State<QrScanSpinWheelDialog> {
               ],
             ),
             padding: const EdgeInsets.all(12),
-            child: Image.asset(
-              widget.prizeLogo,
-              width: 60,
-              height: 60,
-              fit: BoxFit.contain,
-            ),
+            child:
+                isDiamondLogo
+                    // Show Icon for Diamond
+                    ? Icon(
+                      Icons.diamond,
+                      size: 60,
+                      color: AppColors.primaryColor,
+                    )
+                    // Otherwise show the provided image asset
+                    : Image.asset(
+                      widget.prizeLogo,
+                      width: 60,
+                      height: 60,
+                      fit: BoxFit.contain,
+                    ),
           ),
           const SizedBox(height: 16),
           Text(
@@ -344,7 +399,7 @@ class _QrScanSpinWheelDialogState extends State<QrScanSpinWheelDialog> {
               fontSize: 24,
               fontWeight: FontWeight.w800,
               fontFamily: localeCode == 'km' ? 'KhmerFont' : null,
-              color: Color(0xFF212121),
+              color: const Color(0xFF212121),
             ),
           ),
           const SizedBox(height: 8),
@@ -368,19 +423,19 @@ class _QrScanSpinWheelDialogState extends State<QrScanSpinWheelDialog> {
                   style: TextStyle(
                     fontSize: 20,
                     fontWeight: FontWeight.w600,
-                    color: Color(0xFF3B4957),
+                    color: const Color(0xFF3B4957),
                     fontFamily: localeCode == 'km' ? 'KhmerFont' : null,
                   ),
                 ),
-                const SizedBox(width: 6),
-                diamondIcon(size: 22, color: Colors.black),
+                const SizedBox(width: 3),
+                diamondIcon(size: 25, color: Colors.black),
               ] else
                 Text(
                   'you_received'.tr(args: [items[selectedIndex]]),
                   style: TextStyle(
                     fontSize: 20,
                     fontWeight: FontWeight.w600,
-                    color: Color(0xFF3B4957),
+                    color: const Color(0xFF3B4957),
                     fontFamily: localeCode == 'km' ? 'KhmerFont' : null,
                   ),
                 ),
@@ -441,4 +496,4 @@ class _TriangleClipper extends CustomClipper<Path> {
   bool shouldReclip(covariant CustomClipper<Path> oldClipper) => false;
 }
 
-//Correct with 442 line code changes
+//Correct with 499 line code changes

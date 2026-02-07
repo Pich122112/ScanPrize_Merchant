@@ -615,7 +615,7 @@ class _RomlousAppState extends State<RomlousApp>
                       style: TextStyle(
                         color: Colors.white,
                         fontWeight: FontWeight.w600,
-                        fontSize: isTablet ? 18 : 14,
+                        fontSize: isTablet ? 18 : 16,
                         fontFamily: localeCode == 'km' ? 'KhmerFont' : null,
                       ),
                       textAlign: TextAlign.center,

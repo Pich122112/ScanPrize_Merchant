@@ -7,6 +7,109 @@ class UserTransactionService {
   static const String baseUrl = 'https://api-merchant.sandbox.gzb.app/api/v2';
   static const String appPackage = 'com.ganzberg.scanprizemerchantapp';
 
+  static Future<List<Map<String, dynamic>>> fetchUserTransactionsByPagination({
+    required int page,
+    int perPage = 30,
+  }) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final token =
+          prefs.getString('auth_token') ??
+          prefs.getString('token') ??
+          prefs.getString('user_token') ??
+          prefs.getString('access_token');
+
+      if (token == null) {
+        throw Exception('No authentication token found. Please login again.');
+      }
+
+      // Fetch ALL transactions
+      final response = await http.get(
+        Uri.parse('$baseUrl/user/transactions?page=$page&per_page=$perPage'),
+        headers: {
+          'Authorization': 'Bearer $token',
+          'Accept': 'application/json',
+          'X-App-Package': appPackage,
+        },
+      );
+
+      if (response.statusCode == 200) {
+        final Map<String, dynamic> responseData = json.decode(response.body);
+
+        if (responseData['success'] == true) {
+          final List<dynamic> allTransactions = responseData['data'];
+
+          // Filter to only include transfer transactions
+          final List<Map<String, dynamic>> transferTransactions = [];
+
+          for (var transaction in allTransactions) {
+            final String transactionType =
+                transaction['transaction_type'] ?? '';
+
+            // Only include transfer transactions for notifications
+            if (transactionType == 'transfer_in' ||
+                transactionType == 'transfer_out') {
+              final dynamic qtyValue = transaction['qty'];
+              final int? parsedQty;
+
+              if (qtyValue == null) {
+                parsedQty = null;
+              } else if (qtyValue is int) {
+                parsedQty = qtyValue;
+              } else if (qtyValue is String) {
+                if (qtyValue.isEmpty) {
+                  parsedQty = null;
+                } else {
+                  parsedQty = int.tryParse(qtyValue);
+                }
+              } else {
+                parsedQty = null;
+              }
+
+              final Map<String, dynamic> formattedTransaction = {
+                'id': transaction['id'],
+                'Amount': transaction['amount'],
+                'is_credit': transaction['is_credit'],
+                'created_at': transaction['created_at'],
+                'Type': _mapTransactionType(transactionType),
+                'FromUserName': transaction['from_user_name'] ?? 'N/A',
+                'FromPhoneNumber': transaction['from_user_phone_number'] ?? '',
+                'ToUserName': transaction['to_user_name'] ?? 'N/A',
+                'ToPhoneNumber': transaction['to_user_phone_number'] ?? '',
+                'transaction_type': transactionType,
+                'qty': parsedQty,
+                'wallet_type': transaction['wallet_type'] ?? '',
+                'remarks': transaction['remarks'] ?? '',
+                'reference_id': transaction['reference_id'] ?? '',
+                'unit': transaction['unit'] ?? '',
+              };
+
+              transferTransactions.add(formattedTransaction);
+            }
+          }
+
+          // Sort by date (newest first)
+          transferTransactions.sort((a, b) {
+            final dateA = DateTime.parse(a['created_at']);
+            final dateB = DateTime.parse(b['created_at']);
+            return dateB.compareTo(dateA);
+          });
+
+          return transferTransactions;
+        } else {
+          throw Exception(
+            'Failed to fetch transactions: ${responseData['message']}',
+          );
+        }
+      } else {
+        throw Exception('Failed to load transactions: ${response.statusCode}');
+      }
+    } catch (e) {
+      print('Error fetching all transactions: $e');
+      rethrow;
+    }
+  }
+
   static Future<List<Map<String, dynamic>>> fetchAllUserTransactions() async {
     try {
       final prefs = await SharedPreferences.getInstance();
@@ -47,28 +150,20 @@ class UserTransactionService {
             if (transactionType == 'transfer_in' ||
                 transactionType == 'transfer_out') {
               final dynamic qtyValue = transaction['qty'];
-              final int? parsedQty; // Change to nullable int
+              final int? parsedQty;
 
               if (qtyValue == null) {
-                parsedQty = null; // Keep it as null instead of defaulting to 1
-                print('DEBUG: Qty is null, preserving null');
+                parsedQty = null;
               } else if (qtyValue is int) {
                 parsedQty = qtyValue;
-                print('DEBUG: Qty is int: $parsedQty');
               } else if (qtyValue is String) {
-                // Handle empty string case
                 if (qtyValue.isEmpty) {
-                  parsedQty = null; // Also set to null for empty strings
-                  print('DEBUG: Qty is empty string, setting to null');
+                  parsedQty = null;
                 } else {
                   parsedQty = int.tryParse(qtyValue);
-                  print('DEBUG: Qty is String "$qtyValue", parsed: $parsedQty');
                 }
               } else {
                 parsedQty = null;
-                print(
-                  'DEBUG: Qty is unknown type ${qtyValue.runtimeType}, setting to null',
-                );
               }
 
               final Map<String, dynamic> formattedTransaction = {
@@ -82,13 +177,11 @@ class UserTransactionService {
                 'ToUserName': transaction['to_user_name'] ?? 'N/A',
                 'ToPhoneNumber': transaction['to_user_phone_number'] ?? '',
                 'transaction_type': transactionType,
-                'qty':
-                    parsedQty, // This will now be null when backend returns null
+                'qty': parsedQty,
                 'wallet_type': transaction['wallet_type'] ?? '',
-                'remarks': transaction['remarks'] ?? '', // ADD THIS LINE
-                'reference_id': transaction['reference_id'] ?? '', // Optional
-                'unit': transaction['unit'] ?? '', // <--- ADD THIS LINE
-
+                'remarks': transaction['remarks'] ?? '',
+                'reference_id': transaction['reference_id'] ?? '',
+                'unit': transaction['unit'] ?? '',
               };
 
               transferTransactions.add(formattedTransaction);
@@ -141,7 +234,7 @@ class UserTransactionService {
 
       // Fetch ALL transactions first
       final response = await http.get(
-        Uri.parse('$baseUrl/user/transactions'), // Remove wallet_id parameter
+        Uri.parse('$baseUrl/user/transactions'),
         headers: {
           'Authorization': 'Bearer $token',
           'Accept': 'application/json',
@@ -151,7 +244,7 @@ class UserTransactionService {
 
       if (response.statusCode == 200) {
         final Map<String, dynamic> responseData = json.decode(response.body);
-        print('DEBUG: API Response: ${response.body}'); // Print full response
+        print('DEBUG: API Response: ${response.body}');
 
         if (responseData['success'] == true) {
           final List<dynamic> allTransactions = responseData['data'];
@@ -171,15 +264,14 @@ class UserTransactionService {
           );
 
           if (filteredTransactions.isEmpty) {
-            return []; // Return empty list if no transactions for this wallet
+            return [];
           }
 
-          // Group filtered transactions by date
           final Map<String, List<Map<String, dynamic>>> groupedByDate = {};
 
           for (var transaction in filteredTransactions) {
             final String createdAt = transaction['created_at'];
-            final String date = createdAt.split(' ')[0]; // Extract date part
+            final String date = createdAt.split(' ')[0];
 
             if (!groupedByDate.containsKey(date)) {
               groupedByDate[date] = [];
@@ -199,28 +291,22 @@ class UserTransactionService {
             print('DEBUG: ------------------------------------');
 
             final dynamic qtyValue = transaction['qty'];
-            final int? parsedQty; // Change to nullable int
+            final int? parsedQty;
 
             if (qtyValue == null) {
-              parsedQty = null; // Keep it as null instead of defaulting to 1
+              parsedQty = null;
               print('DEBUG: Qty is null, preserving null');
             } else if (qtyValue is int) {
               parsedQty = qtyValue;
               print('DEBUG: Qty is int: $parsedQty');
             } else if (qtyValue is String) {
-              // Handle empty string case
               if (qtyValue.isEmpty) {
-                parsedQty = null; // Also set to null for empty strings
-                print('DEBUG: Qty is empty string, setting to null');
+                parsedQty = null;
               } else {
                 parsedQty = int.tryParse(qtyValue);
-                print('DEBUG: Qty is String "$qtyValue", parsed: $parsedQty');
               }
             } else {
               parsedQty = null;
-              print(
-                'DEBUG: Qty is unknown type ${qtyValue.runtimeType}, setting to null',
-              );
             }
 
             final Map<String, dynamic> formattedTransaction = {
@@ -235,9 +321,9 @@ class UserTransactionService {
               'ToPhoneNumber': transaction['to_user_phone_number'] ?? '',
               'transaction_type': transaction['transaction_type'],
               'qty': parsedQty,
-              'remarks': transaction['remarks'] ?? '', // ADD THIS LINE
-              'reference_id': transaction['reference_id'] ?? '', // Optional
-              'unit': transaction['unit'] ?? '', // <--- ADD THIS LINE
+              'remarks': transaction['remarks'] ?? '',
+              'reference_id': transaction['reference_id'] ?? '',
+              'unit': transaction['unit'] ?? '',
             };
 
             groupedByDate[date]!.add(formattedTransaction);
@@ -283,7 +369,6 @@ class UserTransactionService {
     }
   }
 
-  // Add this helper method to parse date strings in "dd/MM/yyyy" format
   static DateTime _parseDateString(String dateString) {
     try {
       final parts = dateString.split('/');
@@ -297,7 +382,6 @@ class UserTransactionService {
       print('Error parsing date: $dateString, error: $e');
     }
 
-    // Fallback to current date if parsing fails
     return DateTime.now();
   }
 
@@ -327,4 +411,4 @@ class UserTransactionService {
   }
 }
 
-//Correct with 323 line code changes
+//Correct with 414 line code changes

@@ -1,5 +1,5 @@
 import 'package:gb_merchant/authentication/signIn.dart';
-import 'package:gb_merchant/merchant/privacypolicy.dart';
+import 'package:gb_merchant/stores/privacypolicy.dart';
 import 'package:gb_merchant/utils/constants.dart';
 import 'package:flutter/material.dart';
 

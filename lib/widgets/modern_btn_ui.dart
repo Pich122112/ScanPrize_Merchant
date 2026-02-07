@@ -1,4 +1,3 @@
-import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
 
 class AnimatedGradientButton extends StatefulWidget {
@@ -72,10 +71,10 @@ class _AnimatedGradientButtonState extends State<AnimatedGradientButton>
                 alignment: Alignment.center,
                 constraints: const BoxConstraints(minWidth: 120, minHeight: 45),
                 child: Text(
-                  widget.text.tr(),
+                  widget.text,
                   style: TextStyle(
                     color: widget.disabled ? Colors.grey[200] : Colors.white,
-                    fontSize: 14,
+                    fontSize: 18,
                     fontWeight: FontWeight.bold,
                     fontFamily: 'KhmerFont',
                   ),

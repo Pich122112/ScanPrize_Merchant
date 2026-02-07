@@ -19,7 +19,7 @@ class TransferAnimation extends StatefulWidget {
 }
 
 class _TransferAnimationState extends State<TransferAnimation>
-    with SingleTickerProviderStateMixin {
+    with TickerProviderStateMixin {
   late AnimationController _controller;
   late List<Animation<double>> _dotAnimations;
   late List<Animation<double>> _dotOpacities;
@@ -28,6 +28,7 @@ class _TransferAnimationState extends State<TransferAnimation>
   final int colCount = 3;
   final double dotSpacing = 34.0;
   final double verticalTravel = 220.0;
+  late AnimationController _waveController;
 
   @override
   void initState() {
@@ -74,10 +75,15 @@ class _TransferAnimationState extends State<TransferAnimation>
         ),
       );
     }
+    _waveController = AnimationController(
+      duration: const Duration(milliseconds: 3000),
+      vsync: this,
+    )..repeat();
   }
 
   @override
   void dispose() {
+    _waveController.dispose();
     _controller.dispose();
     super.dispose();
   }
@@ -176,22 +182,17 @@ class _TransferAnimationState extends State<TransferAnimation>
 
     switch (walletName) {
       case 'gb':
-        return Image.asset('assets/images/logo.png', width: 45, height: 45);
+        return Image.asset('assets/images/logo.png', width: 60, height: 60);
       case 'bs':
         return Image.asset(
           'assets/images/newbslogo.png',
-          width: 45,
-          height: 45,
+          width: 60,
+          height: 60,
         );
       case 'id':
-        return Image.asset('assets/images/idollogo.png', width: 45, height: 45);
+        return Image.asset('assets/images/idollogo.png', width: 60, height: 60);
       case 'dm':
-        return Image.asset(
-          'assets/images/dmond.png',
-          width: 45,
-          height: 45,
-          color: Colors.white,
-        );
+        return Icon(Icons.diamond, size: 60, color: Colors.white);
       default:
         return const Icon(Icons.card_giftcard, size: 45, color: Colors.white);
     }
@@ -255,45 +256,64 @@ class _TransferAnimationState extends State<TransferAnimation>
             alignment: Alignment.bottomCenter,
             child: Padding(
               padding: const EdgeInsets.only(bottom: 40.0),
-              child: Container(
-                width: 120,
-                height: 120,
-                decoration: BoxDecoration(
-                  color: Colors.white.withOpacity(0.12),
-                  shape: BoxShape.circle,
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.white.withOpacity(0.25),
-                      blurRadius: 25,
-                      spreadRadius: 5,
-                    ),
-                  ],
-                ),
-                child: Container(
-                  margin: const EdgeInsets.all(6),
-                  decoration: const BoxDecoration(
-                    shape: BoxShape.circle,
-                    color: Colors.white10,
-                  ),
-                  child: Container(
-                    margin: const EdgeInsets.all(8),
+              child: Stack(
+                alignment: Alignment.center,
+                children: [
+                  // Wave sizes adjusted to be smaller than the main circle
+                  _buildContinuousWaveContainer(
+                    140,
+                    0,
+                  ), // Smaller than main circle
+                  _buildContinuousWaveContainer(
+                    130,
+                    600,
+                  ), // Smaller than main circle
+                  _buildContinuousWaveContainer(
+                    120,
+                    1200,
+                  ), // Smaller than main circle
+                  // Your original main circle design - unchanged
+                  Container(
+                    width: 120,
+                    height: 120,
                     decoration: BoxDecoration(
+                      color: Colors.white.withOpacity(0.12),
                       shape: BoxShape.circle,
-                      color: AppColors.primaryColor,
                       boxShadow: [
                         BoxShadow(
-                          color: Colors.white.withOpacity(0.3),
-                          blurRadius: 12,
-                          spreadRadius: 3,
+                          color: Colors.white.withOpacity(0.25),
+                          blurRadius: 25,
+                          spreadRadius: 5,
                         ),
                       ],
                     ),
-                    child: Center(
-                      child:
-                          _buildTransferIcon(), // Use our custom icon builder
+                    child: Container(
+                      margin: const EdgeInsets.all(6),
+                      decoration: const BoxDecoration(
+                        shape: BoxShape.circle,
+                        color: Colors.white10,
+                      ),
+                      child: Container(
+                        margin: const EdgeInsets.all(8),
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          color: AppColors.primaryColor,
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.white.withOpacity(0.3),
+                              blurRadius: 12,
+                              spreadRadius: 3,
+                            ),
+                          ],
+                        ),
+                        child: Center(
+                          child:
+                              _buildTransferIcon(), // Logo remains perfectly visible
+                        ),
+                      ),
                     ),
                   ),
-                ),
+                ],
               ),
             ),
           ),
@@ -318,6 +338,42 @@ class _TransferAnimationState extends State<TransferAnimation>
       ),
     );
   }
+
+  Widget _buildContinuousWaveContainer(double size, int delay) {
+    return AnimatedBuilder(
+      animation: _waveController,
+      builder: (context, child) {
+        // Calculate wave value with delay
+        final value = (_waveController.value + (delay / 3000)) % 1.0;
+
+        return Transform.scale(
+          scale: 1.0 + (value * 0.3), // Increased scaling for visibility
+          child: Opacity(
+            opacity: (1 - value) * 0.5, // Increased opacity for visibility
+            child: Container(
+              width: size,
+              height: size,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: Colors.white.withOpacity(0.25), // More visible color
+                border: Border.all(
+                  color: Colors.white.withOpacity(0.8 * (1 - value)),
+                  width: 2.0, // Thicker border for visibility
+                ),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.white.withOpacity(0.3 * (1 - value)),
+                    blurRadius: 10,
+                    spreadRadius: 2,
+                  ),
+                ],
+              ),
+            ),
+          ),
+        );
+      },
+    );
+  }
 }
 
-//Correct with 323 line code changes
+//Correct with 379 line code changes

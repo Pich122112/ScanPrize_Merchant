@@ -11,7 +11,8 @@ class ImageSlider extends StatefulWidget {
   ImageSliderState createState() => ImageSliderState();
 }
 
-class ImageSliderState extends State<ImageSlider> {
+class ImageSliderState extends State<ImageSlider>
+    with AutomaticKeepAliveClientMixin<ImageSlider> {
   final PageController _pageController = PageController();
   int _currentPage = 0;
   Timer? _timer;
@@ -25,6 +26,17 @@ class ImageSliderState extends State<ImageSlider> {
     _fetchSliders();
   }
 
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (slides.isNotEmpty) {
+      _startAutoPlay();
+    }
+  }
+
+  @override
+  bool get wantKeepAlive => true;
+
   Future<void> refreshSlider() async {
     await fetchSliders(forceRefresh: true);
   }
@@ -34,6 +46,18 @@ class ImageSliderState extends State<ImageSlider> {
   }
 
   Future<void> _fetchSliders({bool forceRefresh = false}) async {
+    // If we already have slides and no force refresh requested, keep them and resume autoplay
+    if (!forceRefresh && slides.isNotEmpty) {
+      if (mounted) {
+        setState(() {
+          isLoading = false;
+          errorMessage = null;
+        });
+      }
+      _startAutoPlay();
+      return;
+    }
+
     if (mounted) {
       setState(() {
         isLoading = true;
@@ -42,12 +66,9 @@ class ImageSliderState extends State<ImageSlider> {
     }
 
     try {
-      print('Starting to fetch sliders...');
       final fetchedSlides = await ApiService().getSliders(
         forceRefresh: forceRefresh,
       );
-
-      print('Successfully fetched ${fetchedSlides.length} slides');
 
       if (mounted) {
         setState(() {
@@ -61,7 +82,6 @@ class ImageSliderState extends State<ImageSlider> {
         _startAutoPlay();
       }
     } catch (e) {
-      print('Error in _fetchSliders: $e');
       if (mounted) {
         setState(() {
           isLoading = false;
@@ -105,6 +125,7 @@ class ImageSliderState extends State<ImageSlider> {
 
   @override
   Widget build(BuildContext context) {
+    super.build(context);
     final localeCode = context.locale.languageCode;
     final size = MediaQuery.of(context).size;
     final width = size.width;
@@ -134,10 +155,23 @@ class ImageSliderState extends State<ImageSlider> {
             children: [
               Text(
                 'Failed to load slider',
-                style: TextStyle(color: Colors.red),
+                style: TextStyle(
+                  color: Colors.red,
+                  fontFamily: 'KhmerFont',
+                  fontWeight: FontWeight.bold,
+                ),
               ),
               SizedBox(height: 8),
-              ElevatedButton(onPressed: _fetchSliders, child: Text('Retry')),
+              ElevatedButton(
+                onPressed: _fetchSliders,
+                child: Text(
+                  'Retry',
+                  style: TextStyle(
+                    fontFamily: 'KhmerFont',
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ),
             ],
           ),
         ),
@@ -145,13 +179,41 @@ class ImageSliderState extends State<ImageSlider> {
     }
 
     // Show empty state
-    if (slides.isEmpty) {
+    if (!isLoading && slides.isEmpty) {
       return Container(
+        margin: EdgeInsets.only(left: 14, right: 12, top: 18),
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: const Color.fromARGB(153, 229, 229, 229)),
+          gradient: LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [
+              Color.fromARGB(255, 233, 78, 6),
+              Color.fromARGB(255, 251, 92, 0),
+              Color.fromARGB(255, 244, 143, 3),
+            ],
+            stops: [0.0, 0.4, 1.0],
+          ),
+        ),
         height: slideHeight,
         child: Center(
-          child: Text(
-            'No announcements available',
-            style: TextStyle(color: isDarkMode ? Colors.white60 : Colors.grey),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              Icon(Icons.announcement, color: Colors.white, size: 40),
+              const SizedBox(height: 8),
+              Text(
+                'no_announcement_available'.tr(),
+                style: TextStyle(
+                  color: isDarkMode ? Colors.white : Colors.white,
+                  fontFamily: 'KhmerFont',
+                  fontWeight: FontWeight.bold,
+                  fontSize: 20,
+                ),
+              ),
+            ],
           ),
         ),
       );
@@ -164,7 +226,7 @@ class ImageSliderState extends State<ImageSlider> {
         children: [
           Padding(
             padding: EdgeInsets.only(
-              left: width * 0.055,
+              left: width * 0.040,
               right: width * 0.04,
               top: height * 0.015,
               bottom: height * 0.01,
@@ -274,22 +336,41 @@ class ImageSliderState extends State<ImageSlider> {
           height: containerHeight,
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(borderRadius),
+            border: Border.all(
+              color: const Color.fromARGB(153, 229, 229, 229),
+              width: 1.5,
+            ),
             gradient: LinearGradient(
               begin: Alignment.topLeft,
               end: Alignment.bottomRight,
               colors: [
-                const Color(0xFF8A2BE2), // purple
-                const Color(0xFFFF8CFF), // pink
-                const Color.fromARGB(255, 17, 222, 201), // turquoise
+                Color.fromARGB(
+                  255,
+                  233,
+                  78,
+                  6,
+                ), // dark orange-red shade for depth
+                Color.fromARGB(
+                  255,
+                  251,
+                  92,
+                  0,
+                ), // your primary color (bright orange)
+                Color.fromARGB(
+                  255,
+                  244,
+                  143,
+                  3,
+                ), // warm golden-yellow highlight
               ],
-              stops: [0.0, 0.5, 1.0], // proper order
+              stops: [0.0, 0.4, 1.0],
             ),
           ),
           child: Stack(
             children: [
               Padding(
                 padding: EdgeInsets.symmetric(
-                  horizontal: containerWidth * 0.055,
+                  horizontal: containerWidth * 0.050,
                   vertical: containerHeight * 0.14,
                 ),
                 child: Row(
@@ -346,6 +427,7 @@ class ImageSliderState extends State<ImageSlider> {
                               color: Colors.grey[200],
                               child: Center(
                                 child: CircularProgressIndicator(
+                                  color: Colors.white,
                                   value:
                                       loadingProgress.expectedTotalBytes != null
                                           ? loadingProgress
@@ -382,4 +464,4 @@ class ImageSliderState extends State<ImageSlider> {
   }
 }
 
-//Correct with 385 line code changes
+//Correct with 467 line code changes

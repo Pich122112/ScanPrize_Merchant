@@ -1,6 +1,7 @@
 import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
 import 'package:gb_merchant/utils/constants.dart';
+import 'package:gb_merchant/widgets/call_animation.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 class ContactUsPage extends StatelessWidget {
@@ -41,29 +42,8 @@ class ContactUsPage extends StatelessWidget {
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              // Circle with soft shadow
-              // Circle with soft shadow
-              Container(
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  color: Colors.grey.shade100,
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.white.withOpacity(0.06),
-                      blurRadius: 12,
-                      offset: const Offset(0, 4),
-                    ),
-                  ],
-                ),
-                padding: const EdgeInsets.all(24),
-                child: Icon(
-                  Icons.call,
-                  size: isTablet ? 60 : 50,
-                  color: Colors.deepOrange,
-                ),
-              ),
+              AnimatedCallIcon(isTablet: true),
               const SizedBox(height: 24),
-
               // Title
               Text(
                 "contact_us".tr(),
@@ -98,7 +78,6 @@ class ContactUsPage extends StatelessWidget {
                     "assets/images/messengerlogo.png",
                     height: 28,
                     width: 28,
-                    color: Colors.black,
                   ),
                   label: const Padding(
                     padding: EdgeInsets.only(left: 8.0),
@@ -130,4 +109,4 @@ class ContactUsPage extends StatelessWidget {
   }
 }
 
-//Correct with 127 line code changes
+//Correct with 112 line code changes

@@ -755,17 +755,32 @@ class _EnterQuantityDialogState extends State<EnterQuantityDialog>
       if (e.toString().contains('wallet_transaction_id')) {
         message = "Please contact support. Database update required.";
       } else if (e.toString().contains('No user found')) {
-        message = "លេខទូរស័ព្ទនេះមិនត្រូវបានរកឃើញក្នុងប្រព័ន្ធទេ";
+        message =
+            context.locale.languageCode == 'km'
+                ? "លេខទូរស័ព្ទនេះមិនត្រូវបានរកឃើញក្នុងប្រព័ន្ធទេ"
+                : "This phone number was not found in the system";
       } else if (e.toString().contains('Insufficient balance')) {
         setState(() => _insufficientBalance = true);
-        message = "មិនមានចំនួនពិន្ទុគ្រប់គ្រាន់";
+        message =
+            context.locale.languageCode == 'km'
+                ? "មិនមានចំនួនពិន្ទុគ្រប់គ្រាន់"
+                : "Insufficient balance";
+      } else if (e.toString().contains(
+        'You cannot select yourself as a receiver',
+      )) {
+        message =
+            context.locale.languageCode == 'km'
+                ? "អ្នកមិនអាចផ្ទេរទៅគណនីខ្លួនឯងបានទេ​!" // Khmer
+                : "You cannot transfer to your own account!"; // English
       } else {
-        message = "កំហុសមិនឃើញ: ${e.toString()}";
+        message =
+            context.locale.languageCode == 'km'
+                ? "កំហុសមិនឃើញ: ${e.toString()}"
+                : "Unknown error: ${e.toString()}";
       }
-
       await showResultDialog(
         context,
-        title: "បរាជ័យ",
+        title: context.locale.languageCode == 'km' ? "បរាជ័យ" : "Failed",
         message: message,
         color: Colors.red,
       );
@@ -1202,30 +1217,49 @@ class _EnterQuantityDialogState extends State<EnterQuantityDialog>
                                       padding: const EdgeInsets.all(4.0),
                                       child: // Replace the Image.network section with this code:
                                           widget.fromWalletTab
-                                              ? Image.asset(
-                                                getPrizeImage(
-                                                  widget.prize,
-                                                ), // This returns asset paths for wallets
-                                                width: 55,
-                                                height: 60,
-                                                fit: BoxFit.contain,
-                                                errorBuilder: (
-                                                  context,
-                                                  error,
-                                                  stackTrace,
-                                                ) {
-                                                  return Container(
+                                              ? (widget.prize.walletName
+                                                              .toLowerCase() ==
+                                                          'dm' ||
+                                                      widget.prize.walletName
+                                                              .toLowerCase() ==
+                                                          'diamond'
+                                                  // For Diamond wallet show the diamond icon (keeps size similar to image)
+                                                  ? Container(
                                                     width: 55,
                                                     height: 60,
-                                                    color: Colors.grey[200],
+                                                    alignment: Alignment.center,
                                                     child: Icon(
-                                                      Icons.image_not_supported,
-                                                      size: 30,
-                                                      color: Colors.grey[400],
+                                                      Icons.diamond,
+                                                      size: 44,
+                                                      color:
+                                                          AppColors.textColor,
                                                     ),
-                                                  );
-                                                },
-                                              )
+                                                  )
+                                                  // Other wallets keep showing the local asset
+                                                  : Image.asset(
+                                                    getPrizeImage(widget.prize),
+                                                    width: 55,
+                                                    height: 60,
+                                                    fit: BoxFit.contain,
+                                                    errorBuilder: (
+                                                      context,
+                                                      error,
+                                                      stackTrace,
+                                                    ) {
+                                                      return Container(
+                                                        width: 55,
+                                                        height: 60,
+                                                        color: Colors.grey[200],
+                                                        child: Icon(
+                                                          Icons
+                                                              .image_not_supported,
+                                                          size: 30,
+                                                          color:
+                                                              Colors.grey[400],
+                                                        ),
+                                                      );
+                                                    },
+                                                  ))
                                               : Image.network(
                                                 widget
                                                     .prize
@@ -1291,18 +1325,55 @@ class _EnterQuantityDialogState extends State<EnterQuantityDialog>
                                         color: Colors.black,
                                         borderRadius: BorderRadius.circular(20),
                                       ),
-                                      child: Text(
-                                        '$basePoints ${_getBadgeTextForWallet(widget.prize.walletName)}',
-                                        style: TextStyle(
-                                          color: Colors.white,
-                                          fontWeight: FontWeight.w600,
-                                          fontSize: isSmallScreen ? 10 : 12,
-                                          fontFamily:
-                                              localeCode == 'km'
-                                                  ? 'KhmerFont'
-                                                  : null,
-                                        ),
-                                      ),
+                                      child:
+                                          widget.prize.walletName
+                                                          .toLowerCase() ==
+                                                      'dm' ||
+                                                  widget.prize.walletName
+                                                          .toLowerCase() ==
+                                                      'diamond'
+                                              ? Row(
+                                                mainAxisSize: MainAxisSize.min,
+                                                children: [
+                                                  Text(
+                                                    '$basePoints ',
+                                                    style: TextStyle(
+                                                      color: Colors.white,
+                                                      fontWeight:
+                                                          FontWeight.w600,
+                                                      fontSize:
+                                                          isSmallScreen
+                                                              ? 10
+                                                              : 12,
+                                                      fontFamily:
+                                                          localeCode == 'km'
+                                                              ? 'KhmerFont'
+                                                              : null,
+                                                    ),
+                                                  ),
+                                                  Icon(
+                                                    Icons.diamond,
+                                                    size:
+                                                        isSmallScreen ? 18 : 18,
+                                                    color:
+                                                        AppColors
+                                                            .backgroundColor,
+                                                  ),
+                                                ],
+                                              )
+                                              : Text(
+                                                '$basePoints ${_getBadgeTextForWallet(widget.prize.walletName)}',
+                                                style: TextStyle(
+                                                  color: Colors.white,
+                                                  fontWeight: FontWeight.w600,
+                                                  fontSize:
+                                                      isSmallScreen ? 10 : 12,
+                                                  fontFamily:
+                                                      localeCode == 'km'
+                                                          ? 'KhmerFont'
+                                                          : null,
+                                                ),
+                                              ),
                                     ),
                                   ),
                                 ],
@@ -1646,4 +1717,4 @@ class _EnterQuantityDialogState extends State<EnterQuantityDialog>
   }
 }
 
-//Correct with 1649 line code changes
+//Correct with 1720 line code changes

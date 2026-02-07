@@ -141,6 +141,8 @@ class _OpenScanState extends State<OpenScan>
     _positionAnimation = Tween<double>(begin: 0, end: 1).animate(
       CurvedAnimation(parent: _animationController, curve: Curves.easeInOut),
     );
+
+    _checkInternetOnStart();
   }
 
   @override
@@ -169,6 +171,43 @@ class _OpenScanState extends State<OpenScan>
     if (state == AppLifecycleState.resumed) {
       // App came back to foreground, trigger balance refresh
       _refreshBalancesOnReturn();
+      _checkInternetOnStart();
+    }
+  }
+
+  // If offline, pause camera and show the same modern error snack bar.
+  Future<void> _checkInternetOnStart() async {
+    try {
+      // quick timeout to avoid long waits on slow networks
+      final result = await InternetAddress.lookup(
+        'example.com',
+      ).timeout(const Duration(seconds: 5));
+      final isOnline = result.isNotEmpty && result[0].rawAddress.isNotEmpty;
+
+      if (!isOnline) {
+        // No network: pause camera and show message
+        try {
+          await controller?.pauseCamera();
+        } catch (_) {}
+        try {
+          await _scannerController.stop();
+        } catch (_) {}
+        if (mounted) {
+          _showModernErrorSnackBar('no_internet_connection'.tr());
+        }
+      }
+      // If online we do nothing (scanner can start elsewhere)
+    } catch (_) {
+      // Treat any error as offline
+      try {
+        await controller?.pauseCamera();
+      } catch (_) {}
+      try {
+        await _scannerController.stop();
+      } catch (_) {}
+      if (mounted) {
+        _showModernErrorSnackBar('no_internet_connection'.tr());
+      }
     }
   }
 
@@ -192,6 +231,36 @@ class _OpenScanState extends State<OpenScan>
   Future<void> handleScanResult(String code) async {
     await controller?.pauseCamera();
     if (_isShowingDialog) return; // skip handling while dialog is visible
+
+    try {
+      final result = await InternetAddress.lookup(
+        'example.com',
+      ).timeout(const Duration(seconds: 5));
+      final online = result.isNotEmpty && result[0].rawAddress.isNotEmpty;
+      if (!online) {
+        // Show persistent message for the user and ensure camera is running again
+        if (mounted) _showModernErrorSnackBar('no_internet_connection'.tr());
+        try {
+          await controller?.resumeCamera();
+        } catch (_) {}
+        try {
+          await _scannerController.start();
+        } catch (_) {}
+        return; // stop processing because there's no internet
+      }
+    } catch (_) {
+      // Treat any error as offline
+      if (mounted) _showModernErrorSnackBar('no_internet_connection'.tr());
+      try {
+        await controller?.resumeCamera();
+      } catch (_) {}
+      try {
+        await _scannerController.start();
+      } catch (_) {}
+      return;
+    }
+    // Now safe to pause the camera and proceed with network calls
+    await controller?.pauseCamera();
 
     try {
       // Check if this is the new URL format QR code
@@ -226,7 +295,8 @@ class _OpenScanState extends State<OpenScan>
 
           if (errorMessage.contains('already redeemed') ||
               errorMessage.contains('already used') ||
-              errorMessage.contains('expired code')) {
+              errorMessage.contains('expired code') ||
+              errorMessage.contains('already been redeemed.')) {
             _handleAlreadyRedeemedQR(code, prizeResponse);
           } else {
             _handleInvalidQR(prizeResponse, code);
@@ -249,7 +319,8 @@ class _OpenScanState extends State<OpenScan>
             await _handleTransferQR(code, prizeResponse);
           } else if (errorMessage.contains('already redeemed') ||
               errorMessage.contains('already used') ||
-              errorMessage.contains('invalid or already')) {
+              errorMessage.contains('invalid or already') ||
+              errorMessage.contains('already been redeemed.')) {
             // Handle already redeemed prize code specifically
             _handleAlreadyRedeemedQR(code, prizeResponse);
           } else {
@@ -468,21 +539,11 @@ class _OpenScanState extends State<OpenScan>
     final issuer = prizeResponse['issuer'] ?? "";
     final newAmount = prizeResponse['new_amount'] ?? 0;
     final amount = prizeResponse['amount'] ?? 0;
-    final walletName = prizeResponse['wallet_name'] ?? issuer;
-    final localeCode = context.locale.languageCode; // Get current locale
+    final walletName = (prizeResponse['wallet_name'] ?? issuer).toString();
+    final localeCode = context.locale.languageCode;
 
-    // Khmer names for wallets
-    // final walletNames = {
-    //   "BS": "Boostrong",
-    //   "GB": "Ganzberg",
-    //   "ID": "Idol",
-    //   "DM": "Diamond",
-    // };
-
-    // Determine the logo based on issuer
+    // Determine the logo based on issuer/walletName
     String prizeLogo = 'assets/images/default.png';
-
-    // Use walletName to determine the logo
     switch (walletName.toUpperCase()) {
       case "GB":
         prizeLogo = 'assets/images/gblogo.png';
@@ -500,18 +561,16 @@ class _OpenScanState extends State<OpenScan>
         prizeLogo = 'assets/images/default.png';
     }
 
-    // String prizeDisplay = '';
-    // if (issuer != "" && amount != 0) {
-    //   final readableName = walletNames[issuer] ?? walletName;
-    //   prizeDisplay = '$amount ពិន្ទុ $readableName';
-    // } else {
-    //   prizeDisplay = 'អ្នកទទួលបានរង្វាន់';
-    // }
-
     String prizeDisplay = '';
     if (issuer != "" && amount != 0) {
-      final pointText = localeCode == 'en' ? 'score' : 'ពិន្ទុ';
-      prizeDisplay = '$amount $pointText';
+      // If the wallet is Diamond (DM) we want the wheel to display and land on a diamond segment.
+      // Use the "N D" format (like "30 D") so the wheel logic detects and renders diamond icon.
+      if (walletName.toUpperCase() == 'DM') {
+        prizeDisplay = '${amount.toString()} D';
+      } else {
+        final pointText = localeCode == 'en' ? 'score' : 'ពិន្ទុ';
+        prizeDisplay = '$amount $pointText';
+      }
 
       // Refresh balances after successful scan
       if (widget.onPrizeScanned != null) {
@@ -532,7 +591,7 @@ class _OpenScanState extends State<OpenScan>
                 defaultItems: _generateDefaultItems(amount, 0),
                 prizeLogo: prizeLogo,
                 onClose: () async {
-                  // ✅ Resume both controllers when dialog closes
+                  // Resume both controllers when dialog closes
                   await controller?.resumeCamera();
                   await _scannerController.start();
                 },
@@ -659,7 +718,8 @@ class _OpenScanState extends State<OpenScan>
       // It's one of our QR code formats
       if (errorMessage.contains('already redeemed') ||
           errorMessage.contains('already used') ||
-          errorMessage.contains('expired code')) {
+          errorMessage.contains('expired code') ||
+          errorMessage.contains('already been redeemed.')) {
         resultText = "Invalid or already redeemed code".tr();
       } else {
         // It's our QR code format, but not valid or some other error
@@ -699,6 +759,7 @@ class _OpenScanState extends State<OpenScan>
     );
   }
 
+  // ignore: unused_element
   void _onQRViewCreated(QRViewController ctrl) {
     controller = ctrl;
     bool isProcessing = false;
@@ -1177,4 +1238,4 @@ class _OpenScanState extends State<OpenScan>
   }
 }
 
-//Correct with 1180 line code changes
+//Correct with 1241 line code changes
