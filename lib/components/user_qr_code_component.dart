@@ -391,6 +391,7 @@ class UserQrCodeComponent extends StatelessWidget {
                           final shared = await QrShareService.shareQrCode(
                             qrKey,
                             phoneNumber,
+                            context,
                           );
 
                           messenger.hideCurrentSnackBar();

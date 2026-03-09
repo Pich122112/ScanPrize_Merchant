@@ -469,32 +469,9 @@ class _TransferPrizeScanState extends State<TransferPrizeScan>
 
     setState(() => _isProcessing = true);
 
-    // Request runtime permission for gallery access on Android (and Photos on iOS)
+    // Only request Photos permission on iOS
     try {
-      if (Platform.isAndroid) {
-        final storageStatus = await Permission.storage.status;
-        final photosStatus = await Permission.photos.status;
-
-        if (!storageStatus.isGranted && !photosStatus.isGranted) {
-          final result =
-              await [Permission.storage, Permission.photos].request();
-          final grantedStorage = result[Permission.storage]?.isGranted ?? false;
-          final grantedPhotos = result[Permission.photos]?.isGranted ?? false;
-          if (!grantedStorage && !grantedPhotos) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(
-                content: Text(
-                  "Failed to access gallery. Please check permissions.",
-                  textAlign: TextAlign.center,
-                ),
-                duration: Duration(seconds: 3),
-              ),
-            );
-            setState(() => _isProcessing = false);
-            return;
-          }
-        }
-      } else if (Platform.isIOS) {
+      if (Platform.isIOS) {
         final photosStatus = await Permission.photos.status;
         if (!photosStatus.isGranted) {
           final result = await Permission.photos.request();
@@ -513,6 +490,7 @@ class _TransferPrizeScanState extends State<TransferPrizeScan>
           }
         }
       }
+      // No Android storage permission required on Android 13+
     } catch (e) {
       print("Permission check error: $e");
     }
@@ -548,21 +526,19 @@ class _TransferPrizeScanState extends State<TransferPrizeScan>
         if (qrText != null && qrText.isNotEmpty && mounted) {
           print("Detected QR content: $qrText");
 
-          // Check if it's a valid QR code (not just your specific format)
           if (_isValidQrContent(qrText)) {
             widget.onScanned(qrText);
             Navigator.of(context).pop();
           } else {
             ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                padding: const EdgeInsets.only(bottom: 20.0, top: 10),
+              const SnackBar(
                 content: Text(
                   'Invalid QR code format',
-                  style: const TextStyle(fontSize: 16),
                   textAlign: TextAlign.center,
+                  style: TextStyle(fontSize: 16),
                 ),
-                duration: const Duration(seconds: 3),
                 backgroundColor: Colors.red,
+                duration: Duration(seconds: 3),
               ),
             );
             setState(() => _isProcessing = false);
@@ -580,7 +556,6 @@ class _TransferPrizeScanState extends State<TransferPrizeScan>
           setState(() => _isProcessing = false);
         }
       } else {
-        // User cancelled gallery selection
         if (mounted) {
           try {
             await controller.start();
@@ -600,14 +575,13 @@ class _TransferPrizeScanState extends State<TransferPrizeScan>
         }
       }
       setState(() => _isProcessing = false);
-
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text(
             "Failed to access gallery. Please check permissions.",
             textAlign: TextAlign.center,
           ),
-          duration: const Duration(seconds: 3),
+          duration: Duration(seconds: 3),
         ),
       );
     }
