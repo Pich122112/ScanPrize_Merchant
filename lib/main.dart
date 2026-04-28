@@ -34,6 +34,7 @@ Future<void> main() async {
   };
 
   //Macbook Pro
+  //Window 11
 
   // Initialize device UUID early
   final deviceUuid = await DeviceUUID.getUUID();
