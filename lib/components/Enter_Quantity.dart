@@ -10,16 +10,14 @@ import 'package:gb_merchant/services/transfer_service.dart';
 import 'package:gb_merchant/utils/constants.dart';
 import 'package:gb_merchant/utils/qr_code_parser.dart';
 import 'package:gb_merchant/widgets/remark_style.dart';
-import 'package:shared_preferences/shared_preferences.dart';
-
 import '../models/exchange_prize_model.dart';
 import '../services/user_balance_service.dart';
 import '../utils/balance_refresh_notifier.dart';
 import '../utils/show_dialog_util.dart';
 import '../widgets/transaction_detail.dart';
-// import '../widgets/confirm_transfer_dialog.dart';
-// ignore: unused_import
 import './transfer_animation.dart';
+import '../services/secure_storage_service.dart';
+import 'package:flutter/foundation.dart';
 
 class EnterQuantityDialog extends StatefulWidget {
   final ExchangePrize prize;
@@ -177,7 +175,9 @@ class _EnterQuantityDialogState extends State<EnterQuantityDialog>
 
       return null; // Return null if no name found
     } catch (e) {
-      print('Error getting receiver name: $e');
+      if (kDebugMode) {
+        print('Error getting receiver name');
+      }
       return null;
     }
   }
@@ -291,7 +291,9 @@ class _EnterQuantityDialogState extends State<EnterQuantityDialog>
 
   void _handleBalanceRefresh() {
     if (mounted) {
-      print('DEBUG: Balance refresh notified in EnterQuantityDialog');
+      if (kDebugMode) {
+        print('DEBUG: Balance refresh notified in EnterQuantityDialog');
+      }
       _fetchUserPointsSummary().then((summary) {
         if (mounted) {
           setState(() {
@@ -397,197 +399,6 @@ class _EnterQuantityDialogState extends State<EnterQuantityDialog>
     }
   }
 
-  // Transfer with confirm dialog
-  // Future<void> _confirmAndProcessTransfer() async {
-  //   try {
-  //     // Validate phone number first
-  //     final cleanPhone = widget.phoneNumber
-  //         .replaceAll(' ', '')
-  //         .replaceAll('-', '');
-
-  //     if (cleanPhone == 'Unknown' || !cleanPhone.startsWith('855')) {
-  //       await showResultDialog(
-  //         context,
-  //         title: "បរាជ័យ",
-  //         message: "លេខទូរស័ព្ទមិនត្រឹមត្រូវទេ",
-  //         color: Colors.red,
-  //       );
-  //       return;
-  //     }
-
-  //     final prefs = await SharedPreferences.getInstance();
-  //     final token = prefs.getString('token');
-  //     print("DEBUG TOKEN: $token");
-
-  //     // Store the points before making the transfer
-  //     final int selectedQuantity = int.tryParse(quantity) ?? 0;
-  //     final String selectedProductName = widget.prize.prizeName;
-
-  //     // Check if this is a wallet transfer (point value is 1)
-  //     final bool isWalletTransfer = widget.prize.point == 1;
-  //     final pointsToTransfer =
-  //         isWalletTransfer ? selectedQuantity : getDeductedPoints();
-
-  //     // ✅ FIRST VERIFY THE RECEIVER
-  //     print('🔍 Verifying receiver: $cleanPhone');
-  //     final receiverData = await TransferService.verifyReceiver(cleanPhone);
-
-  //     if (receiverData == null || receiverData['receiver'] == null) {
-  //       await showResultDialog(
-  //         context,
-  //         title: "បរាជ័យ",
-  //         message: "មិនអាចផ្ទៀងផ្ទាត់អ្នកទទួលបានទេ",
-  //         color: Colors.red,
-  //       );
-  //       return;
-  //     }
-
-  //     final receiverId = receiverData['receiver']['id'].toString();
-  //     final receiverName = receiverData['receiver']['name'] ?? 'Unknown';
-  //     final verifiedPhone =
-  //         receiverData['receiver']['phone_number'] ?? cleanPhone;
-
-  //     print(
-  //       '✅ Verified receiver: $receiverName ($verifiedPhone) ID: $receiverId',
-  //     );
-
-  //     // Show confirmation dialog with verified receiver info
-  //     final confirmed = await showDialog<bool>(
-  //       context: context,
-  //       builder:
-  //           (context) => ConfirmTransferDialog(
-  //             points: pointsToTransfer,
-  //             recipientPhone: widget.phoneNumber,
-  //             recipientName: receiverName,
-  //             companyCategoryName: widget.prize.walletName,
-  //             productName:
-  //                 isWalletTransfer
-  //                     ? '${widget.prize.walletName} Points'
-  //                     : selectedProductName,
-  //             quantity: selectedQuantity,
-  //             onConfirm: (result) => Navigator.of(context).pop(result),
-  //           ),
-  //     );
-
-  //     if (confirmed != true) return;
-
-  //     // Get QR signature
-  //     final qrData = QrCodeParser.parseTransferQr(widget.scannedQr);
-  //     final signature = qrData['signature'];
-  //     // ✅ UPDATED: TRANSFER WITH ADDITIONAL FIELDS
-  //     // print('🔍 ======= BEFORE TRANSFER CALL =======');
-  //     // print(
-  //     //   '🔍 Prize ID: ${widget.prize.prizeId} (will convert to: ${widget.prize.prizeId.toString()})',
-  //     // );
-  //     // print('🔍 Prize Point: ${widget.prize.point}');
-  //     // print('🔍 Quantity: $selectedQuantity');
-  //     // print('🔍 Points to Transfer: $pointsToTransfer');
-  //     // print('🔍 Wallet ID: ${widget.walletId}');
-  //     // print('🔍 Receiver Phone: $verifiedPhone');
-  //     // print('🔍 ===================================');
-
-  //     // ✅ TRANSFER USING RECEIVER PHONE
-  //     final response = await TransferService.transferPoints(
-  //       points: pointsToTransfer,
-  //       walletId: widget.walletId,
-  //       receiverPhone: verifiedPhone,
-  //       signature: signature,
-  //       prizeId: widget.prize.prizeId.toString(), // Convert int to String
-  //       prizePoint: widget.prize.point, // Add prize_point
-  //       qty: selectedQuantity, // Add qty
-  //     );
-
-  //     if (response.statusCode == 200) {
-  //       await UserBalanceService.refreshBalancesAfterTransaction(
-  //         isSender: true,
-  //       );
-
-  //       // ✅ Check if widget is still mounted before calling setState
-  //       // ✅ Update local state
-  //       if (mounted) {
-  //         final updatedSummary = await UserBalanceService.fetchUserBalances();
-  //         setState(() {
-  //           _userPointsSummary = updatedSummary;
-  //           quantity = '0';
-  //           _insufficientBalance = false;
-  //           _showQuantityError = false;
-  //         });
-  //       }
-  //       // ✅ Call the success callback if provided
-  //       if (widget.onTransferSuccess != null) {
-  //         widget.onTransferSuccess!();
-  //       }
-
-  //       final prefs = await SharedPreferences.getInstance();
-  //       final senderPhone = prefs.getString('userPhone') ?? '';
-
-  //       // Show transfer animation
-  //       if (mounted) {
-  //         await Navigator.of(context).push(
-  //           MaterialPageRoute(
-  //             builder:
-  //                 (context) => TransferAnimation(
-  //                   recipientPhone: widget.phoneNumber,
-  //                   companyCategoryName: widget.prize.walletName,
-  //                   onAnimationComplete: () {
-  //                     Navigator.of(context).pushAndRemoveUntil(
-  //                       MaterialPageRoute(
-  //                         builder:
-  //                             (context) => TransactionDetail(
-  //                               transactionDate: DateTime.now(),
-  //                               companyCategoryName: widget.prize.walletName,
-  //                               receiverPhone: widget.phoneNumber,
-  //                               points: pointsToTransfer,
-  //                               productName:
-  //                                   isWalletTransfer
-  //                                       ? '${widget.prize.walletName} Points'
-  //                                       : selectedProductName,
-  //                               quantity: selectedQuantity,
-  //                               senderPhone: senderPhone,
-  //                             ),
-  //                       ),
-  //                       (route) => false,
-  //                     );
-  //                   },
-  //                 ),
-  //           ),
-  //         );
-  //       }
-
-  //       // Close the quantity dialog
-  //       if (mounted) {
-  //         Navigator.of(context).pop();
-  //       }
-  //     } else {
-  //       final errorData = json.decode(response.body);
-  //       await showResultDialog(
-  //         context,
-  //         title: "បរាជ័យ",
-  //         message: errorData['message'] ?? "ការផ្ទេរបានបរាជ័យ។",
-  //         color: Colors.red,
-  //       );
-  //     }
-  //   } catch (e) {
-  //     print('❌ Transfer failed: $e');
-  //     // Handle the specific case where no user is found
-  //     if (e.toString().contains('No user found')) {
-  //       await showResultDialog(
-  //         context,
-  //         title: "បរាជ័យ",
-  //         message: "លេខទូរស័ព្ទនេះមិនត្រូវបានរកឃើញក្នុងប្រព័ន្ធទេ",
-  //         color: Colors.red,
-  //       );
-  //     } else {
-  //       await showResultDialog(
-  //         context,
-  //         title: "បរាជ័យ",
-  //         message: "កំហុសមិនឃើញ: ${e.toString()}",
-  //         color: Colors.red,
-  //       );
-  //     }
-  //   }
-  // }
-
   Future<void> _confirmAndProcessTransfer() async {
     try {
       // 1️⃣ Clean and validate phone number
@@ -602,12 +413,9 @@ class _EnterQuantityDialogState extends State<EnterQuantityDialog>
         return;
       }
 
-      // 2️⃣ Get token & user phone
-      final prefs = await SharedPreferences.getInstance();
-      final token = prefs.getString('token');
-      final senderPhone = prefs.getString('userPhone') ?? '';
-      print("DEBUG TOKEN: $token");
-
+      // 2️⃣ Get token & user phone from secure storage
+      final secureStorage = SecureStorageService();
+      final senderPhone = await secureStorage.getPhoneNumber() ?? '';
       // 3️⃣ Calculate points
       final int selectedQuantity = int.tryParse(quantity) ?? 0;
       final bool isWalletTransfer = widget.prize.point == 1;
@@ -627,7 +435,6 @@ class _EnterQuantityDialogState extends State<EnterQuantityDialog>
       }
 
       // 4️⃣ Verify receiver
-      print('🔍 Verifying receiver: $cleanPhone');
       final receiverData = await TransferService.verifyReceiver(cleanPhone);
       if (receiverData == null || receiverData['receiver'] == null) {
         await showResultDialog(
@@ -640,21 +447,17 @@ class _EnterQuantityDialogState extends State<EnterQuantityDialog>
       }
 
       final receiverId = receiverData['receiver']['id'].toString();
-      final receiverName = receiverData['receiver']['name'] ?? 'Unknown';
       final verifiedPhone =
           receiverData['receiver']['phone_number'] ?? cleanPhone;
-      print(
-        '✅ Verified receiver: $receiverName ($verifiedPhone) ID: $receiverId',
-      );
 
       // 5️⃣ Get QR signature
       final qrData = QrCodeParser.parseTransferQr(widget.scannedQr);
       // ignore: unused_local_variable
       final signature = qrData['signature'];
-
-      print(
-        '🔍 Points: $pointsToTransfer, Wallet ID: ${widget.walletId}, Receiver: $verifiedPhone',
-      );
+      if (kDebugMode) {
+        print('DEBUG: Transfer initiated');
+        print('Points: $pointsToTransfer');
+      }
 
       // 6️⃣ Execute transfer
       final response = await TransferService.transferPoints(
@@ -749,7 +552,9 @@ class _EnterQuantityDialogState extends State<EnterQuantityDialog>
         }
       }
     } catch (e) {
-      print('❌ Transfer failed: $e');
+      if (kDebugMode) {
+        print('❌ Transfer failed');
+      }
       String message;
 
       if (e.toString().contains('wallet_transaction_id')) {
@@ -787,243 +592,6 @@ class _EnterQuantityDialogState extends State<EnterQuantityDialog>
     }
   }
 
-  /*
-  //Transfer without confirm dialog
-  Future<void> _confirmAndProcessTransfer() async {
-    try {
-      // Validate phone number first
-      final cleanPhone = widget.phoneNumber
-          .replaceAll(' ', '')
-          .replaceAll('-', '');
-
-      if (cleanPhone == 'Unknown' || !cleanPhone.startsWith('855')) {
-        await showResultDialog(
-          context,
-          title: "បរាជ័យ",
-          message: "លេខទូរស័ព្ទមិនត្រឹមត្រូវទេ",
-          color: Colors.red,
-        );
-        return;
-      }
-
-      final prefs = await SharedPreferences.getInstance();
-      final token = prefs.getString('token');
-      print("DEBUG TOKEN: $token");
-
-      // Store the points before making the transfer
-      final int selectedQuantity = int.tryParse(quantity) ?? 0;
-      final String selectedProductName = widget.prize.prizeName;
-
-      // Check if this is a wallet transfer (point value is 1)
-      final bool isWalletTransfer = widget.prize.point == 1;
-      final pointsToTransfer =
-          isWalletTransfer ? selectedQuantity : getDeductedPoints();
-
-      // ✅ Check balance BEFORE proceeding with verification
-      final remainingPoints = getRemainingPoints();
-      print('🔍 Current remaining points: $remainingPoints');
-      print('🔍 Points to transfer: $pointsToTransfer');
-
-      if (remainingPoints < 0) {
-        setState(() => _insufficientBalance = true);
-        await showResultDialog(
-          context,
-          title: "បរាជ័យ",
-          message: "មិនមានចំនួនពិន្ទុគ្រប់គ្រាន់",
-          color: Colors.red,
-        );
-        return;
-      }
-
-      // ✅ FIRST VERIFY THE RECEIVER
-      print('🔍 Verifying receiver: $cleanPhone');
-      final receiverData = await TransferService.verifyReceiver(cleanPhone);
-
-      if (receiverData == null || receiverData['receiver'] == null) {
-        await showResultDialog(
-          context,
-          title: "បរាជ័យ",
-          message: "មិនអាចផ្ទៀងផ្ទាត់អ្នកទទួលបានទេ",
-          color: Colors.red,
-        );
-        return;
-      }
-
-      final receiverId = receiverData['receiver']['id'].toString();
-      final receiverName = receiverData['receiver']['name'] ?? 'Unknown';
-      final verifiedPhone =
-          receiverData['receiver']['phone_number'] ?? cleanPhone;
-
-      print(
-        '✅ Verified receiver: $receiverName ($verifiedPhone) ID: $receiverId',
-      );
-
-      // Get QR signature
-      final qrData = QrCodeParser.parseTransferQr(widget.scannedQr);
-      final signature = qrData['signature'];
-
-      // DEBUG: Print all transfer parameters
-      print('🔍 ======= TRANSFER PARAMETERS =======');
-      print('🔍 Points: $pointsToTransfer');
-      print('🔍 Wallet ID: ${widget.walletId}');
-      print('🔍 Receiver Phone: $verifiedPhone');
-      print('🔍 Signature: $signature');
-      print('🔍 Prize ID: ${widget.prize.prizeId}');
-      print('🔍 Prize Point: ${widget.prize.point}');
-      print('🔍 Quantity: $selectedQuantity');
-      print('🔍 ===================================');
-
-      // ✅ TRANSFER
-      final response = await TransferService.transferPoints(
-        points: pointsToTransfer,
-        walletId: widget.walletId,
-        receiverId: receiverId,
-        receiverPhone: verifiedPhone,
-        prizeId: widget.fromWalletTab ? null : widget.prize.prizeId.toString(),
-        prizePoint: widget.fromWalletTab ? null : widget.prize.point,
-        qty: widget.fromWalletTab ? null : selectedQuantity,
-      );
-
-      if (response.statusCode == 200) {
-        await UserBalanceService.refreshBalancesAfterTransaction(
-          isSender: true,
-        );
-
-        // ✅ Check if widget is still mounted before calling setState
-        if (mounted) {
-          final updatedSummary = await UserBalanceService.fetchUserBalances();
-          setState(() {
-            _userPointsSummary = updatedSummary;
-            quantity = '0';
-            _insufficientBalance = false;
-          });
-        }
-
-        // ✅ Call the success callback if provided
-        if (widget.onTransferSuccess != null) {
-          widget.onTransferSuccess!();
-        }
-
-        final prefs = await SharedPreferences.getInstance();
-        final senderPhone = prefs.getString('userPhone') ?? '';
-
-        // Show transfer animation
-        if (mounted) {
-          await Navigator.of(context).push(
-            MaterialPageRoute(
-              builder:
-                  (context) => TransferAnimation(
-                    recipientPhone: widget.phoneNumber,
-                    companyCategoryName: widget.prize.walletName,
-                    onAnimationComplete: () {
-                      Navigator.of(context).pushAndRemoveUntil(
-                        MaterialPageRoute(
-                          builder:
-                              (context) => TransactionDetail(
-                                transactionDate: DateTime.now(),
-                                companyCategoryName: widget.prize.walletName,
-                                receiverPhone: widget.phoneNumber,
-                                points: pointsToTransfer,
-                                productName:
-                                    isWalletTransfer
-                                        ? '${widget.prize.walletName} Points'
-                                        : selectedProductName,
-                                quantity: selectedQuantity,
-                                senderPhone: senderPhone,
-                                isPointTransfer:
-                                    isWalletTransfer, // Set this flag
-                              ),
-                        ),
-                        (route) => false,
-                      );
-                    },
-                  ),
-            ),
-          );
-        }
-
-        // Close the quantity dialog
-        if (mounted) {
-          Navigator.of(context).pop();
-        }
-      } else {
-        final errorData = json.decode(response.body);
-        print('❌ Transfer failed with status: ${response.statusCode}');
-        print('❌ Error response: ${response.body}');
-
-        // Handle database schema errors
-        if (errorData['message']?.toString().contains(
-              'wallet_transaction_id',
-            ) ??
-            false) {
-          // This is a database schema issue - show appropriate message
-          await showResultDialog(
-            context,
-            title: "System Error",
-            message: "Please contact support. Database update required.",
-            color: Colors.red,
-          );
-        }
-        // Handle insufficient balance error from server
-        else if (errorData['message']?.toString().toLowerCase().contains(
-              'insufficient',
-            ) ??
-            false) {
-          setState(() => _insufficientBalance = true);
-          await showResultDialog(
-            context,
-            title: "បរាជ័យ",
-            message: "មិនមានចំនួនពិន្ទុគ្រប់គ្រាន់",
-            color: Colors.red,
-          );
-        } else {
-          await showResultDialog(
-            context,
-            title: "បរាជ័យ",
-            message: errorData['message'] ?? "ការផ្ទេរបានបរាជ័យ។",
-            color: Colors.red,
-          );
-        }
-      }
-    } catch (e) {
-      print('❌ Transfer failed: $e');
-
-      // Handle database schema errors
-      if (e.toString().contains('wallet_transaction_id')) {
-        await showResultDialog(
-          context,
-          title: "System Error",
-          message: "Please contact support. Database update required.",
-          color: Colors.red,
-        );
-      }
-      // Handle the specific case where no user is found
-      else if (e.toString().contains('No user found')) {
-        await showResultDialog(
-          context,
-          title: "បរាជ័យ",
-          message: "លេខទូរស័ព្ទនេះមិនត្រូវបានរកឃើញក្នុងប្រព័ន្ធទេ",
-          color: Colors.red,
-        );
-      } else if (e.toString().contains('Insufficient balance')) {
-        setState(() => _insufficientBalance = true);
-        await showResultDialog(
-          context,
-          title: "បរាជ័យ",
-          message: "មិនមានចំនួនពិន្ទុគ្រប់គ្រាន់",
-          color: Colors.red,
-        );
-      } else {
-        await showResultDialog(
-          context,
-          title: "បរាជ័យ",
-          message: "កំហុសមិនឃើញ: ${e.toString()}",
-          color: Colors.red,
-        );
-      }
-    }
-  }
-*/
   @override
   Widget build(BuildContext context) {
     // int deductedPoints = getDeductedPoints();
@@ -1117,14 +685,6 @@ class _EnterQuantityDialogState extends State<EnterQuantityDialog>
                           ),
                         ),
                         SizedBox(height: screenHeight * 0.015),
-                        // Text(
-                        //   'អ្នកទទួល​ ${formatPhoneNumber(widget.phoneNumber)}',
-                        //   style: TextStyle(
-                        //     color: Colors.white,
-                        //     fontWeight: FontWeight.bold,
-                        //     fontSize: isSmallScreen ? 16 : 18,
-                        //   ),
-                        // ),
                         FutureBuilder<String?>(
                           future: _getReceiverName(),
                           builder: (context, snapshot) {
@@ -1296,9 +856,11 @@ class _EnterQuantityDialogState extends State<EnterQuantityDialog>
                                                   error,
                                                   stackTrace,
                                                 ) {
-                                                  print(
-                                                    "❌ Image load error: ${widget.prize.imageUrl}, error: $error",
-                                                  );
+                                                  if (kDebugMode) {
+                                                    print(
+                                                      "❌ Image load error: ${widget.prize.imageUrl}",
+                                                    );
+                                                  }
                                                   return Container(
                                                     width: 55,
                                                     height: 60,
@@ -1386,51 +948,6 @@ class _EnterQuantityDialogState extends State<EnterQuantityDialog>
                         Flexible(
                           child: Column(
                             children: [
-                              // Row(
-                              //   mainAxisAlignment: MainAxisAlignment.center,
-                              //   children: [
-                              //     Flexible(
-                              //       child: Text(
-                              //         "deduct_from:  ${widget.prize.walletName}"
-                              //             .tr(),
-                              //         style: TextStyle(
-                              //           color: Colors.white,
-                              //           fontSize: isSmallScreen ? 14 : 16,
-                              //           fontFamily:
-                              //               localeCode == 'km'
-                              //                   ? 'KhmerFont'
-                              //                   : null,
-                              //         ),
-                              //         maxLines: 1,
-                              //         overflow: TextOverflow.ellipsis,
-                              //       ),
-                              //     ),
-                              //     SizedBox(width: screenWidth * 0.03),
-                              //     Container(
-                              //       padding: EdgeInsets.symmetric(
-                              //         horizontal: screenWidth * 0.03,
-                              //         vertical: screenHeight * 0.005,
-                              //       ),
-                              //       decoration: BoxDecoration(
-                              //         color: Colors.white,
-                              //         borderRadius: BorderRadius.circular(50),
-                              //       ),
-                              //       child: Text(
-                              //         // Modified this line to check for diamond category
-                              //         '$deductedPoints ${widget.prize.walletName.toLowerCase() == 'diamond' ? 'D' : 'ពិន្ទុ'}',
-                              //         style: TextStyle(
-                              //           color: Colors.red,
-                              //           fontSize: isSmallScreen ? 12 : 14,
-                              //           fontWeight: FontWeight.w600,
-                              //           fontFamily:
-                              //               localeCode == 'km'
-                              //                   ? 'KhmerFont'
-                              //                   : null,
-                              //         ),
-                              //       ),
-                              //     ),
-                              //   ],
-                              // ),
                               SizedBox(height: screenHeight * 0.02),
                               Column(
                                 children: [
@@ -1717,4 +1234,4 @@ class _EnterQuantityDialogState extends State<EnterQuantityDialog>
   }
 }
 
-//Correct with 1720 line code changes
+//Correct with 1235 line code changes

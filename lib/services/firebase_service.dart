@@ -12,6 +12,7 @@ import 'package:permission_handler/permission_handler.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../services/user_server.dart';
+import 'secure_storage_service.dart';
 
 class FirebaseService {
   static final FirebaseMessaging _messaging = FirebaseMessaging.instance;
@@ -62,37 +63,47 @@ class FirebaseService {
     print("🧹 [DEBUG] Cleared processed notification cache");
   }
 
+  /// Upload FCM token to backend
   static Future<void> sendFcmTokenToBackend({required String apiToken}) async {
-    String? fcmToken = await FirebaseMessaging.instance.getToken();
-    if (fcmToken != null) {
-      try {
-        final result = await ApiService.uploadFcmToken(
-          apiToken: apiToken,
-          fcmToken: fcmToken,
-        );
-        print('✅ FCM token upload response: $result');
-        if (result['success'] == true || result['result'] == 123) {
-          print('✅ FCM token sent to backend successfully!');
-        } else {
-          print('❌ FCM token upload failed: ${result['message'] ?? result}');
-        }
-      } catch (e) {
-        print('❌ Exception during FCM token upload: $e');
-      }
-    } else {
+    final fcmToken = await _messaging.getToken();
+    if (fcmToken == null) {
       print('❌ FCM token is null, not sent to backend.');
+      return;
+    }
+
+    try {
+      print('📤 Sending FCM token to backend: $fcmToken');
+      final result = await ApiService.uploadFcmToken(
+        apiToken: apiToken,
+        fcmToken: fcmToken,
+      );
+      if (result['success'] == true || result['result'] == 123) {
+        print('✅ FCM token sent to backend successfully!');
+
+        // Store that we've successfully uploaded
+        final prefs = await SharedPreferences.getInstance();
+        await prefs.setBool('fcm_token_uploaded', true);
+        await prefs.setString(
+          'fcm_token_uploaded_at',
+          DateTime.now().toIso8601String(),
+        );
+      } else {
+        print('❌ FCM token upload failed: ${result['message'] ?? result}');
+      }
+    } catch (e) {
+      print('❌ Exception during FCM token upload: $e');
+      // Don't rethrow - we'll try again later
     }
   }
 
-  /// Force refresh balances + reset badge when app is reopened
   static Future<void> forceRefreshOnReopen() async {
     print("🔄 Force refreshing notification data on app reopen...");
 
     try {
-      final prefs = await SharedPreferences.getInstance();
-      final token = prefs.getString('token');
+      final secureStorage = SecureStorageService();
+      final token = await secureStorage.getToken();
 
-      if (token != null) {
+      if (token != null && token.isNotEmpty) {
         // Fetch latest user profile from server
         final userProfile = await ApiService.getUserProfile(token);
         if (userProfile['success'] == true && userProfile['data'] != null) {
@@ -104,9 +115,6 @@ class FirebaseService {
           print("✅ Balances force-updated on app reopen: $balances");
         }
       }
-
-      // Reset badge count so app starts clean
-      // await resetBadgeCount();
     } catch (e) {
       print("❌ Error during force refresh on reopen: $e");
     }
@@ -179,119 +187,8 @@ class FirebaseService {
     );
   }
 
-  /*
   static Future<void> init(GlobalKey<NavigatorState> navKey) async {
     navigatorKey = navKey;
-
-    // Request notification permissions
-    await _requestNotificationPermissions();
-
-    // Get device FCM token
-    String? fcmToken = await _messaging.getToken();
-    print('FCM Token: $fcmToken');
-
-    // Upload initial FCM token to backend if user is authenticated
-    final prefs = await SharedPreferences.getInstance();
-    final apiToken = prefs.getString('token');
-    if (fcmToken != null && apiToken != null) {
-      await sendFcmTokenToBackend(apiToken: apiToken);
-    }
-
-    // Listen for FCM token refresh events and upload new token
-    FirebaseMessaging.instance.onTokenRefresh.listen((newToken) async {
-      final prefs = await SharedPreferences.getInstance();
-      final userId = prefs.getString('userId');
-      final apiToken = prefs.getString('token');
-      if (userId != null && apiToken != null) {
-        await sendFcmTokenToBackend(apiToken: apiToken);
-      }
-    });
-
-    // Android initialization
-    const AndroidInitializationSettings androidSettings =
-        AndroidInitializationSettings('@drawable/ic_notification');
-
-    // iOS initialization
-    const DarwinInitializationSettings iosSettings =
-        DarwinInitializationSettings(
-          requestAlertPermission: true,
-          requestBadgePermission: true,
-          requestSoundPermission: true,
-        );
-    // Combine both
-    const InitializationSettings initializationSettings =
-        InitializationSettings(android: androidSettings, iOS: iosSettings);
-
-    // Initialize local notification plugin
-    // Initialize local notification plugin
-    await _localNotifications.initialize(
-      initializationSettings,
-      onDidReceiveNotificationResponse: (response) async {
-        // Parse payload data
-        if (response.payload != null) {
-          try {
-            final data = jsonDecode(response.payload!);
-            await handleNotificationData(Map<String, dynamic>.from(data));
-          } catch (e) {
-            print('Error parsing notification payload: $e');
-          }
-        }
-
-        navigatorKey.currentState?.push(
-          MaterialPageRoute(builder: (context) => NotificationPage()),
-        );
-      },
-    );
-
-    // Handle foreground messages
-    // Handle foreground messages
-    FirebaseMessaging.onMessage.listen((RemoteMessage message) async {
-      String? title = message.notification?.title ?? 'Notification';
-      String? body = message.notification?.body ?? '';
-      Map<String, dynamic> data = message.data;
-
-      await incrementBadgeCount();
-
-      // Handle notification data for balance updates
-      await handleNotificationData(data);
-
-      await _localNotifications.show(
-        message.notification.hashCode,
-        title,
-        body,
-        NotificationDetails(
-          android: AndroidNotificationDetails(
-            'default_channel',
-            'Default',
-            icon: '@drawable/ic_notification',
-            largeIcon: const DrawableResourceAndroidBitmap('ic_launcher'),
-            importance: Importance.max,
-            priority: Priority.high,
-            channelShowBadge: true,
-          ),
-          iOS: DarwinNotificationDetails(badgeNumber: badgeCountNotifier.value),
-        ),
-        payload: jsonEncode(data), // Send data as payload
-      );
-    });
-
-    FirebaseMessaging.onMessageOpenedApp.listen((message) {
-      navigatorKey.currentState?.push(
-        MaterialPageRoute(builder: (context) => NotificationPage()),
-      );
-      // Add this:
-      BalanceRefreshNotifier().refreshBalances();
-      print("Notification opened from background: ${message.data}");
-    });
-
-    FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
-  }
-*/
-
-  // Init FCM + Local Notifications
-  static Future<void> init(GlobalKey<NavigatorState> navKey) async {
-    navigatorKey = navKey;
-
     await _requestNotificationPermissions();
 
     // ✅ Get token (wait for APNs on iOS)
@@ -307,17 +204,20 @@ class FirebaseService {
     }
     print("🔥 FCM Token: $fcmToken");
 
-    // Upload token if user logged in
-    final prefs = await SharedPreferences.getInstance();
-    final apiToken = prefs.getString('token');
-    if (fcmToken != null && apiToken != null) {
-      await sendFcmTokenToBackend(apiToken: apiToken);
+    // ✅ Store token locally for later upload (don't upload here)
+    if (fcmToken != null) {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString('fcm_token', fcmToken);
+      print('✅ FCM token stored locally for later upload');
     }
 
-    // Token refresh listener
+    // Token refresh listener - update stored token when refreshed
     _messaging.onTokenRefresh.listen((newToken) async {
       print("🔑 Refreshed FCM token: $newToken");
       final prefs = await SharedPreferences.getInstance();
+      await prefs.setString('fcm_token', newToken);
+
+      // If user is logged in, upload immediately
       final apiToken = prefs.getString('token');
       if (apiToken != null) {
         await sendFcmTokenToBackend(apiToken: apiToken);
@@ -420,52 +320,13 @@ class FirebaseService {
     print("✅ FirebaseService initialized successfully!");
   }
 
-  // static Future<void> handleNotificationData(Map<String, dynamic> data) async {
-  //   print('📲 Handling notification data: $data');
-
-  //   // Check if this is a balance-related notification
-  //   if (data.containsKey('type') && data['type'] == 'balance_update') {
-  //     print('💰 Balance update notification received');
-
-  //     // Force refresh balances
-  //     try {
-  //       final prefs = await SharedPreferences.getInstance();
-  //       final token = prefs.getString('token');
-
-  //       if (token != null) {
-  //         // Force fetch fresh user profile with balance
-  //         final userProfile = await ApiService.getUserProfile(token);
-
-  //         if (userProfile['success'] == true && userProfile['data'] != null) {
-  //           // Update balances in cache
-  //           final balances = UserBalanceService.parseWalletsFromUserDetail(
-  //             userProfile,
-  //           );
-  //           await UserBalanceService.setBalancesToCache(balances);
-
-  //           // Notify all listeners about the balance update
-  //           BalanceRefreshNotifier().refreshBalances();
-
-  //           print('✅ Balances updated from notification: $balances');
-  //         }
-  //       }
-  //     } catch (e) {
-  //       print('❌ Error updating balances from notification: $e');
-  //     }
-  //   }
-  // }
-
   static Future<void> handleNotificationData(Map<String, dynamic> data) async {
     print('📲 Handling notification data: $data');
-
-    // Always refresh, regardless of data payload
     try {
-      final prefs = await SharedPreferences.getInstance();
-      final token = prefs.getString('token');
-
-      if (token != null) {
+      final secureStorage = SecureStorageService();
+      final token = await secureStorage.getToken();
+      if (token != null && token.isNotEmpty) {
         final userProfile = await ApiService.getUserProfile(token);
-
         if (userProfile['success'] == true && userProfile['data'] != null) {
           final balances = UserBalanceService.parseWalletsFromUserDetail(
             userProfile,
@@ -500,4 +361,4 @@ Future<void> firebaseMessagingBackgroundHandler(RemoteMessage message) async {
   );
 }
 
-//Correct with 503 line code changes
+//Correct with 353 line code changes

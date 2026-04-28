@@ -4,6 +4,8 @@ import 'package:http/http.dart' as http;
 import '../models/exchange_prize_model.dart';
 import '../models/user_transfer.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'secure_storage_service.dart';
+import 'package:flutter/foundation.dart';
 
 class ExchangePrizeService {
   static const String prizeListUrl =
@@ -11,14 +13,17 @@ class ExchangePrizeService {
   static const String cacheKey = 'exchange_prize_cache_v2';
   static const String appPackage = 'com.ganzberg.scanprizemerchantapp';
 
+  final SecureStorageService _secureStorage = SecureStorageService();
+
   Future<String?> getToken() async {
     try {
-      final prefs = await SharedPreferences.getInstance();
-      final token = prefs.getString('token');
-      print("🔐 Retrieved token from storage: $token");
+      // ✅ Use secure storage instead of SharedPreferences
+      final token = await _secureStorage.getToken();
       return token;
     } catch (e) {
-      print("❌ Error getting token: $e");
+      if (kDebugMode) {
+        print("❌ Error getting token");
+      }
       return null;
     }
   }
@@ -38,17 +43,22 @@ class ExchangePrizeService {
         },
       );
 
-      print("🔍 User Info Response: ${response.statusCode} - ${response.body}");
-
+      if (kDebugMode) {
+        print("🔍 User Info Response Status: ${response.statusCode}");
+      }
       if (response.statusCode == 200) {
         final jsonData = json.decode(response.body);
         return UserModel.fromJson(jsonData);
       } else {
-        print("❌ Error fetching user: ${response.statusCode}");
+        if (kDebugMode) {
+          print("❌ Error fetching user: ${response.statusCode}");
+        }
         return null;
       }
     } catch (e) {
-      print("🔥 Exception in fetchUserById: $e");
+      if (kDebugMode) {
+        print("🔥 Exception in fetchUserById: $e");
+      }
       return null;
     }
   }
@@ -82,13 +92,13 @@ class ExchangePrizeService {
           'Content-Type': 'application/json',
           'Accept': 'application/json',
           'Authorization': 'Bearer $token',
-          'X-App-Package': appPackage, 
+          'X-App-Package': appPackage,
         },
       );
 
-      print('📡 Prize List API status: ${response.statusCode}');
-      print('📡 Prize List API response: ${response.body}');
-
+      if (kDebugMode) {
+        print('📡 Prize List API status: ${response.statusCode}');
+      }
       if (response.statusCode == 200) {
         final Map<String, dynamic> jsonData = json.decode(response.body);
 
@@ -106,12 +116,14 @@ class ExchangePrizeService {
         throw HttpException("Failed to load prizes: ${response.statusCode}");
       }
     } catch (e) {
-      print("⚠️ Error fetching prizes: $e");
-
-      // ✅ 3. Fallback to cache if available
+      if (kDebugMode) {
+        print("⚠️ Error fetching prizes");
+      }
       final cached = prefs.getString(cacheKey);
       if (cached != null) {
-        print("📦 Loaded prizes from cache (offline mode)");
+        if (kDebugMode) {
+          print("📦 Loaded prizes from cache (offline mode)");
+        }
         final Map<String, dynamic> jsonData = json.decode(cached);
         return (jsonData['data']['prizes'] as List)
             .map((item) => ExchangePrize.fromJson(item))
@@ -126,8 +138,10 @@ class ExchangePrizeService {
   Future<void> clearCache() async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.remove(cacheKey);
-    print("🗑️ Cleared prize cache");
+    if (kDebugMode) {
+      print("🗑️ Cleared prize cache");
+    }
   }
 }
 
-//Correct with 256 line code changes
+// Correct with 147 line code changes

@@ -3,124 +3,28 @@ import 'dart:convert';
 import 'dart:io';
 import 'dart:async';
 import 'package:http/http.dart' as http;
-import 'package:shared_preferences/shared_preferences.dart';
+import 'secure_storage_service.dart';
 
 class TransferService {
-  //=========Transfer with confirm dialog============
-  // static Future<http.Response> transferPoints({
-  //   required int points,
-  //   required String walletId,
-  //   required String receiverPhone,
-  //   String? signature,
-  //   required String prizeId,
-  //   required int prizePoint,
-  //   required int qty,
-  // }) async {
-  //   try {
-  //     // Get token from shared preferences
-  //     final prefs = await SharedPreferences.getInstance();
-  //     final token = prefs.getString('token');
-
-  //     if (token == null) {
-  //       throw TransferException('Authentication required. Please login again.');
-  //     }
-
-  //     // ✅ Use the correct API format
-  //     final url = Uri.parse('https://api-merchant.sandbox.gzb.app/api/v2/transfer');
-
-  //     // ✅ UPDATED request body format - include new fields
-  //     final requestBody = {
-  //       'reciever_phone': receiverPhone,
-  //       'wallet_id': walletId,
-  //       'amount': points.toString(),
-  //       'prize_id': prizeId,
-  //       'prize_point': prizePoint.toString(),
-  //       'qty': qty.toString(),
-  //     };
-
-  //     // ✅ COMPREHENSIVE DEBUG PRINT
-  //     // print('🔄 ======= TRANSFER REQUEST DETAILS =======');
-  //     // print('🔄 Receiver Phone: $receiverPhone');
-  //     // print('🔄 Wallet ID: $walletId');
-  //     // print('🔄 Points Amount: $points');
-  //     // print('🔄 Prize ID: $prizeId (type: ${prizeId.runtimeType})');
-  //     // print('🔄 Prize Point: $prizePoint (type: ${prizePoint.runtimeType})');
-  //     // print('🔄 Quantity: $qty (type: ${qty.runtimeType})');
-  //     // print('🔄 Signature: $signature');
-  //     // print('🔄 Full Request Body: $requestBody');
-  //     // print('🔄 ========================================');
-
-  //     final response = await http
-  //         .post(
-  //           url,
-  //           headers: {
-  //             "Content-Type": "application/x-www-form-urlencoded",
-  //             "Authorization": "Bearer $token",
-  //             "Accept": "application/json",
-  //           },
-  //           body: requestBody,
-  //         )
-  //         .timeout(const Duration(seconds: 30));
-
-  //     // print('📨 ======= TRANSFER RESPONSE =======');
-  //     // print('📨 Status Code: ${response.statusCode}');
-  //     // print('📨 Response Body: ${response.body}');
-  //     // print('📨 ================================');
-
-  //     if (response.statusCode == 200) {
-  //       final responseData = json.decode(response.body);
-
-  //       if (responseData['success'] == true) {
-  //         return response;
-  //       } else {
-  //         throw TransferException(
-  //           responseData['message'] ?? 'Transfer failed',
-  //           details: responseData['error'] ?? response.body,
-  //           statusCode: response.statusCode,
-  //         );
-  //       }
-  //     } else {
-  //       final error = json.decode(response.body);
-  //       throw TransferException(
-  //         error['message'] ?? 'Transfer failed (${response.statusCode})',
-  //         details: error['error'] ?? error['details'] ?? response.body,
-  //         statusCode: response.statusCode,
-  //       );
-  //     }
-  //   } on SocketException {
-  //     throw TransferException('No internet connection');
-  //   } on TimeoutException {
-  //     throw TransferException('Request timed out');
-  //   } on http.ClientException catch (e) {
-  //     throw TransferException('Network error: ${e.message}');
-  //   } catch (e) {
-  //     throw TransferException('Transfer failed: ${e.toString()}');
-  //   }
-  // }
-
-  //Transfer without confirm dialog
-  // services/transfer_service.dart
-  // Update the transferPoints method to handle wallet transfers without prize_id
   static Future<http.Response> transferPoints({
     required int points,
     required String walletId,
     required String receiverId,
     required String receiverPhone,
     String? signature,
-    String? prizeId, // ✅ Make prize_id optional
-    int? prizePoint, // ✅ Make prize_point optional
-    int? qty, // ✅ Make qty optional
-    String? remark, // <-- Add this line!
+    String? prizeId,
+    int? prizePoint,
+    int? qty,
+    String? remark,
   }) async {
     try {
-      // Get token from shared preferences
-      final prefs = await SharedPreferences.getInstance();
-      final token = prefs.getString('token');
+      // Get token from secure storage
+      final secureStorage = SecureStorageService();
+      final token = await secureStorage.getToken();
 
-      if (token == null) {
+      if (token == null || token.isEmpty) {
         throw TransferException('Authentication required. Please login again.');
       }
-
       final url = Uri.parse(
         'https://api-merchant.sandbox.gzb.app/api/v2/transfer',
       );
@@ -214,10 +118,10 @@ class TransferService {
     String phoneNumber,
   ) async {
     try {
-      final prefs = await SharedPreferences.getInstance();
-      final token = prefs.getString('token');
+      final secureStorage = SecureStorageService();
+      final token = await secureStorage.getToken();
 
-      if (token == null) {
+      if (token == null || token.isEmpty) {
         throw Exception('Authentication required');
       }
 
@@ -234,7 +138,6 @@ class TransferService {
         cleanPhone = '855${cleanPhone.substring(1)}';
       }
 
-      // ✅ UPDATED: Validate it's a proper Cambodian phone number (11 or 12 digits)
       if (!cleanPhone.startsWith('855') ||
           (cleanPhone.length != 11 && cleanPhone.length != 12)) {
         throw Exception('Invalid Cambodian phone format: $cleanPhone');
@@ -296,4 +199,4 @@ class TransferException implements Exception {
   String toString() => message;
 }
 
-//Correct with 294 line code changes
+//Correct with 202 line code changes

@@ -1014,4 +1014,4 @@ class ScannerOverlayPainter extends CustomPainter {
   }
 }
 
-//Correct with 1043 line code changes
+//Correct with 1017 line code changes

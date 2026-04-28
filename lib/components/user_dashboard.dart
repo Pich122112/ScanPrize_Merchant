@@ -10,11 +10,11 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:shimmer/shimmer.dart';
 import '../services/user_server.dart';
 import './slider.dart';
-import '../services/websocket_service.dart';
 import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:easy_localization/easy_localization.dart';
 import '../services/passcode_service.dart';
 import '../utils/balance_refresh_notifier.dart';
+import '../services/secure_storage_service.dart';
 
 class ThreeBoxSection extends StatefulWidget {
   final GlobalKey<ImageSliderState> sliderKey;
@@ -37,8 +37,6 @@ class ThreeBoxSectionState extends State<ThreeBoxSection> {
   bool _isEyePressed = false;
   Timer? _eyeColorResetTimer;
   bool _isUnlocked = false;
-
-  // NEW: cooldown timer and flag for the eye icon
   bool _eyeCooldownActive = false;
   Timer? _eyeCooldownTimer;
 
@@ -46,16 +44,17 @@ class ThreeBoxSectionState extends State<ThreeBoxSection> {
       GlobalKey<RefreshIndicatorState>();
   StreamSubscription<Map<String, dynamic>>? _balanceSubscription;
 
+  late SecureStorageService _secureStorage;
+
   @override
   void dispose() {
     _balanceNotifier?.removeListener(_handleBalanceRefresh);
     _balanceNotifier = null;
     _balanceSubscription?.cancel();
-    WebSocketService().disconnect();
     _eyeAutoLockTimer?.cancel();
     _eyeExpireWatcher?.cancel();
     _eyeColorResetTimer?.cancel();
-    _eyeCooldownTimer?.cancel(); // <-- cancel new timer
+    _eyeCooldownTimer?.cancel(); 
 
     super.dispose();
   }
@@ -288,87 +287,30 @@ class ThreeBoxSectionState extends State<ThreeBoxSection> {
   @override
   void initState() {
     super.initState();
-    _initWebSocket();
-    _fetchBalances(useCache: true); // Use cache on start
+    _secureStorage = SecureStorageService();
+    _fetchBalances(useCache: true);
     checkUnlockState();
     _startEyeExpireWatcher();
 
-    // Add for fast passcode show also will delete
     // Initialize passcode cache
     _initializePasscodeCache();
     // Listen for balance refresh events
     _balanceNotifier = BalanceRefreshNotifier();
     _balanceNotifier?.addListener(_handleBalanceRefresh);
 
-    WidgetsBinding.instance.addObserver(
-      LifecycleEventHandler(
-        resumeCallBack: () {
-          _handleAppResumed();
-          checkUnlockState();
-        },
-      ),
-    );
   }
 
-  // Add for fast passcode show will delete
   Future<void> _initializePasscodeCache() async {
     try {
-      final prefs = await SharedPreferences.getInstance();
-      final token = prefs.getString('token');
-      if (token != null) {
+      // ✅ Use secure storage for token
+      final token = await _secureStorage.getToken();
+      if (token != null && token.isNotEmpty) {
         // Pre-load passcode status in background
         await PasscodeCache.refreshPasscodeStatus(token);
       }
     } catch (e) {
       print('Error initializing passcode cache: $e');
     }
-  }
-
-  void _handleAppResumed() async {
-    print('App resumed - reconnecting WebSocket...');
-    await WebSocketService().disconnect();
-    _initWebSocket();
-    _fetchBalances();
-  }
-
-  Future<void> _initWebSocket() async {
-    try {
-      print('Initializing WebSocket connection...');
-      await WebSocketService().connect();
-
-      _balanceSubscription?.cancel();
-      _balanceSubscription = WebSocketService().balanceStream.listen(
-        (data) {
-          print('WebSocket balance update received: $data');
-          if (mounted) {
-            setState(() {
-              ganzbergPoints = (data['ganzberg'] ?? 0).toInt();
-              idolPoints = (data['idol'] ?? 0).toInt();
-              boostrongPoints = (data['boostrong'] ?? 0).toInt();
-              diamondAmount = (data['diamond'] ?? 0).toDouble();
-            });
-          }
-        },
-        onError: (error) {
-          print('WebSocket stream error: $error');
-          _reconnectWebSocket();
-        },
-      );
-    } catch (e) {
-      print('WebSocket initialization error: $e');
-      _reconnectWebSocket();
-    }
-  }
-
-  void _reconnectWebSocket() {
-    if (!mounted) return;
-
-    Future.delayed(Duration(seconds: 1), () {
-      if (mounted) {
-        print('Attempting WebSocket reconnection...');
-        _initWebSocket();
-      }
-    });
   }
 
   void updateWalletAmount(String issuer, int newAmount) async {
@@ -397,22 +339,26 @@ class ThreeBoxSectionState extends State<ThreeBoxSection> {
     });
   }
 
-  // Add this method to refresh user data and check status
   Future<void> _refreshUserDataAndCheckStatus() async {
     try {
-      // Refresh user data from API
-      final prefs = await SharedPreferences.getInstance();
-      final token = prefs.getString('token');
+      // ✅ Use secure storage for token
+      final token = await _secureStorage.getToken();
 
-      if (token != null) {
+      if (token != null && token.isNotEmpty) {
         final userProfile = await ApiService.getUserProfile(token);
         // ignore: unnecessary_null_comparison
         if (userProfile != null && userProfile['success'] == true) {
-          // Save updated user data
+          // ✅ Store only non-sensitive data in SharedPreferences
+          final prefs = await SharedPreferences.getInstance();
           await prefs.setString('user_data', jsonEncode(userProfile));
 
-          // Check if status changed from 2 to 1
-          final newStatus = userProfile['data']['status'] as int?;
+          // Also update secure storage with any updated info
+          final userData = userProfile['data'];
+          if (userData['phone_number'] != null) {
+            await _secureStorage.setPhoneNumber(userData['phone_number']);
+          }
+
+          final newStatus = userData['status'] as int?;
           if (newStatus == 1) {
             print('DEBUG: User status updated from 2 to 1 - approval granted');
           }
@@ -423,27 +369,27 @@ class ThreeBoxSectionState extends State<ThreeBoxSection> {
     }
   }
 
-  // refresh balance methos
-  // Modify the refreshBalances method to also refresh user data
   Future<void> refreshBalances() async {
     print('DEBUG: Calling refreshBalances()');
     await _fetchBalances(useCache: false); // Force update and cache
 
-    // Also refresh user data to get latest status
     await _refreshUserDataAndCheckStatus();
 
     if (mounted) setState(() {}); // Ensures UI refresh
   }
 
-  // --- NEW: Parse balances from new API structure ---
-  // In ThreeBoxSectionState class
-  // In ThreeBoxSectionState class
-  // Add retry logic to _fetchBalances
   Future<void> _fetchBalances({
     bool useCache = true,
     int retryCount = 0,
   }) async {
     try {
+      // ✅ Verify token exists before fetching
+      final token = await _secureStorage.getToken();
+      if (token == null || token.isEmpty) {
+        print('No valid token found, skipping balance fetch');
+        return;
+      }
+
       Map<String, dynamic> balances;
 
       if (useCache) {
@@ -463,7 +409,6 @@ class ThreeBoxSectionState extends State<ThreeBoxSection> {
     } catch (e) {
       print('Error fetching balances: $e');
 
-      // Retry logic
       if (retryCount < 3 && mounted) {
         await Future.delayed(Duration(seconds: 1 + retryCount));
         _fetchBalances(useCache: useCache, retryCount: retryCount + 1);
@@ -478,8 +423,9 @@ class ThreeBoxSectionState extends State<ThreeBoxSection> {
     }
   }
 
-  // Add this method to check user status from SharedPreferences
   Future<int?> _getUserStatus() async {
+    // This reads from SharedPreferences (user_data) which is non-sensitive
+    // Only status flag, no sensitive data
     final prefs = await SharedPreferences.getInstance();
     final userDataString = prefs.getString('user_data');
 
@@ -584,7 +530,7 @@ class ThreeBoxSectionState extends State<ThreeBoxSection> {
     });
     if (stillUnlocked) {
       _startEyeAutoLockTimer();
-      _startEyeExpireWatcher(); // <-- restart watcher if still unlocked
+      _startEyeExpireWatcher();
     }
   }
 

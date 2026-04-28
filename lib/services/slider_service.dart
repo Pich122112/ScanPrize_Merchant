@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 import '../models/slider_model.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'secure_storage_service.dart';
 
 class ApiService {
   static const String baseUrl = 'https://api-merchant.sandbox.gzb.app/api/v2';
@@ -12,6 +13,10 @@ class ApiService {
 
   Future<List<SliderModel>> getSliders({bool forceRefresh = false}) async {
     final prefs = await SharedPreferences.getInstance();
+    final secureStorage = SecureStorageService();
+
+    // Get token from secure storage instead of SharedPreferences
+    final token = await secureStorage.getToken();
 
     // Check if we should use cache (not forcing refresh and cache is valid)
     if (!forceRefresh && await _shouldUseCache()) {
@@ -31,7 +36,6 @@ class ApiService {
 
     try {
       print('Fetching sliders from API: $baseUrl/slider');
-      final token = prefs.getString('token');
 
       final response = await http.get(
         Uri.parse('$baseUrl/slider'),
@@ -114,4 +118,4 @@ class ApiService {
   }
 }
 
-//Correct with 115 line code changes
+//Correct with 121 line code changes

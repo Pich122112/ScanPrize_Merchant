@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:easy_localization/easy_localization.dart';
 import 'package:gb_merchant/screens/firstScreen.dart';
+import 'package:gb_merchant/services/secure_storage_service.dart';
 import 'package:gb_merchant/utils/device_uuid.dart';
 import 'package:gb_merchant/widgets/start_screen.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -88,6 +89,8 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
     // First-time refresh when app starts
     WidgetsBinding.instance.addPostFrameCallback((_) async {
       await FirebaseService.forceRefreshOnReopen();
+      // ✅ NEW: Check and upload FCM token on app start
+      await _checkAndUploadFcmToken();
     });
   }
 
@@ -103,6 +106,21 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
     if (state == AppLifecycleState.resumed) {
       // App came back from background
       FirebaseService.forceRefreshOnReopen();
+    }
+  }
+
+  Future<void> _checkAndUploadFcmToken() async {
+    final prefs = await SharedPreferences.getInstance();
+    final isLoggedIn = prefs.getBool('isLoggedIn') ?? false;
+
+    if (isLoggedIn) {
+      final secureStorage = SecureStorageService();
+      final apiToken = await secureStorage.getToken();
+
+      if (apiToken != null && apiToken.isNotEmpty) {
+        print('📱 App start check: Uploading FCM token for logged-in user...');
+        await FirebaseService.sendFcmTokenToBackend(apiToken: apiToken);
+      }
     }
   }
 

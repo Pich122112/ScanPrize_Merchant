@@ -1,18 +1,18 @@
 import 'package:gb_merchant/utils/qr_code_extractor.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
-import 'package:shared_preferences/shared_preferences.dart';
+import 'secure_storage_service.dart';
+import 'package:flutter/foundation.dart';
 
 class Constants {
   static const String apiUrl = "https://api-merchant.sandbox.gzb.app/api/v2";
-  static const String appSecret = "MySuperSecretKey123!@*";
   static const String wsUrl = 'scan-app-m1fx.onrender.com:8081';
   static const String appPackage = 'com.ganzberg.scanprizemerchantapp';
 }
 
 Future<Map<String, dynamic>> fetchPrizeByNaturalCode(String fullCode) async {
-  final prefs = await SharedPreferences.getInstance();
-  final token = prefs.getString('token') ?? '';
+  final secureStorage = SecureStorageService();
+  final token = await secureStorage.getToken() ?? '';
 
   if (token.isEmpty) {
     return {
@@ -25,7 +25,6 @@ Future<Map<String, dynamic>> fetchPrizeByNaturalCode(String fullCode) async {
   final codeToSend = QrCodeExtractor.extractFullCode(fullCode);
 
   final url = "https://api-merchant.sandbox.gzb.app/api/v2/redeem/scan";
-  print('Validating full code: $codeToSend');
 
   try {
     final response = await http.post(
@@ -39,9 +38,10 @@ Future<Map<String, dynamic>> fetchPrizeByNaturalCode(String fullCode) async {
       body: {"code": codeToSend}, // <-- Send the full code with signature!
     );
 
-    print('Full code API response status: ${response.statusCode}');
-    print('Full code API response body: ${response.body}');
-
+    if (kDebugMode) {
+      print('Validating QR code');
+      print('API response status: ${response.statusCode}');
+    }
     if (response.statusCode == 200) {
       final data = json.decode(response.body);
 
@@ -74,14 +74,16 @@ Future<Map<String, dynamic>> fetchPrizeByNaturalCode(String fullCode) async {
       return {"success": false, "error": message ?? "Invalid or used code"};
     }
   } catch (e) {
-    print('Full code API error: $e');
+    if (kDebugMode) {
+      print('API error');
+    }
     return {"success": false, "error": "Network error: ${e.toString()}"};
   }
 }
 
 Future<Map<String, dynamic>> fetchPrizeByCode(String code) async {
-  final prefs = await SharedPreferences.getInstance();
-  final token = prefs.getString('token') ?? '';
+  final secureStorage = SecureStorageService();
+  final token = await secureStorage.getToken() ?? '';
 
   if (token.isEmpty) {
     return {
@@ -91,7 +93,6 @@ Future<Map<String, dynamic>> fetchPrizeByCode(String code) async {
   }
 
   final url = "https://api-merchant.sandbox.gzb.app/api/v2/redeem/scan";
-  print('Scanning code: $code');
 
   try {
     final response = await http.post(
@@ -105,9 +106,10 @@ Future<Map<String, dynamic>> fetchPrizeByCode(String code) async {
       body: {"code": code},
     );
 
-    print('Scan API response status: ${response.statusCode}');
-    print('Scan API response body: ${response.body}');
-
+    if (kDebugMode) {
+      print('Scanning QR code');
+      print('API response status: ${response.statusCode}');
+    }
     if (response.statusCode == 200) {
       final data = json.decode(response.body);
 
@@ -160,8 +162,6 @@ Future<Map<String, dynamic>> fetchPrizeByCode(String code) async {
       }
     }
   } catch (e) {
-    print('Scan API error: $e');
-
     // Check if this is definitely a transfer QR
     if (_isDefinitelyTransferQr(code)) {
       return {
@@ -190,8 +190,6 @@ bool _isDefinitelyTransferQr(String code) {
     // Not JSON format
   }
 
-  // Check for specific ABA TLV format with proper structure
-  // Format: 59[length][phone]99[length][name][signature][crc]
   if (code.startsWith('59') && code.length >= 4) {
     try {
       final phoneLengthStr = code.substring(2, 4);
@@ -216,7 +214,6 @@ bool _isDefinitelyTransferQr(String code) {
     }
   }
 
-  // Check for your specific transfer format: 59128559620011469912Default Name6304D1F0
   if (code.startsWith('5912') &&
       code.contains('Default Name') &&
       code.length >= 30) {
@@ -239,11 +236,9 @@ bool _isDefinitelyTransferQr(String code) {
     }
   }
 
-  // Prize QR codes typically don't have these patterns
-  // They are usually simple codes like "B000194023", "GB123456", etc.
   final prizeQrPatterns = [
-    RegExp(r'^[A-Z]{1,2}\d{6,9}$'), // Like B000194023, GB123456
-    RegExp(r'^[A-Z]{2,3}\d+$'), // Like BS123, ID4567
+    RegExp(r'^[A-Z]{1,2}\d{6,9}$'),
+    RegExp(r'^[A-Z]{2,3}\d+$'),
   ];
 
   for (final pattern in prizeQrPatterns) {
@@ -255,4 +250,4 @@ bool _isDefinitelyTransferQr(String code) {
   return false;
 }
 
-//Correct with 186 line code changes
+//Correct with 253 line code change

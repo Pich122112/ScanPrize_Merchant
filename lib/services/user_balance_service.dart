@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 import '../utils/balance_refresh_notifier.dart';
+import 'secure_storage_service.dart';
 
 class UserBalanceService {
   static const _balanceCacheKey = 'wallet_balances';
@@ -54,13 +55,11 @@ class UserBalanceService {
     );
   }
 
-  // user_balance_service.dart - update the fetchUserBalances method
-  // Fetch from API, update cache and return
   static Future<Map<String, dynamic>> fetchUserBalances({
     bool updateCache = true,
   }) async {
-    final prefs = await SharedPreferences.getInstance();
-    final token = prefs.getString('token') ?? '';
+    final secureStorage = SecureStorageService();
+    final token = await secureStorage.getToken() ?? '';
 
     if (token.isEmpty) {
       return {'ganzberg': 0, 'idol': 0, 'boostrong': 0, 'diamond': 0.0};
@@ -149,7 +148,6 @@ class UserBalanceService {
   }
 
   // Use this method for first-time load or when app restarts
-  // Use this method for first-time load or when app restarts
   static Future<Map<String, dynamic>> getCachedOrFetchBalances() async {
     final cached = await getBalancesFromCache();
     final now = DateTime.now().millisecondsSinceEpoch;
@@ -176,8 +174,8 @@ class UserBalanceService {
 
   // Add this method to UserBalanceService for debugging
   static Future<void> debugBalanceFetch() async {
-    final prefs = await SharedPreferences.getInstance();
-    final token = prefs.getString('token') ?? '';
+    final secureStorage = SecureStorageService();
+    final token = await secureStorage.getToken() ?? '';
 
     print('DEBUG: Token available: ${token.isNotEmpty}');
 
@@ -229,4 +227,4 @@ class UserBalanceService {
   }
 }
 
-//Correct with 232 line code changes
+//Correct with 230 line code changes

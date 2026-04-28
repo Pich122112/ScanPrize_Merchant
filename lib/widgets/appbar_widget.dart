@@ -10,6 +10,7 @@ import 'package:gb_merchant/services/scanqr_prize.dart';
 import 'package:gb_merchant/utils/constants.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../services/check_unread_notification.dart';
+import '../services/secure_storage_service.dart';
 
 class CustomAppBar extends StatefulWidget implements PreferredSizeWidget {
   final VoidCallback? onMenuPressed;
@@ -29,11 +30,12 @@ class CustomAppBar extends StatefulWidget implements PreferredSizeWidget {
 
 class _CustomAppBarState extends State<CustomAppBar> {
   late ValueNotifier<int> _badgeNotifier;
+  late SecureStorageService _secureStorage;
 
   @override
   void initState() {
     super.initState();
-
+    _secureStorage = SecureStorageService();
     _badgeNotifier = FirebaseService.badgeCountNotifier;
 
     // Load saved value once at startup
@@ -64,13 +66,12 @@ class _CustomAppBarState extends State<CustomAppBar> {
   Future<void> _showQrCode(BuildContext context) async {
     print('DEBUG: _showQrCode called');
 
+    // Get user status from SharedPreferences (non-sensitive flag)
     final prefs = await SharedPreferences.getInstance();
     final userDataString = prefs.getString('user_data');
-    print('DEBUG: userDataString from prefs: $userDataString');
 
     int userStatus = 1; // Default to approved
 
-    // First try to get status from SharedPreferences
     if (userDataString != null) {
       try {
         final userData = json.decode(userDataString);
@@ -78,7 +79,6 @@ class _CustomAppBarState extends State<CustomAppBar> {
         print('DEBUG: User status from prefs: $userStatus');
       } catch (e) {
         print('DEBUG: Error parsing user data from prefs: $e');
-        // If parsing fails, proceed normally instead of blocking
         userStatus = 1;
       }
     }
@@ -88,15 +88,11 @@ class _CustomAppBarState extends State<CustomAppBar> {
       print('DEBUG: Showing approval dialog (status 2)');
       _showApprovalRequiredDialog(context);
       return;
-    } else {
-      print(
-        'DEBUG: User approved (status $userStatus), proceeding with QR code',
-      );
     }
 
-    // Rest of your QR code logic...
-    final qrPayload = prefs.getString('qrPayload');
-    final phoneNumber = prefs.getString('phoneNumber');
+    // ✅ Get data from secure storage
+    final qrPayload = await _secureStorage.getQrPayload();
+    final phoneNumber = await _secureStorage.getPhoneNumber();
 
     // Try to use cached QR first
     if (qrPayload != null && phoneNumber != null) {
@@ -114,7 +110,7 @@ class _CustomAppBarState extends State<CustomAppBar> {
 
         if (response.statusCode == 200) {
           final data = json.decode(response.body);
-          await prefs.setString('qrPayload', data['qrPayload']);
+          await _secureStorage.setQrPayload(data['qrPayload']);
           _showQrDialog(context, data['qrPayload'], phoneNumber);
         } else {
           throw Exception('Failed to fetch QR code: ${response.statusCode}');
@@ -131,18 +127,16 @@ class _CustomAppBarState extends State<CustomAppBar> {
     }
   }
 
-  // Add this method to get user name from SharedPreferences
   Future<String?> _getUserName() async {
-    final prefs = await SharedPreferences.getInstance();
-    final userDataString = prefs.getString('user_data');
+    // ✅ Use secure storage for user data
+    final userId = await _secureStorage.getUserId();
+    final phoneNumber = await _secureStorage.getPhoneNumber();
 
-    if (userDataString != null) {
-      try {
-        final userData = json.decode(userDataString);
-        return userData['data']['name'] as String?;
-      } catch (e) {
-        print('Error parsing user name: $e');
-      }
+    // Try to get name from secure storage if available, or fallback to phone
+    if (userId != null && userId.isNotEmpty) {
+      // You might want to store name in secure storage as well
+      // For now, return phone number as display name
+      return formatPhoneNumber(phoneNumber ?? '');
     }
     return null;
   }
@@ -382,4 +376,4 @@ class _CustomAppBarState extends State<CustomAppBar> {
   }
 }
 
-//Correct with 385 line code changes
+//Correct with 379 line code changes

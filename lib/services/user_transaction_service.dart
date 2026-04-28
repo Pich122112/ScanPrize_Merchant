@@ -1,7 +1,7 @@
 // user_transaction_service.dart
 import 'dart:convert';
 import 'package:http/http.dart' as http;
-import 'package:shared_preferences/shared_preferences.dart';
+import 'secure_storage_service.dart';
 
 class UserTransactionService {
   static const String baseUrl = 'https://api-merchant.sandbox.gzb.app/api/v2';
@@ -12,12 +12,8 @@ class UserTransactionService {
     int perPage = 30,
   }) async {
     try {
-      final prefs = await SharedPreferences.getInstance();
-      final token =
-          prefs.getString('auth_token') ??
-          prefs.getString('token') ??
-          prefs.getString('user_token') ??
-          prefs.getString('access_token');
+      final secureStorage = SecureStorageService();
+      final token = await secureStorage.getToken();
 
       if (token == null) {
         throw Exception('No authentication token found. Please login again.');
@@ -112,12 +108,8 @@ class UserTransactionService {
 
   static Future<List<Map<String, dynamic>>> fetchAllUserTransactions() async {
     try {
-      final prefs = await SharedPreferences.getInstance();
-      final token =
-          prefs.getString('auth_token') ??
-          prefs.getString('token') ??
-          prefs.getString('user_token') ??
-          prefs.getString('access_token');
+      final secureStorage = SecureStorageService();
+      final token = await secureStorage.getToken();
 
       if (token == null) {
         throw Exception('No authentication token found. Please login again.');
@@ -214,21 +206,11 @@ class UserTransactionService {
     String walletCode,
   ) async {
     try {
-      final prefs = await SharedPreferences.getInstance();
-      final token =
-          prefs.getString('auth_token') ??
-          prefs.getString('token') ??
-          prefs.getString('user_token') ??
-          prefs.getString('access_token');
+      final secureStorage = SecureStorageService();
+      final token = await secureStorage.getToken();
 
       print('DEBUG: Token found: ${token != null ? "Yes" : "No"}');
-      if (token == null) {
-        final keys = prefs.getKeys();
-        print('DEBUG: Available keys in SharedPreferences: $keys');
-        keys.forEach((key) {
-          final value = prefs.get(key);
-          print('DEBUG: $key = $value');
-        });
+      if (token == null || token.isEmpty) {
         throw Exception('No authentication token found. Please login again.');
       }
 
@@ -411,4 +393,4 @@ class UserTransactionService {
   }
 }
 
-//Correct with 414 line code changes
+//Correct with 396 line code changes
