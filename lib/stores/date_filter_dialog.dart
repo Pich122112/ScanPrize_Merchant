@@ -129,10 +129,8 @@ class DateFilterDialog {
                       primary: Colors.cyanAccent,
                       surface: Colors.blueGrey.shade900,
                       onSurface: Colors.white,
-                      background: Colors.blueGrey.shade800,
                       error: Colors.redAccent,
                     ),
-                    dialogBackgroundColor: Colors.blueGrey.shade800,
                     textTheme: const TextTheme(
                       titleLarge: TextStyle(
                         fontFamily: 'KhmerFont',
@@ -178,7 +176,7 @@ class DateFilterDialog {
                     ),
                     textButtonTheme: TextButtonThemeData(
                       style: ButtonStyle(
-                        textStyle: MaterialStateProperty.all(
+                        textStyle: WidgetStateProperty.all(
                           const TextStyle(
                             fontFamily: 'KhmerFont',
                             fontWeight: FontWeight.bold,
@@ -204,7 +202,7 @@ class DateFilterDialog {
                         borderRadius: BorderRadius.circular(18),
                         borderSide: const BorderSide(color: Colors.cyanAccent),
                       ),
-                    ),
+                    ), dialogTheme: DialogThemeData(backgroundColor: Colors.blueGrey.shade800),
                   ),
                   child: child!,
                 );

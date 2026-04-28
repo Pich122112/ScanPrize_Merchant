@@ -18,8 +18,9 @@ class QrCaptureService {
     if (Platform.isAndroid) {
       if (await Permission.storage.request().isGranted) return true;
       if (await Permission.photos.request().isGranted) return true;
-      if (await Permission.manageExternalStorage.request().isGranted)
+      if (await Permission.manageExternalStorage.request().isGranted) {
         return true;
+      }
       return false;
     }
     if (Platform.isIOS) {
@@ -134,7 +135,7 @@ class QrCaptureService {
 
       // Capture the widget
       final boundary = qrKey.currentContext?.findRenderObject();
-      if (boundary == null || !(boundary is RenderRepaintBoundary)) {
+      if (boundary == null || boundary is! RenderRepaintBoundary) {
         debugPrint('RenderBoundary not found');
         return null;
       }

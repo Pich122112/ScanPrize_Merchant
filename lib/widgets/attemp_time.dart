@@ -6,8 +6,7 @@ import 'package:gb_merchant/utils/constants.dart';
 class LockTimerDialog extends StatefulWidget {
   final int initialSeconds;
 
-  const LockTimerDialog({Key? key, required this.initialSeconds})
-    : super(key: key);
+  const LockTimerDialog({super.key, required this.initialSeconds});
 
   @override
   State<LockTimerDialog> createState() => _LockTimerDialogState();

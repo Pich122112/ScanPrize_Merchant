@@ -678,7 +678,7 @@ class _NotificationPageState extends State<NotificationPage> {
     }
 
     // Helper to translate unit
-    String _translateUnit(String unit) {
+    String translateUnit(String unit) {
       if (localeCode == 'km') {
         switch (unit.toLowerCase()) {
           case 'can':
@@ -714,7 +714,7 @@ class _NotificationPageState extends State<NotificationPage> {
       return unit;
     }
 
-    Future<void> _saveReadTransactions() async {
+    Future<void> saveReadTransactions() async {
       final prefs = await SharedPreferences.getInstance();
       await prefs.setStringList('readTransactions', _readTransactions.toList());
       _updateUnreadStatus();
@@ -755,7 +755,7 @@ class _NotificationPageState extends State<NotificationPage> {
         setState(() {
           _readTransactions.add(transaction['id'].toString());
         });
-        _saveReadTransactions();
+        saveReadTransactions();
         final txWithRemark = Map<String, dynamic>.from(transaction);
         txWithRemark['remark'] =
             txWithRemark['remark']?.isNotEmpty == true
@@ -934,7 +934,7 @@ class _NotificationPageState extends State<NotificationPage> {
                           )
                         else
                           Text(
-                            _translateUnit(unitValue),
+                            translateUnit(unitValue),
                             style: TextStyle(
                               fontSize: 13,
                               color: isCredit ? Colors.red : Colors.green,

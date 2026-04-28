@@ -33,6 +33,8 @@ Future<void> main() async {
     if (message != null) print(message);
   };
 
+  //Macbook Pro
+
   // Initialize device UUID early
   final deviceUuid = await DeviceUUID.getUUID();
   print('📱 MAIN: Device UUID initialized: $deviceUuid');

@@ -219,7 +219,7 @@ class ImageSliderState extends State<ImageSlider>
       );
     }
 
-    return Container(
+    return SizedBox(
       width: double.infinity,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,

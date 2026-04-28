@@ -874,8 +874,9 @@ class _SignUpPageState extends State<SignInPage> {
                                             ),
                                             validator: (value) {
                                               if (_isVerifyingOtp) {
-                                                if (!_otpRequested)
+                                                if (!_otpRequested) {
                                                   return 'សូមចុច "យកកូដ OTP" ជាមុនសិន';
+                                                }
                                                 if (value == null ||
                                                     value.isEmpty) {
                                                   return 'សូមបញ្ចូលលេខកូដ OTP';
