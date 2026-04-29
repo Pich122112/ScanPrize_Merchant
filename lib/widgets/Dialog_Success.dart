@@ -4,9 +4,9 @@ class SuccessDialog extends StatelessWidget {
   final String message;
 
   const SuccessDialog({
-    super.key,
+    Key? key,
     this.message = "លេខសម្ងាត់របស់អ្នកបង្កើតបានជោគជ័យ!",
-  });
+  }) : super(key: key);
 
   @override
   Widget build(BuildContext context) {

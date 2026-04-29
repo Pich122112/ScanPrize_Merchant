@@ -3,6 +3,7 @@ import 'package:package_info_plus/package_info_plus.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:firebase_remote_config/firebase_remote_config.dart';
 
+
 class VersionService {
   static const String KEY_SKIPPED_VERSION = 'skipped_version';
 

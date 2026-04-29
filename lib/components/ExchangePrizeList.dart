@@ -20,8 +20,8 @@ class ExchangePrizeDialog extends StatefulWidget {
     required this.phoneNumber,
     required this.scannedQr,
     required this.userId,
-    super.key,
-  });
+    Key? key,
+  }) : super(key: key);
 
   @override
   State<ExchangePrizeDialog> createState() => _ExchangePrizeDialogState();

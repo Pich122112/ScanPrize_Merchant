@@ -25,16 +25,12 @@ class TransactionSummaryService {
       // Only today's transactions
       if (txDate.year != today.year ||
           txDate.month != today.month ||
-          txDate.day != today.day) {
-        continue;
-      }
+          txDate.day != today.day) continue;
 
       // Optional wallet filter (gb, id, bs, etc.)
       if (walletType != null &&
           (tx['wallet_type'] ?? '').toString().toLowerCase() !=
-              walletType.toLowerCase()) {
-        continue;
-      }
+              walletType.toLowerCase()) continue;
 
       final txType = (tx['transaction_type'] ?? '').toString().toLowerCase();
       if (txType != 'transfer_in') continue;
@@ -135,9 +131,7 @@ class TransactionSummaryService {
       // Optional wallet filter (gb, id, bs, etc.)
       if (walletType != null &&
           (tx['wallet_type'] ?? '').toString().toLowerCase() !=
-              walletType.toLowerCase()) {
-        continue;
-      }
+              walletType.toLowerCase()) continue;
 
       final txType = (tx['transaction_type'] ?? '').toString().toLowerCase();
       if (txType != 'transfer_in') continue;

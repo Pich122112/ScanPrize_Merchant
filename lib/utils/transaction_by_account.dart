@@ -640,7 +640,7 @@ class _TransactionByAccountState extends State<TransactionByAccount> {
       return isIn ? 'អ្នកប្រើប្រាស់' : 'អ្នកទទួល';
     }
 
-    String getQuantityUnit(String accountCode) {
+    String _getQuantityUnit(String accountCode) {
       switch (accountCode.toUpperCase()) {
         case 'GB':
           return 'can';
@@ -655,7 +655,7 @@ class _TransactionByAccountState extends State<TransactionByAccount> {
       }
     }
 
-    String translateUnit(String unit) {
+    String _translateUnit(String unit) {
       if (localeCode == 'km') {
         switch (unit.toLowerCase()) {
           case 'can':
@@ -699,10 +699,10 @@ class _TransactionByAccountState extends State<TransactionByAccount> {
       // If the API provides a "unit" field in the transaction, use it (with translation)
       final dynamic unitFromApi = transactionData['unit'];
       if (unitFromApi != null && unitFromApi.toString().isNotEmpty) {
-        return translateUnit(unitFromApi.toString());
+        return _translateUnit(unitFromApi.toString());
       }
       // Fallback to default mapping
-      return translateUnit(getQuantityUnit(account));
+      return _translateUnit(_getQuantityUnit(account));
     }
 
     final String quantityUnit = getUnitFromTransaction(

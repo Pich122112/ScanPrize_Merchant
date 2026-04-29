@@ -20,8 +20,8 @@ class AllExchangePrizeList extends StatefulWidget {
     required this.onPrizeSelected,
     required this.isLoadingBalances,
     this.onRefresh,
-    super.key,
-  });
+    Key? key,
+  }) : super(key: key);
 
   @override
   AllExchangePrizeListState createState() => AllExchangePrizeListState();

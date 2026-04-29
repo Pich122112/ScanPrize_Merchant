@@ -356,9 +356,9 @@ class _MerchantTransactionTableState extends State<MerchantTransactionTable> {
         child: SingleChildScrollView(
           scrollDirection: Axis.horizontal,
           child: DataTable(
-            headingRowColor: WidgetStateProperty.all(Colors.blueGrey[800]),
-            dataRowColor: WidgetStateProperty.resolveWith<Color?>((states) {
-              if (states.contains(WidgetState.selected)) {
+            headingRowColor: MaterialStateProperty.all(Colors.blueGrey[800]),
+            dataRowColor: MaterialStateProperty.resolveWith<Color?>((states) {
+              if (states.contains(MaterialState.selected)) {
                 return Colors.amber.withOpacity(0.2);
               }
               return Colors.white.withOpacity(0.05);

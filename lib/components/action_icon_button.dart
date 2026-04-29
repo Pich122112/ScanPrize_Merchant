@@ -12,8 +12,8 @@ class ActionIconButton extends StatelessWidget {
     required this.icon,
     required this.label,
     required this.onPressed,
-    super.key,
-  });
+    Key? key,
+  }) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
