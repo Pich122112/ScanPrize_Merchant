@@ -11,6 +11,7 @@ import 'package:easy_localization/easy_localization.dart';
 import 'package:gb_merchant/utils/constants.dart';
 import 'dart:io';
 import 'package:url_launcher/url_launcher.dart';
+import '../services/secure_storage_service.dart';
 
 class ProfileDrawer extends StatefulWidget {
   final String phoneNumber;
@@ -268,19 +269,37 @@ class _ProfileDrawerState extends State<ProfileDrawer> {
     }
   }
 
-  // Add this method to get user name from SharedPreferences
+  // Updated method to get user name from SecureStorageService
   Future<String?> _getUserName() async {
+    final secureStorage = SecureStorageService();
+
+    // Try to get user name from secure storage first
+    final userName = await secureStorage.getUserName();
+
+    if (userName != null && userName.isNotEmpty) {
+      return userName;
+    }
+
+    // Fallback: try to get from SharedPreferences if not in secure storage
     final prefs = await SharedPreferences.getInstance();
     final userDataString = prefs.getString('user_data');
 
     if (userDataString != null) {
       try {
         final userData = json.decode(userDataString);
-        return userData['data']['name'] as String?;
+        final name = userData['data']['name'] as String?;
+
+        // If found in SharedPreferences, save it to secure storage for next time
+        if (name != null && name.isNotEmpty) {
+          await secureStorage.setUserName(name);
+        }
+
+        return name;
       } catch (e) {
         print('Error parsing user name: $e');
       }
     }
+
     return null;
   }
 

@@ -127,17 +127,20 @@ class _CustomAppBarState extends State<CustomAppBar> {
     }
   }
 
-  Future<String?> _getUserName() async {
-    // ✅ Use secure storage for user data
-    final userId = await _secureStorage.getUserId();
-    final phoneNumber = await _secureStorage.getPhoneNumber();
-
-    // Try to get name from secure storage if available, or fallback to phone
-    if (userId != null && userId.isNotEmpty) {
-      // You might want to store name in secure storage as well
-      // For now, return phone number as display name
-      return formatPhoneNumber(phoneNumber ?? '');
+ Future<String?> _getUserName() async {
+    // Try to get user name from secure storage first
+    final userName = await _secureStorage.getUserName();
+    
+    if (userName != null && userName.isNotEmpty) {
+      return userName;
     }
+    
+    // Fallback to phone number if no name found
+    final phoneNumber = await _secureStorage.getPhoneNumber();
+    if (phoneNumber != null && phoneNumber.isNotEmpty) {
+      return formatPhoneNumber(phoneNumber);
+    }
+    
     return null;
   }
 

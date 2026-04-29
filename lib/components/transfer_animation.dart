@@ -202,7 +202,7 @@ class _TransferAnimationState extends State<TransferAnimation>
     final digits = text.replaceAll(RegExp(r'\D'), '');
     if (digits.startsWith('855') && digits.length >= 6) {
       // Take only the first three digits after 855
-      return '0${digits.substring(3, 5)}';
+      return '0' + digits.substring(3, 5);
     }
     if (digits.length >= 3) return digits.substring(0, 3);
     return '?';

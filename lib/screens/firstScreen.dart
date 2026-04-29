@@ -20,10 +20,7 @@ class Firstscreen extends StatelessWidget {
           gradient: LinearGradient(
             begin: Alignment.topCenter,
             end: Alignment.bottomCenter,
-            colors: [
-              Color.fromRGBO(251, 96, 0, 1),
-              Color.fromRGBO(250, 99, 5, 1),
-            ],
+            colors: [AppColors.primaryColor, AppColors.primaryColor],
           ),
         ),
         child: SafeArea(

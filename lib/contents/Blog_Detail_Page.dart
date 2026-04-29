@@ -10,10 +10,10 @@ class BlogDetailPage extends StatefulWidget {
   final List<SliderModel> allSlides;
 
   const BlogDetailPage({
-    super.key,
+    Key? key,
     required this.slider,
     required this.allSlides,
-  });
+  }) : super(key: key);
 
   @override
   _BlogDetailPageState createState() => _BlogDetailPageState();

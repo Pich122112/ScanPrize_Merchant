@@ -47,10 +47,7 @@ class _AgreementState extends State<Agreement> {
           gradient: LinearGradient(
             begin: Alignment.topCenter,
             end: Alignment.bottomCenter,
-            colors: [
-              Color.fromRGBO(251, 96, 0, 1),
-              Color.fromRGBO(250, 99, 5, 1),
-            ],
+            colors: [AppColors.primaryColor, AppColors.primaryColor],
           ),
         ),
         child: SafeArea(
@@ -190,7 +187,7 @@ class _AgreementState extends State<Agreement> {
                               "ថយក្រោយ",
                               style: TextStyle(
                                 fontSize: 16,
-                                color: Colors.red,
+                                color: AppColors.primaryColor,
                                 fontWeight: FontWeight.w500,
                                 fontFamily: 'KhmerFont',
                               ),

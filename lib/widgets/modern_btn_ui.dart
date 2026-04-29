@@ -6,11 +6,11 @@ class AnimatedGradientButton extends StatefulWidget {
   final bool disabled; // optional: grey out when disabled
 
   const AnimatedGradientButton({
-    super.key,
+    Key? key,
     required this.onPressed,
     required this.text,
     this.disabled = false,
-  });
+  }) : super(key: key);
 
   @override
   State<AnimatedGradientButton> createState() => _AnimatedGradientButtonState();
@@ -58,9 +58,9 @@ class _AnimatedGradientButtonState extends State<AnimatedGradientButton>
                           begin: Alignment.topLeft,
                           end: Alignment.bottomRight,
                           colors: const [
-                            Color(0xFF8A2BE2),
-                            Color(0xFFFF8CFF),
-                            Color(0xFF40E0D0),
+                            Color(0xFF0D55A8), // base
+                            Color(0xFF3A7BC8), // lighter
+                            Color(0xFF083B73), // darker
                           ],
                           stops: [0.0, _controller.value, 2.0],
                         ),

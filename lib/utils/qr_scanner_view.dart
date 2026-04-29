@@ -300,7 +300,7 @@ class QrScannerView extends StatefulWidget {
 class _QrScannerViewState extends State<QrScannerView>
     with WidgetsBindingObserver, TickerProviderStateMixin {
   bool isProcessing = false;
-  final double _defaultZoom = 1.0;
+  double _defaultZoom = 1.0;
   double _currentZoom = 1.0;
   Timer? _zoomTimer;
   double _targetZoom = 1.0;
@@ -551,16 +551,14 @@ class _QrScannerViewState extends State<QrScannerView>
 
         // cleanup listeners
         try {
-          if (_zoomTickListener != null) {
+          if (_zoomTickListener != null)
             _animController.removeListener(_zoomTickListener!);
-          }
         } catch (_) {}
         _zoomTickListener = null;
 
         try {
-          if (_zoomStatusListener != null) {
+          if (_zoomStatusListener != null)
             _animController.removeStatusListener(_zoomStatusListener!);
-          }
         } catch (_) {}
         _zoomStatusListener = null;
       }

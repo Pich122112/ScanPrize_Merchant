@@ -189,9 +189,9 @@ class ImageSliderState extends State<ImageSlider>
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
             colors: [
-              Color.fromARGB(255, 233, 78, 6),
-              Color.fromARGB(255, 251, 92, 0),
-              Color.fromARGB(255, 244, 143, 3),
+              Color(0xFF083A75), // darker shade
+              Color(0xFF0D55A8), // main color
+              Color(0xFF4A8DFF), // lighter highlight
             ],
             stops: [0.0, 0.4, 1.0],
           ),
@@ -219,7 +219,7 @@ class ImageSliderState extends State<ImageSlider>
       );
     }
 
-    return SizedBox(
+    return Container(
       width: double.infinity,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -344,24 +344,9 @@ class ImageSliderState extends State<ImageSlider>
               begin: Alignment.topLeft,
               end: Alignment.bottomRight,
               colors: [
-                Color.fromARGB(
-                  255,
-                  233,
-                  78,
-                  6,
-                ), // dark orange-red shade for depth
-                Color.fromARGB(
-                  255,
-                  251,
-                  92,
-                  0,
-                ), // your primary color (bright orange)
-                Color.fromARGB(
-                  255,
-                  244,
-                  143,
-                  3,
-                ), // warm golden-yellow highlight
+                Color(0xFF083A75), // darker shade
+                Color(0xFF0D55A8), // main color
+                Color(0xFF4A8DFF), // lighter highlight
               ],
               stops: [0.0, 0.4, 1.0],
             ),

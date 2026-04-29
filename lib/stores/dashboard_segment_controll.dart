@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:gb_merchant/utils/constants.dart';
 
 class DashboardSegmentControll extends StatelessWidget {
   final int selectedIndex;
@@ -32,7 +33,7 @@ class DashboardSegmentControll extends StatelessWidget {
                 duration: const Duration(milliseconds: 180),
                 decoration: BoxDecoration(
                   color:
-                      isSelected ? const Color(0xFFFF6B00) : Colors.transparent,
+                      isSelected ? AppColors.primaryColor : Colors.transparent,
                   borderRadius: BorderRadius.circular(24),
                 ),
                 alignment: Alignment.center,

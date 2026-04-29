@@ -6,6 +6,8 @@ class SecureStorageService {
   static const String _phoneNumberKey = 'phone_number';
   static const String _refreshTokenKey = 'refresh_token';
   static const String _qrPayloadKey = 'qr_payload';
+  static const String _userNameKey = 'user_name'; 
+
 
   final FlutterSecureStorage _storage = const FlutterSecureStorage(
     aOptions: AndroidOptions(
@@ -48,6 +50,17 @@ class SecureStorageService {
     return await _storage.read(key: _phoneNumberKey);
   }
 
+    // Store user name
+  Future<void> setUserName(String userName) async {
+    await _storage.write(key: _userNameKey, value: userName);
+  }
+
+  // Get user name
+  Future<String?> getUserName() async {
+    return await _storage.read(key: _userNameKey);
+  }
+
+
   // Store refresh token
   Future<void> setRefreshToken(String refreshToken) async {
     await _storage.write(key: _refreshTokenKey, value: refreshToken);
@@ -64,6 +77,7 @@ class SecureStorageService {
     await _storage.delete(key: _userIdKey);
     await _storage.delete(key: _phoneNumberKey);
     await _storage.delete(key: _refreshTokenKey);
+        await _storage.delete(key: _userNameKey); 
   }
 
   // Check if user is logged in

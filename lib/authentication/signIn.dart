@@ -405,7 +405,7 @@ class _SignUpPageState extends State<SignInPage> {
             'ការបញ្ជូន OTP បរាជ័យ',
             style: TextStyle(color: Colors.white, fontSize: 16),
           ),
-          backgroundColor: Colors.red,
+          backgroundColor: AppColors.primaryColor,
         ),
       );
     } finally {
@@ -473,7 +473,9 @@ class _SignUpPageState extends State<SignInPage> {
             await _secureStorage.setToken(token);
             await _secureStorage.setUserId(data['id'].toString());
             await _secureStorage.setPhoneNumber(data['phone_number'] ?? '');
-
+            await _secureStorage.setUserName(
+              data['name'] ?? data['full_name'] ?? '',
+            );
             await FirebaseService.sendFcmTokenToBackend(apiToken: token);
 
             // ✅ Only store non-sensitive data in SharedPreferences
@@ -646,182 +648,100 @@ class _SignUpPageState extends State<SignInPage> {
 
   @override
   Widget build(BuildContext context) {
-    return Stack(
-      children: [
-        Scaffold(
-          backgroundColor: AppColors.primaryColor,
-          body: SafeArea(
-            child: LayoutBuilder(
-              builder:
-                  (context, constraints) => SingleChildScrollView(
-                    child: ConstrainedBox(
-                      constraints: BoxConstraints(
-                        minHeight: constraints.maxHeight,
-                      ),
-                      child: IntrinsicHeight(
-                        child: Column(
-                          children: <Widget>[
-                            const SizedBox(height: 40),
-                            CircleAvatar(
-                              backgroundColor: AppColors.primaryColor,
-                              radius: 80,
-                              child: Image.asset(
-                                'assets/images/logo.png',
-                                width: 300,
-                                height: 300,
+    return GestureDetector(
+      onTap: () {
+        // Dismiss keyboard when tapping outside
+        FocusScope.of(context).unfocus();
+      },
+      child: Stack(
+        children: [
+          Scaffold(
+            backgroundColor: AppColors.primaryColor,
+            body: SafeArea(
+              child: LayoutBuilder(
+                builder:
+                    (context, constraints) => SingleChildScrollView(
+                      child: ConstrainedBox(
+                        constraints: BoxConstraints(
+                          minHeight: constraints.maxHeight,
+                        ),
+                        child: IntrinsicHeight(
+                          child: Column(
+                            children: <Widget>[
+                              const SizedBox(height: 40),
+                              CircleAvatar(
+                                backgroundColor: AppColors.primaryColor,
+                                radius: 80,
+                                child: Image.asset(
+                                  'assets/images/logo.png',
+                                  width: 300,
+                                  height: 300,
+                                ),
                               ),
-                            ),
 
-                            const SizedBox(height: 30),
-                            Expanded(
-                              child: Container(
-                                width: double.infinity,
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 20,
-                                  vertical: 20,
-                                ),
-                                decoration: const BoxDecoration(
-                                  color: Colors.white,
-                                  borderRadius: BorderRadius.only(
-                                    topLeft: Radius.circular(40),
-                                    topRight: Radius.circular(40),
+                              const SizedBox(height: 30),
+                              Expanded(
+                                child: Container(
+                                  width: double.infinity,
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 20,
+                                    vertical: 20,
                                   ),
-                                ),
-                                child: AutofillGroup(
-                                  child: Form(
-                                    key: _formKey,
-                                    autovalidateMode: AutovalidateMode.disabled,
-                                    child: Column(
-                                      crossAxisAlignment:
-                                          CrossAxisAlignment.center,
-                                      children: [
-                                        const SizedBox(height: 20),
-                                        Row(
-                                          children: [
-                                            IconButton(
-                                              icon: Icon(
-                                                Icons.arrow_back_ios,
-                                                size: 25,
-                                                color: Colors.grey,
+                                  decoration: const BoxDecoration(
+                                    color: Colors.white,
+                                    borderRadius: BorderRadius.only(
+                                      topLeft: Radius.circular(40),
+                                      topRight: Radius.circular(40),
+                                    ),
+                                  ),
+                                  child: AutofillGroup(
+                                    child: Form(
+                                      key: _formKey,
+                                      autovalidateMode:
+                                          AutovalidateMode.disabled,
+                                      child: Column(
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.center,
+                                        children: [
+                                          const SizedBox(height: 20),
+                                          Row(
+                                            children: [
+                                              IconButton(
+                                                icon: Icon(
+                                                  Icons.arrow_back_ios,
+                                                  size: 25,
+                                                  color: Colors.grey,
+                                                ),
+                                                onPressed: () {
+                                                  Navigator.of(context).pop();
+                                                },
                                               ),
-                                              onPressed: () {
-                                                Navigator.of(context).pop();
-                                              },
-                                            ),
-                                            const SizedBox(width: 8),
-                                            Align(
-                                              alignment: Alignment.centerLeft,
-                                              child: const Text(
-                                                'ចូលប្រើប្រាស់គណនី',
-                                                style: TextStyle(
-                                                  fontSize: 24,
-                                                  color: Colors.black,
-                                                  fontFamily: 'KhmerFont',
-                                                  fontWeight: FontWeight.bold,
+                                              const SizedBox(width: 8),
+                                              Align(
+                                                alignment: Alignment.centerLeft,
+                                                child: const Text(
+                                                  'ចូលប្រើប្រាស់គណនី',
+                                                  style: TextStyle(
+                                                    fontSize: 24,
+                                                    color: Colors.black,
+                                                    fontFamily: 'KhmerFont',
+                                                    fontWeight: FontWeight.bold,
+                                                  ),
                                                 ),
                                               ),
-                                            ),
-                                          ],
-                                        ),
-                                        const SizedBox(height: 50),
-                                        IntlPhoneField(
-                                          controller: _phoneController,
-                                          decoration: InputDecoration(
-                                            hintText:
-                                                '(0) សូមបញ្ចូលលេខទូរស័ព្ទអ្នក',
-                                            hintStyle: TextStyle(
-                                              color: Colors.grey[600],
-                                              fontSize: 16,
-                                              fontFamily: 'KhmerFont',
-                                            ),
-                                            filled: true,
-                                            fillColor: Colors.grey[200],
-                                            border: OutlineInputBorder(
-                                              borderRadius:
-                                                  BorderRadius.circular(10),
-                                              borderSide: BorderSide.none,
-                                            ),
-                                            contentPadding:
-                                                const EdgeInsets.symmetric(
-                                                  vertical: 16,
-                                                ),
-                                            errorText: _phoneErrorText,
-                                            errorStyle: const TextStyle(
-                                              fontFamily: 'KhmerFont',
-                                              fontSize: 14,
-                                              fontWeight:
-                                                  FontWeight
-                                                      .bold, // ✅ makes it bold
-                                              color: Colors.red,
-                                            ),
+                                            ],
                                           ),
-                                          initialCountryCode: 'KH',
-                                          disableLengthCheck: true,
-                                          validator: (phone) {
-                                            if (phone != null &&
-                                                phone.number.startsWith('0')) {
-                                              return 'លេខទូរស័ព្ទមិនអាចចាប់ផ្តើមដោយ 0';
-                                            }
-                                            return null;
-                                          },
-                                          onChanged: (phone) {
-                                            if (phone.number.startsWith('0')) {
-                                              WidgetsBinding.instance
-                                                  .addPostFrameCallback((_) {
-                                                    _phoneController
-                                                        .text = phone.number
-                                                        .replaceFirst(
-                                                          RegExp(r'^0+'),
-                                                          '',
-                                                        );
-                                                    _phoneController.selection =
-                                                        TextSelection.fromPosition(
-                                                          TextPosition(
-                                                            offset:
-                                                                _phoneController
-                                                                    .text
-                                                                    .length,
-                                                          ),
-                                                        );
-                                                  });
-                                              setState(() {
-                                                _phoneErrorText =
-                                                    'លេខទូរស័ព្ទមិនអាចចាប់ផ្តើមដោយ 0';
-                                              });
-                                            } else if (_phoneErrorText !=
-                                                null) {
-                                              setState(() {
-                                                _phoneErrorText = null;
-                                              });
-                                            }
-                                          },
-                                          onCountryChanged: (country) {
-                                            setState(() {
-                                              _countryCode = country.dialCode;
-                                              _phoneController.clear();
-                                            });
-                                          },
-                                        ),
-                                        const SizedBox(height: 18),
-                                        const SizedBox(height: 18),
-                                        AutofillGroup(
-                                          child: TextFormField(
-                                            controller: _otpController,
-                                            keyboardType: TextInputType.number,
-                                            maxLength: 4,
-                                            autofillHints: const [
-                                              AutofillHints.oneTimeCode,
-                                            ], // Add this line
+                                          const SizedBox(height: 50),
+                                          IntlPhoneField(
+                                            controller: _phoneController,
                                             decoration: InputDecoration(
                                               hintText:
-                                                  'សូមចុចលើប៊ូតុងយកកូដ ​OTP',
+                                                  '(0) សូមបញ្ចូលលេខទូរស័ព្ទអ្នក',
                                               hintStyle: TextStyle(
                                                 color: Colors.grey[600],
                                                 fontSize: 16,
                                                 fontFamily: 'KhmerFont',
-                                                fontWeight: FontWeight.w500,
                                               ),
-                                              counterText: '',
                                               filled: true,
                                               fillColor: Colors.grey[200],
                                               border: OutlineInputBorder(
@@ -833,175 +753,274 @@ class _SignUpPageState extends State<SignInPage> {
                                                   const EdgeInsets.symmetric(
                                                     vertical: 16,
                                                   ),
-                                              prefixIcon: Icon(
-                                                Icons.sms,
-                                                color: Colors.grey[600],
-                                              ),
+                                              errorText: _phoneErrorText,
                                               errorStyle: const TextStyle(
                                                 fontFamily: 'KhmerFont',
                                                 fontSize: 14,
-                                                fontWeight: FontWeight.bold,
-                                                color: Colors.red,
+                                                fontWeight:
+                                                    FontWeight
+                                                        .bold, // ✅ makes it bold
+                                                color: AppColors.primaryColor,
                                               ),
-                                              suffixIcon:
-                                                  (_otpRequested && _timing)
-                                                      ? Padding(
-                                                        padding:
-                                                            const EdgeInsets.only(
-                                                              right: 12,
-                                                              top: 13,
-                                                            ),
-                                                        child: Text(
-                                                          '$_secondsRemaining វិនាទី',
-                                                          style: const TextStyle(
-                                                            color:
-                                                                AppColors
-                                                                    .primaryColor,
-                                                            fontSize: 14,
-                                                            fontWeight:
-                                                                FontWeight.bold,
-                                                            fontFamily:
-                                                                'KhmerFont',
-                                                          ),
-                                                        ),
-                                                      )
-                                                      : null,
                                             ),
-                                            style: const TextStyle(
-                                              fontSize: 18,
-                                              color: Colors.black,
-                                              fontFamily: 'KhmerFont',
-                                            ),
-                                            validator: (value) {
-                                              if (_isVerifyingOtp) {
-                                                if (!_otpRequested) {
-                                                  return 'សូមចុច "យកកូដ OTP" ជាមុនសិន';
-                                                }
-                                                if (value == null ||
-                                                    value.isEmpty) {
-                                                  return 'សូមបញ្ចូលលេខកូដ OTP';
-                                                } else if (value.length != 4) {
-                                                  return 'លេខកូដ OTP ត្រូវមានចំនួន 4 ខ្ទង់';
-                                                }
+                                            initialCountryCode: 'KH',
+                                            disableLengthCheck: true,
+                                            validator: (phone) {
+                                              if (phone != null &&
+                                                  phone.number.startsWith(
+                                                    '0',
+                                                  )) {
+                                                return 'លេខទូរស័ព្ទមិនអាចចាប់ផ្តើមដោយ 0';
                                               }
                                               return null;
                                             },
+                                            onChanged: (phone) {
+                                              if (phone.number.startsWith(
+                                                '0',
+                                              )) {
+                                                WidgetsBinding.instance
+                                                    .addPostFrameCallback((_) {
+                                                      _phoneController
+                                                          .text = phone.number
+                                                          .replaceFirst(
+                                                            RegExp(r'^0+'),
+                                                            '',
+                                                          );
+                                                      _phoneController
+                                                              .selection =
+                                                          TextSelection.fromPosition(
+                                                            TextPosition(
+                                                              offset:
+                                                                  _phoneController
+                                                                      .text
+                                                                      .length,
+                                                            ),
+                                                          );
+                                                    });
+                                                setState(() {
+                                                  _phoneErrorText =
+                                                      'លេខទូរស័ព្ទមិនអាចចាប់ផ្តើមដោយ 0';
+                                                });
+                                              } else if (_phoneErrorText !=
+                                                  null) {
+                                                setState(() {
+                                                  _phoneErrorText = null;
+                                                });
+                                              }
+                                            },
+                                            onCountryChanged: (country) {
+                                              setState(() {
+                                                _countryCode = country.dialCode;
+                                                _phoneController.clear();
+                                              });
+                                            },
                                           ),
-                                        ),
-
-                                        const SizedBox(height: 16),
-                                        if (_showResendBelow)
-                                          Padding(
-                                            padding: const EdgeInsets.only(
-                                              top: 10,
-                                            ),
-                                            child: Row(
-                                              mainAxisAlignment:
-                                                  MainAxisAlignment.center,
-                                              children: const [
-                                                Text(
-                                                  'មិនទទួលបានកូដមែន​ទេ ?​ សូមចុចម្តងទៀត',
-                                                  style: TextStyle(
-                                                    color:
-                                                        AppColors.primaryColor,
-                                                    fontWeight: FontWeight.w600,
-                                                    fontFamily: 'KhmerFont',
-                                                  ),
+                                          const SizedBox(height: 18),
+                                          const SizedBox(height: 18),
+                                          AutofillGroup(
+                                            child: TextFormField(
+                                              controller: _otpController,
+                                              keyboardType:
+                                                  TextInputType.number,
+                                              maxLength: 4,
+                                              autofillHints: const [
+                                                AutofillHints.oneTimeCode,
+                                              ], // Add this line
+                                              decoration: InputDecoration(
+                                                hintText:
+                                                    'សូមចុចលើប៊ូតុងយកកូដ ​OTP',
+                                                hintStyle: TextStyle(
+                                                  color: Colors.grey[600],
+                                                  fontSize: 16,
+                                                  fontFamily: 'KhmerFont',
+                                                  fontWeight: FontWeight.w500,
                                                 ),
-                                              ],
-                                            ),
-                                          ),
-                                        const SizedBox(height: 60),
-                                        SizedBox(
-                                          width: double.infinity,
-                                          child: ElevatedButton(
-                                            style: ElevatedButton.styleFrom(
-                                              backgroundColor:
-                                                  _isBlackButton
-                                                      ? Colors.black
-                                                      : AppColors
-                                                          .primaryColor, // Change to your theme color
-                                              shape: RoundedRectangleBorder(
-                                                borderRadius:
-                                                    BorderRadius.circular(10),
-                                              ),
-                                              padding:
-                                                  const EdgeInsets.symmetric(
-                                                    vertical: 16,
-                                                  ),
-                                              elevation: 2,
-                                              textStyle: const TextStyle(
-                                                fontWeight: FontWeight.bold,
-                                                fontSize: 20,
-                                              ),
-                                            ),
-                                            onPressed:
-                                                _isLoading
-                                                    ? null
-                                                    : (!_otpRequested ||
-                                                            _showResendBelow
-                                                        ? _onRequestOtp
-                                                        : _onVerifyOtp),
-                                            child:
-                                                _isLoading
-                                                    ? const CircularProgressIndicator(
-                                                      color: Colors.white,
-                                                    )
-                                                    : Text(
-                                                      (!_otpRequested ||
-                                                              _showResendBelow)
-                                                          ? 'យកកូដ OTP'
-                                                          : 'បញ្ជាក់ OTP',
-                                                      style: const TextStyle(
-                                                        color: Colors.white,
-                                                        fontFamily: 'KhmerFont',
-                                                      ),
+                                                counterText: '',
+                                                filled: true,
+                                                fillColor: Colors.grey[200],
+                                                border: OutlineInputBorder(
+                                                  borderRadius:
+                                                      BorderRadius.circular(10),
+                                                  borderSide: BorderSide.none,
+                                                ),
+                                                contentPadding:
+                                                    const EdgeInsets.symmetric(
+                                                      vertical: 16,
                                                     ),
+                                                prefixIcon: Icon(
+                                                  Icons.sms,
+                                                  color: Colors.grey[600],
+                                                ),
+                                                errorStyle: const TextStyle(
+                                                  fontFamily: 'KhmerFont',
+                                                  fontSize: 14,
+                                                  fontWeight: FontWeight.bold,
+                                                  color: AppColors.primaryColor,
+                                                ),
+                                                suffixIcon:
+                                                    (_otpRequested && _timing)
+                                                        ? Padding(
+                                                          padding:
+                                                              const EdgeInsets.only(
+                                                                right: 12,
+                                                                top: 13,
+                                                              ),
+                                                          child: Text(
+                                                            '$_secondsRemaining វិនាទី',
+                                                            style: const TextStyle(
+                                                              color:
+                                                                  AppColors
+                                                                      .primaryColor,
+                                                              fontSize: 14,
+                                                              fontWeight:
+                                                                  FontWeight
+                                                                      .bold,
+                                                              fontFamily:
+                                                                  'KhmerFont',
+                                                            ),
+                                                          ),
+                                                        )
+                                                        : null,
+                                              ),
+                                              style: const TextStyle(
+                                                fontSize: 18,
+                                                color: Colors.black,
+                                                fontFamily: 'KhmerFont',
+                                              ),
+                                              validator: (value) {
+                                                if (_isVerifyingOtp) {
+                                                  if (!_otpRequested)
+                                                    return 'សូមចុច "យកកូដ OTP" ជាមុនសិន';
+                                                  if (value == null ||
+                                                      value.isEmpty) {
+                                                    return 'សូមបញ្ចូលលេខកូដ OTP';
+                                                  } else if (value.length !=
+                                                      4) {
+                                                    return 'លេខកូដ OTP ត្រូវមានចំនួន 4 ខ្ទង់';
+                                                  }
+                                                }
+                                                return null;
+                                              },
+                                            ),
                                           ),
-                                        ),
-                                        const SizedBox(height: 20),
-                                      ],
+
+                                          const SizedBox(height: 16),
+                                          if (_showResendBelow)
+                                            Padding(
+                                              padding: const EdgeInsets.only(
+                                                top: 10,
+                                              ),
+                                              child: Row(
+                                                mainAxisAlignment:
+                                                    MainAxisAlignment.center,
+                                                children: const [
+                                                  Text(
+                                                    'មិនទទួលបានកូដមែន​ទេ ?​ សូមចុចម្តងទៀត',
+                                                    style: TextStyle(
+                                                      color:
+                                                          AppColors
+                                                              .primaryColor,
+                                                      fontWeight:
+                                                          FontWeight.w600,
+                                                      fontFamily: 'KhmerFont',
+                                                    ),
+                                                  ),
+                                                ],
+                                              ),
+                                            ),
+                                          const SizedBox(height: 60),
+                                          SizedBox(
+                                            width: double.infinity,
+                                            child: ElevatedButton(
+                                              style: ElevatedButton.styleFrom(
+                                                backgroundColor:
+                                                    _isBlackButton
+                                                        ? Colors.black
+                                                        : AppColors
+                                                            .primaryColor, // Change to your theme color
+                                                shape: RoundedRectangleBorder(
+                                                  borderRadius:
+                                                      BorderRadius.circular(10),
+                                                ),
+                                                padding:
+                                                    const EdgeInsets.symmetric(
+                                                      vertical: 16,
+                                                    ),
+                                                elevation: 2,
+                                                textStyle: const TextStyle(
+                                                  fontWeight: FontWeight.bold,
+                                                  fontSize: 20,
+                                                ),
+                                              ),
+                                              onPressed:
+                                                  _isLoading
+                                                      ? null
+                                                      : (!_otpRequested ||
+                                                              _showResendBelow
+                                                          ? _onRequestOtp
+                                                          : _onVerifyOtp),
+                                              child:
+                                                  _isLoading
+                                                      ? const CircularProgressIndicator(
+                                                        color: Colors.white,
+                                                      )
+                                                      : Text(
+                                                        (!_otpRequested ||
+                                                                _showResendBelow)
+                                                            ? 'យកកូដ OTP'
+                                                            : 'បញ្ជាក់ OTP',
+                                                        style: const TextStyle(
+                                                          color: Colors.white,
+                                                          fontFamily:
+                                                              'KhmerFont',
+                                                        ),
+                                                      ),
+                                            ),
+                                          ),
+                                          const SizedBox(height: 20),
+                                        ],
+                                      ),
                                     ),
                                   ),
                                 ),
                               ),
-                            ),
-                          ],
+                            ],
+                          ),
                         ),
                       ),
                     ),
-                  ),
-            ),
-          ),
-        ),
-        if (_noInternet)
-          Positioned(
-            left: 0,
-            right: 0,
-            bottom: 0,
-            child: Container(
-              color: Colors.red[600],
-              padding: const EdgeInsets.symmetric(vertical: 26),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: const [
-                  Icon(Icons.wifi_off, color: Colors.white, size: 20),
-                  SizedBox(width: 8),
-                  Text(
-                    "មិនមានការតភ្ជាប់អ៊ីនធឺណិត",
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 16,
-                      fontWeight: FontWeight.bold,
-                      fontFamily: 'KhmerFont',
-                      decoration: TextDecoration.none,
-                    ),
-                  ),
-                ],
               ),
             ),
           ),
-      ],
+          if (_noInternet)
+            Positioned(
+              left: 0,
+              right: 0,
+              bottom: 0,
+              child: Container(
+                color: Colors.red[600],
+                padding: const EdgeInsets.symmetric(vertical: 26),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: const [
+                    Icon(Icons.wifi_off, color: Colors.white, size: 20),
+                    SizedBox(width: 8),
+                    Text(
+                      "មិនមានការតភ្ជាប់អ៊ីនធឺណិត",
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                        fontFamily: 'KhmerFont',
+                        decoration: TextDecoration.none,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+        ],
+      ),
     );
   }
 }

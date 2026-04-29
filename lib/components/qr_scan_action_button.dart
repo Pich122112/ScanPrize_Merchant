@@ -6,10 +6,10 @@ class QrScanActionButtons extends StatelessWidget {
   final Future<void> Function()? onPickQr;
 
   const QrScanActionButtons({
-    super.key,
+    Key? key,
     required this.onToggleFlash,
     this.onPickQr,
-  });
+  }) : super(key: key);
 
   @override
   Widget build(BuildContext context) {

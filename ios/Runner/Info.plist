@@ -7,7 +7,7 @@
 	<key>CFBundleDevelopmentRegion</key>
 	<string>$(DEVELOPMENT_LANGUAGE)</string>
 	<key>CFBundleDisplayName</key>
-	<string>Scanprize Frontend</string>
+	<string>GanzbergMerchant</string>
 	<key>CFBundleExecutable</key>
 	<string>$(EXECUTABLE_NAME)</string>
 	<key>CFBundleIdentifier</key>
@@ -15,7 +15,7 @@
 	<key>CFBundleInfoDictionaryVersion</key>
 	<string>6.0</string>
 	<key>CFBundleName</key>
-	<string>scanprize_frontend</string>
+	<string>GanzbergMerchant</string>
 	<key>CFBundlePackageType</key>
 	<string>APPL</string>
 	<key>CFBundleShortVersionString</key>
@@ -34,17 +34,11 @@
 	<key>LSRequiresIPhoneOS</key>
 	<true/>
 	<key>NSCameraUsageDescription</key>
-	<string>This app requires camera access to allow users to take photos and videos.</string>
-	<key>NSLocationWhenInUseUsageDescription</key>
-	<string>This app requires location access to provide location-based features.</string>
-	<key>NSMicrophoneUsageDescription</key>
-	<string>This app requires microphone access to record audio.</string>
+	<string>GanzbergMerchant uses the camera to scan QR codes printed on product cans (such as Ganzberg, Idol, and Boosting) to redeem reward points and transfer points between users.</string>
 	<key>NSPhotoLibraryAddUsageDescription</key>
-	<string>This app needs access to save QR codes to photos</string>
+	<string>GanzbergMerchant saves the user’s personal QR code to the photo library so it can be shared with other users to receive transferred reward points.</string>
 	<key>NSPhotoLibraryUsageDescription</key>
-	<string>We need access to your photo library to scan QR codes.</string>
-	<key>NSUserTrackingUsageDescription</key>
-	<string>We use notifications to keep you updated.</string>
+	<string>GanzbergMerchant allows users to select QR code images from their photo library to redeem or transfer reward points.</string>	
 	<key>UIApplicationSupportsIndirectInputEvents</key>
 	<true/>
 	<key>UIBackgroundModes</key>
@@ -59,13 +53,6 @@
 	<key>UISupportedInterfaceOrientations</key>
 	<array>
 		<string>UIInterfaceOrientationPortrait</string>
-		<string>UIInterfaceOrientationLandscapeLeft</string>
-		<string>UIInterfaceOrientationLandscapeRight</string>
-	</array>
-	<key>UISupportedInterfaceOrientations~ipad</key>
-	<array>
-		<string>UIInterfaceOrientationPortrait</string>
-		<string>UIInterfaceOrientationPortraitUpsideDown</string>
 		<string>UIInterfaceOrientationLandscapeLeft</string>
 		<string>UIInterfaceOrientationLandscapeRight</string>
 	</array>

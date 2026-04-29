@@ -712,7 +712,7 @@ class _SignUpPageState extends State<SignInPage> {
                                               fontWeight:
                                                   FontWeight
                                                       .bold, // ✅ makes it bold
-                                              color: Colors.red,
+                                              color: AppColors.primaryColor,
                                             ),
                                           ),
                                           initialCountryCode: 'KH',
@@ -801,7 +801,7 @@ class _SignUpPageState extends State<SignInPage> {
                                                 fontFamily: 'KhmerFont',
                                                 fontSize: 14,
                                                 fontWeight: FontWeight.bold,
-                                                color: Colors.red,
+                                                color: AppColors.primaryColor,
                                               ),
                                               suffixIcon:
                                                   (_otpRequested && _timing)
@@ -834,9 +834,8 @@ class _SignUpPageState extends State<SignInPage> {
                                             ),
                                             validator: (value) {
                                               if (_isVerifyingOtp) {
-                                                if (!_otpRequested) {
+                                                if (!_otpRequested)
                                                   return 'សូមចុច "យកកូដ OTP" ជាមុនសិន';
-                                                }
                                                 if (value == null ||
                                                     value.isEmpty) {
                                                   return 'សូមបញ្ចូលលេខកូដ OTP';

@@ -134,18 +134,14 @@ class UserBalanceService {
           print('DEBUG: Processing wallet $walletName = $balance');
         }
       }
-      if (balances['ganzberg'] == 0) {
+      if (balances['ganzberg'] == 0)
         balances['ganzberg'] = (userData['wallet_balance_1'] ?? 0).toInt();
-      }
-      if (balances['boostrong'] == 0) {
+      if (balances['boostrong'] == 0)
         balances['boostrong'] = (userData['wallet_balance_2'] ?? 0).toInt();
-      }
-      if (balances['idol'] == 0) {
+      if (balances['idol'] == 0)
         balances['idol'] = (userData['wallet_balance_3'] ?? 0).toInt();
-      }
-      if (balances['diamond'] == 0) {
+      if (balances['diamond'] == 0)
         balances['diamond'] = (userData['wallet_balance_4'] ?? 0).toDouble();
-      }
     }
     print('DEBUG: Final parsed balances - $balances');
     return balances;

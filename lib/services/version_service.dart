@@ -12,9 +12,9 @@ class VersionService {
   static const String mockLatestVersion = "2.0.0";
 
   // Store URLs - REPLACE WITH YOUR ACTUAL STORE LINKS
-  static const String iOSStoreUrl = "https://apps.apple.com/app/id6758925797";
+  static const String iOSStoreUrl = "https://apps.apple.com/app/id6759018661";
   static const String androidStoreUrl =
-      "https://play.google.com/store/apps/details?id=com.ganzberg.scanprizefront";
+      "https://play.google.com/store/apps/details?id=com.ganzberg.scanprizemerchantapp";
 
   /// Get current app version from pubspec.yaml
   Future<String> getCurrentVersion() async {

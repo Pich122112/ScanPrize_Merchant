@@ -265,7 +265,7 @@ class WalletPointsTab extends StatelessWidget {
                       Text(
                         'notenoughbalance'.tr(),
                         style: TextStyle(
-                          color: Colors.red,
+                          color: AppColors.primaryColor,
                           fontSize: 12,
                           fontFamily: localeCode == 'km' ? 'KhmerFont' : null,
                         ),

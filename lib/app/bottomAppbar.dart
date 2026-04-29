@@ -357,7 +357,7 @@ class _RomlousAppState extends State<RomlousApp>
                 horizontal: screenWidth * 0.04,
               ),
               decoration: BoxDecoration(
-                color: Colors.red.shade600,
+                color: Colors.blue,
                 borderRadius: BorderRadius.circular(8),
                 boxShadow: [
                   BoxShadow(
@@ -374,7 +374,7 @@ class _RomlousAppState extends State<RomlousApp>
                   Icon(
                     Icons.wifi_off,
                     color: Colors.white,
-                    size: isTablet ? 28 : 22,
+                    size: isTablet ? 32 : 32,
                   ),
                   SizedBox(width: screenWidth * 0.03),
                   Expanded(
@@ -389,10 +389,29 @@ class _RomlousAppState extends State<RomlousApp>
                       textAlign: TextAlign.center,
                     ),
                   ),
+                  SizedBox(width: screenWidth * 0.03),
+                  GestureDetector(
+                    onTap: () {
+                      setState(() {
+                        _noInternet = false;
+                      });
+                    },
+                    child: Container(
+                      padding: EdgeInsets.all(4),
+                      decoration: BoxDecoration(
+                        color: Colors.white.withOpacity(0.2),
+                        shape: BoxShape.circle,
+                      ),
+                      child: Icon(
+                        Icons.close,
+                        color: Colors.white,
+                        size: isTablet ? 20 : 18,
+                      ),
+                    ),
+                  ),
                 ],
               ),
             ),
-
           Expanded(
             child: PopScope(
               child: Navigator(

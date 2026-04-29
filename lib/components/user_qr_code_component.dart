@@ -9,6 +9,7 @@ import '../components/action_icon_button.dart';
 import 'package:flutter_dash/flutter_dash.dart';
 import '../widgets/qr_capture_service.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import '../services/secure_storage_service.dart';
 
 class UserQrCodeComponent extends StatelessWidget {
   final String qrPayload;
@@ -44,17 +45,35 @@ class UserQrCodeComponent extends StatelessWidget {
 
   // Add this method to get user name from SharedPreferences
   Future<String?> _getUserName() async {
+    final secureStorage = SecureStorageService();
+
+    // Try to get user name from secure storage first
+    final userName = await secureStorage.getUserName();
+
+    if (userName != null && userName.isNotEmpty) {
+      return userName;
+    }
+
+    // Fallback: try to get from SharedPreferences if not in secure storage
     final prefs = await SharedPreferences.getInstance();
     final userDataString = prefs.getString('user_data');
 
     if (userDataString != null) {
       try {
         final userData = json.decode(userDataString);
-        return userData['data']['name'] as String?;
+        final name = userData['data']['name'] as String?;
+
+        // If found in SharedPreferences, save it to secure storage for next time
+        if (name != null && name.isNotEmpty) {
+          await secureStorage.setUserName(name);
+        }
+
+        return name;
       } catch (e) {
         print('Error parsing user name: $e');
       }
     }
+
     return null;
   }
 
@@ -296,7 +315,7 @@ class UserQrCodeComponent extends StatelessWidget {
                                 ),
                               ],
                             ),
-                            duration: Duration(seconds: 2),
+                            duration: const Duration(seconds: 2),
                           ),
                         );
 
