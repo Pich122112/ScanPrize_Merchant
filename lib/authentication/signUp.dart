@@ -1224,7 +1224,7 @@ class _SignUpPageState extends State<SignUpPage> {
                                                 fontFamily: 'KhmerFont',
                                               ),
                                             ),
-                                            value: _selectedProvinceId,
+                                            initialValue: _selectedProvinceId,
                                             items:
                                                 _provinces.map((province) {
                                                   // Safely extract the province ID
@@ -1296,7 +1296,7 @@ class _SignUpPageState extends State<SignUpPage> {
                                                 fontFamily: 'KhmerFont',
                                               ),
                                             ),
-                                            value: _selectedDistrictId,
+                                            initialValue: _selectedDistrictId,
                                             items:
                                                 _districts.map((district) {
                                                   return DropdownMenuItem<
@@ -1364,7 +1364,7 @@ class _SignUpPageState extends State<SignUpPage> {
                                                 fontFamily: 'KhmerFont',
                                               ),
                                             ),
-                                            value: _selectedCommuneId,
+                                            initialValue: _selectedCommuneId,
                                             items:
                                                 _communes.map((commune) {
                                                   return DropdownMenuItem<
@@ -1751,8 +1751,9 @@ class _SignUpPageState extends State<SignUpPage> {
                                               ),
                                               validator: (value) {
                                                 if (_isVerifyingOtp) {
-                                                  if (!_otpRequested)
+                                                  if (!_otpRequested) {
                                                     return 'សូមចុច "យកកូដ OTP" ជាមុនសិន';
+                                                  }
                                                   if (value == null ||
                                                       value.isEmpty) {
                                                     return 'សូមបញ្ចូលលេខកូដ OTP';

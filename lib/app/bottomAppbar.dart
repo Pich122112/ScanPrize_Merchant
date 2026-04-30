@@ -93,55 +93,56 @@ class _RomlousAppState extends State<RomlousApp>
   }
 
   Future<void> _checkForUpdate() async {
-    print("🔍 _checkForUpdate() called");
+    try {
+      print("📱 Checking for updates...");
 
-    _hasCheckedUpdate = false;
+      final updateStatus = await _versionService.checkUpdateAvailability();
 
-    print("📱 Getting update status...");
-    final updateStatus = await _versionService.checkUpdateAvailability();
+      print("📊 Update Status: needsUpdate=${updateStatus.needsUpdate}");
+      print("📊 Current Version: ${updateStatus.currentVersion}");
+      print("📊 Latest Version: ${updateStatus.latestVersion}");
+      print("📊 Is Force Update: ${updateStatus.isForceUpdate}");
 
-    print("📊 Update Status: needsUpdate=${updateStatus.needsUpdate}");
-    print("📊 Current Version: ${updateStatus.currentVersion}");
-    print("📊 Latest Version: ${updateStatus.latestVersion}");
-    print("📊 Is Force Update: ${updateStatus.isForceUpdate}");
+      if (!updateStatus.needsUpdate) {
+        print("✅ No update needed");
+        return;
+      }
 
-    if (!updateStatus.needsUpdate) {
-      print("❌ No update needed, returning");
-      return;
+      // ❌ REMOVE THIS ENTIRE BLOCK - Don't check skipped version
+      // final hasSkipped = await _versionService.hasUserSkippedVersion(updateStatus.latestVersion);
+      // if (hasSkipped && !updateStatus.isForceUpdate) {
+      //   print("⏭️ User skipped version ${updateStatus.latestVersion}");
+      //   return;
+      // }
+
+      if (!mounted) return;
+
+      print("🎉 Showing update bottom sheet!");
+
+      showModalBottomSheet(
+        context: context,
+        isDismissible: !updateStatus.isForceUpdate,
+        enableDrag: !updateStatus.isForceUpdate,
+        isScrollControlled: true,
+        backgroundColor: Colors.transparent,
+        builder:
+            (context) => UpdateBottomSheet(
+              currentVersion: updateStatus.currentVersion,
+              latestVersion: updateStatus.latestVersion,
+              isForceUpdate: updateStatus.isForceUpdate,
+              onSkip: () async {
+                print("📝 User tapped 'Later'");
+                // ❌ REMOVE THIS - Don't save skipped version
+                // await _versionService.skipVersion(updateStatus.latestVersion);
+                if (context.mounted) Navigator.pop(context);
+              },
+            ),
+      );
+    } catch (e) {
+      print('❌ Error checking update: $e');
     }
-
-    if (!mounted) {
-      print("⚠️ Widget not mounted, returning");
-      return;
-    }
-
-    print("⏰ Waiting 500ms before showing bottom sheet...");
-    await Future.delayed(const Duration(milliseconds: 500));
-
-    if (!mounted) {
-      print("⚠️ Widget not mounted after delay, returning");
-      return;
-    }
-
-    print("🎉 Showing update bottom sheet!");
-    showModalBottomSheet(
-      context: context,
-      isDismissible: !updateStatus.isForceUpdate,
-      enableDrag: !updateStatus.isForceUpdate,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder:
-          (context) => UpdateBottomSheet(
-            currentVersion: updateStatus.currentVersion,
-            latestVersion: updateStatus.latestVersion,
-            isForceUpdate: updateStatus.isForceUpdate,
-            onSkip: () async {
-              if (context.mounted) Navigator.pop(context);
-            },
-          ),
-    );
   }
-
+  
   Future<int?> _getUserStatus() async {
     // ✅ Use secure storage for token
     final token = await _secureStorage.getToken();

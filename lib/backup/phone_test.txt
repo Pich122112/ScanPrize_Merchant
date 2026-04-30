@@ -2,3 +2,22 @@
 - +85599555258
 - +85599666777
 - +85599454545
+
+---------------------------
+
+Next Versions After 1.0.2+11:
+Release #	Version	iOS	Android Code
+Current	1.0.1+10	1.0.1	10
+Next	1.0.2+11	1.0.2	11
+After	1.0.3+12	1.0.3	12
+After	1.0.4+13	1.0.4	13
+After	1.0.5+14	1.0.5	14
+After	1.0.6+15	1.0.6	15
+After	1.1.0+16	1.1.0	16
+After	2.0.0+17	2.0.0	17
+
+
+-------------------------
+Scenario
+- IOS: 1.0.1+10 Update on firbase config for ios
+- Android: 1.0.3+12 Update on firebase config for android

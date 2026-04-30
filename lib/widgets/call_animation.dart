@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 
 class AnimatedCallIcon extends StatefulWidget {
   final bool isTablet;
-  const AnimatedCallIcon({Key? key, this.isTablet = false}) : super(key: key);
+  const AnimatedCallIcon({super.key, this.isTablet = false});
 
   @override
   State<AnimatedCallIcon> createState() => _AnimatedCallIconState();

@@ -315,7 +315,7 @@ class UserQrCodeComponent extends StatelessWidget {
                                 ),
                               ],
                             ),
-                            duration: const Duration(seconds: 2),
+                            duration: Duration(seconds: 2),
                           ),
                         );
 

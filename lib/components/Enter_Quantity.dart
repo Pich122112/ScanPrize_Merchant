@@ -56,7 +56,7 @@ class _EnterQuantityDialogState extends State<EnterQuantityDialog>
   bool get isWalletTransfer => widget.prize.point == 1;
   late AnimationController _cursorController;
   late Animation<double> _cursorAnimation;
-  TextEditingController _remarkController = TextEditingController();
+  final TextEditingController _remarkController = TextEditingController();
   int get basePoints {
     final numericString = widget.prize.point.toString();
 
@@ -196,7 +196,7 @@ class _EnterQuantityDialogState extends State<EnterQuantityDialog>
     final digits = text.replaceAll(RegExp(r'\D'), '');
     if (digits.startsWith('855') && digits.length >= 6) {
       // Take only the first three digits after 855
-      return '0' + digits.substring(3, 5);
+      return '0${digits.substring(3, 5)}';
     }
     if (digits.length >= 3) return digits.substring(0, 3);
     return '?';
@@ -832,8 +832,9 @@ class _EnterQuantityDialogState extends State<EnterQuantityDialog>
                                                   child,
                                                   loadingProgress,
                                                 ) {
-                                                  if (loadingProgress == null)
+                                                  if (loadingProgress == null) {
                                                     return child;
+                                                  }
                                                   return Container(
                                                     width: 55,
                                                     height: 60,
@@ -1067,8 +1068,9 @@ class _EnterQuantityDialogState extends State<EnterQuantityDialog>
                               children: List.generate(12, (index) {
                                 if (index == 9) return buildClearKey();
                                 if (index == 10) return buildKey('0');
-                                if (index == 11)
+                                if (index == 11) {
                                   return buildIconKey(Icons.backspace_outlined);
+                                }
                                 return buildKey('${index + 1}');
                               }),
                             ),

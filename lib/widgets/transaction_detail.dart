@@ -639,7 +639,7 @@ class _TransactionDetailState extends State<TransactionDetail> {
     }
 
     // Add this helper method to translate units
-    String _translateUnit(String unit) {
+    String translateUnit(String unit) {
       if (localeCode == 'km') {
         switch (unit.toLowerCase()) {
           case 'can':
@@ -783,7 +783,7 @@ class _TransactionDetailState extends State<TransactionDetail> {
                         if (!widget.isPointTransfer) SizedBox(width: 12),
                         if (!widget.isPointTransfer)
                           Text(
-                            '( ${widget.quantity} ${_translateUnit(widget.unit)} )',
+                            '( ${widget.quantity} ${translateUnit(widget.unit)} )',
                             style: TextStyle(
                               color: Colors.black54,
                               fontWeight: FontWeight.bold,
@@ -852,7 +852,7 @@ class _TransactionDetailState extends State<TransactionDetail> {
               SizedBox(height: MediaQuery.of(context).size.height * 0.03),
               _buildDetailRow(
                 "exchange_type".tr(),
-                "x ${widget.quantity} ${_translateUnit(widget.unit)}",
+                "x ${widget.quantity} ${translateUnit(widget.unit)}",
               ),
             ],
 
