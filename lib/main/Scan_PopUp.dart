@@ -269,7 +269,7 @@ class _OpenScanState extends State<OpenScan>
         print("Detected URL format QR code: $code");
 
         // First validate the signature locally
-        final isValid = QrCodeExtractor.isValidSignature(code);
+        final isValid = await QrCodeExtractor.isValidSignature(code);
 
         if (!isValid) {
           _handleInvalidQR({'error': 'incorrect_qr_code'.tr()}, code);

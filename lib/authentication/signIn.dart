@@ -3,6 +3,7 @@ import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:gb_merchant/services/firebase_service.dart';
+import 'package:gb_merchant/services/secretkey_service.dart';
 import 'package:gb_merchant/utils/device_uuid.dart';
 import 'package:intl_phone_field/intl_phone_field.dart';
 import 'package:gb_merchant/app/bottomAppbar.dart';
@@ -404,6 +405,7 @@ class _SignUpPageState extends State<SignInPage> {
           content: Text(
             'ការបញ្ជូន OTP បរាជ័យ',
             style: TextStyle(color: Colors.white, fontSize: 16),
+            textAlign: TextAlign.center,
           ),
           backgroundColor: AppColors.primaryColor,
         ),
@@ -593,6 +595,31 @@ class _SignUpPageState extends State<SignInPage> {
     // ✅ Get token from SecureStorage, NOT SharedPreferences
     final apiToken = await _secureStorage.getToken();
     print('🔐 Retrieved token from SecureStorage: $apiToken');
+
+    // ✅ FETCH AND STORE SECRET KEY RIGHT AFTER LOGIN
+    if (apiToken != null && apiToken.isNotEmpty) {
+      try {
+        if (kDebugMode) {
+          print('🔑 Fetching secret key from API...');
+        }
+        final secretKeyApiService = SecretKeyApiService();
+        final result = await secretKeyApiService.fetchSecretKey();
+
+        if (result['success'] == true) {
+          if (kDebugMode) {
+            print('✅ ${result['message']}');
+          }
+        } else {
+          if (kDebugMode) {
+            print('⚠️ Failed to fetch secret key: ${result['message']}');
+          }
+        }
+      } catch (e) {
+        if (kDebugMode) {
+          print('❌ Error fetching secret key: $e');
+        }
+      }
+    }
 
     if (apiToken != null && apiToken.isNotEmpty) {
       // Try to get stored FCM token from SharedPreferences
@@ -1026,4 +1053,4 @@ class _SignUpPageState extends State<SignInPage> {
   }
 }
 
-//Correct with 968 line code changes
+//Correct with 1056 line code changes

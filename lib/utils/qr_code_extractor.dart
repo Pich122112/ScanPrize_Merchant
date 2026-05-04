@@ -1,46 +1,98 @@
 import 'dart:convert';
 import 'package:crypto/crypto.dart';
+import 'package:flutter/foundation.dart';
+import 'package:gb_merchant/services/secure_storage_service.dart';
 
 class QrCodeExtractor {
-  // ⚠️ MUST match your Flask app's SECRET_KEY!
-  static const String secretKey =
-      'K8r\$1!dJ2x^Lz#Wm9QpVt@7f&uYiHcZsBnOa4Xg5Ej6Rk3Tl';
+  static final SecureStorageService _storage = SecureStorageService();
+  static String? _cachedSecretKey;
+
+  /// Get secret key from secure storage
+  static Future<String?> getSecretKey() async {
+    if (_cachedSecretKey != null) {
+      return _cachedSecretKey;
+    }
+
+    _cachedSecretKey = await _storage.getSecretKey();
+    return _cachedSecretKey;
+  }
 
   /// Check if code is valid based on natural code + signature only
-  static bool isValidSignature(String fullCodeOrUrl) {
+  static Future<bool> isValidSignature(String fullCodeOrUrl) async {
     try {
+      final secretKey = await getSecretKey();
+      if (secretKey == null || secretKey.isEmpty) {
+        if (kDebugMode) print('❌ Secret key is missing!');
+        return false;
+      }
+
       final naturalCode = extractNaturalCode(fullCodeOrUrl);
       final signature = extractSignature(fullCodeOrUrl);
 
       if (naturalCode.isEmpty || signature.isEmpty) return false;
 
-      final expectedSig = generateSignature(naturalCode);
+      final expectedSig = generateSignature(naturalCode, secretKey);
+
+      if (kDebugMode) {
+        print('📝 Natural code: $naturalCode');
+        print('🔖 Extracted signature: $signature');
+        print('🎯 Expected signature: $expectedSig');
+        print('✅ Match: ${signature == expectedSig}');
+      }
+
       return signature == expectedSig;
     } catch (e) {
+      if (kDebugMode) print('❌ Validation error: $e');
       return false;
     }
   }
 
-  /// Generate signature for natural code
-  static String generateSignature(String naturalCode) {
+  /// Generate signature for natural code - EXACT MATCH with Flask backend
+  static String generateSignature(String naturalCode, String secretKey) {
     final key = utf8.encode(secretKey);
     final bytes = utf8.encode(naturalCode);
     final digest = Hmac(sha256, key).convert(bytes);
 
-    var sig = base64Url
-        .encode(digest.bytes)
-        .replaceAll(RegExp(r'[^a-zA-Z0-9]'), '');
-    if (sig.length < 7) {
-      final extra = digest.bytes.sublist(10, 17);
-      sig += base64Url.encode(extra).replaceAll(RegExp(r'[^a-zA-Z0-9]'), '');
+    // Step 1: Convert to URL-safe base64
+    String signature = base64Url.encode(digest.bytes);
+
+    // Step 2: Take first 7 characters (like Flask's [:7])
+    signature = signature.substring(
+      0,
+      signature.length >= 7 ? 7 : signature.length,
+    );
+
+    // Step 3: Remove any non-alphanumeric characters
+    signature = signature.replaceAll(RegExp(r'[^a-zA-Z0-9]'), '');
+
+    // Step 4: Ensure exactly 7 chars (pad if shorter)
+    if (signature.length < 7) {
+      // Use bytes from position 10 to end (like Flask's hmac_digest[10:])
+      final startIndex = 10;
+      final endIndex = digest.bytes.length;
+      final extraBytes = digest.bytes.sublist(
+        startIndex,
+        endIndex > startIndex + 17 ? startIndex + 17 : endIndex,
+      );
+      String extraSig = base64Url.encode(extraBytes);
+      extraSig = extraSig.replaceAll(RegExp(r'[^a-zA-Z0-9]'), '');
+      signature += extraSig.substring(
+        0,
+        (7 - signature.length).clamp(0, extraSig.length),
+      );
     }
-    return sig.substring(0, 7);
+
+    // Step 5: Ensure exactly 7 characters
+    if (signature.length > 7) {
+      signature = signature.substring(0, 7);
+    }
+
+    return signature;
   }
 
   /// Extract natural code (first 11 chars) ignoring any domain
   static String extractNaturalCode(String codeOrUrl) {
     try {
-      // Strip URL if exists
       var codePart = codeOrUrl;
       if (codeOrUrl.contains('/t/')) {
         codePart = codeOrUrl.split('/t/').last;
@@ -48,17 +100,22 @@ class QrCodeExtractor {
         codePart = codeOrUrl.split('/t=').last;
       }
 
-      // Remove query params or fragments
+      // Remove query params or fragments and ThankYou suffix
       codePart = codePart.split('?').first.split('#').first;
 
+      // Remove ThankYou suffix if present (comma separator)
+      if (codePart.contains(',')) {
+        codePart = codePart.split(',').first;
+      }
+
       if (codePart.length < 11) return '';
-      return codePart.substring(0, 11); // natural code only
+      return codePart.substring(0, 11);
     } catch (e) {
       return '';
     }
   }
 
-  /// Extract signature (chars 11-17) ignoring domain
+  /// Extract signature (chars 11-18) ignoring domain
   static String extractSignature(String codeOrUrl) {
     try {
       var codePart = codeOrUrl;
@@ -68,10 +125,16 @@ class QrCodeExtractor {
         codePart = codeOrUrl.split('/t=').last;
       }
 
+      // Remove query params or fragments and ThankYou suffix
       codePart = codePart.split('?').first.split('#').first;
 
+      // Remove ThankYou suffix if present (comma separator)
+      if (codePart.contains(',')) {
+        codePart = codePart.split(',').first;
+      }
+
       if (codePart.length < 18) return '';
-      return codePart.substring(11, 18); // signature only
+      return codePart.substring(11, 18);
     } catch (e) {
       return '';
     }
@@ -82,154 +145,13 @@ class QrCodeExtractor {
     final natural = extractNaturalCode(codeOrUrl);
     final signature = extractSignature(codeOrUrl);
     if (natural.isEmpty || signature.isEmpty) return '';
-    return '$natural$signature'; // 11 + 7 chars
+    return '$natural$signature';
   }
 
-  /// Check if code looks like URL format (optional, can ignore domain)
+  /// Check if code looks like URL format
   static bool isUrlFormat(String code) {
-    return code.contains('/t/');
+    return code.contains('/t/') || code.contains('/t=');
   }
 }
 
-//Correct with 94 line code changes
-
-// class QrCodeExtractor {
-//   // ⚠️ MUST match your Flask app's SECRET_KEY!
-//   static const String secretKey =
-//       'K8r\$1!dJ2x^Lz#Wm9QpVt@7f&uYiHcZsBnOa4Xg5Ej6Rk3Tl';
-
-//   static bool isValidSignature(String fullUrl) {
-//     try {
-//       final naturalCode = extractNaturalCode(fullUrl);
-//       final providedSignature = extractSignature(fullUrl);
-
-//       if (naturalCode.isEmpty || providedSignature.isEmpty) {
-//         return false;
-//       }
-
-//       // Generate expected signature locally
-//       String expectedSignature = generateSignature(naturalCode);
-//       return providedSignature == expectedSignature;
-//     } catch (e) {
-//       return false;
-//     }
-//   }
-
-//   static String generateSignature(String naturalCode) {
-//     // Create HMAC-SHA256 (same as your Flask app)
-//     var key = utf8.encode(secretKey);
-//     var bytes = utf8.encode(naturalCode);
-//     var hmac = Hmac(sha256, key);
-//     var digest = hmac.convert(bytes);
-
-//     // Convert to base64Url and take first 7 characters (same as Flask)
-//     String base64Sig = base64Url.encode(digest.bytes);
-//     String signature = base64Sig.replaceAll(RegExp(r'[^a-zA-Z0-9]'), '');
-
-//     // Padding logic (same as Flask)
-//     if (signature.length < 7) {
-//       var extraBytes = digest.bytes.sublist(10, 17);
-//       String extraSig = base64Url
-//           .encode(extraBytes)
-//           .replaceAll(RegExp(r'[^a-zA-Z0-9]'), '');
-//       signature += extraSig;
-//     }
-
-//     return signature.substring(0, 7);
-//   }
-
-//   // Extract natural code from URL format: https://web.sandbox.gzb.app/t/GAC000D232A08heEiW
-//   static String extractNaturalCode(String fullUrl) {
-//     try {
-//       // Handle different URL formats
-//       String codePart;
-
-//       // new code scan format:  https://web.sandbox.gzb.app/t
-//       if (fullUrl.contains('https://web.sandbox.gzb.app/t/')) {
-//         codePart = fullUrl.split('https://web.sandbox.gzb.app/t/').last;
-//       } else if (fullUrl.contains('https://web.sandbox.gzb.app/t=')) {
-//         codePart = fullUrl.split('https://web.sandbox.gzb.app/t=').last;
-//       } else {
-//         // If it's not a URL, assume it's already the code part
-//         codePart = fullUrl;
-//       }
-
-//       // Remove any query parameters or fragments
-//       codePart = codePart.split('?').first;
-//       codePart = codePart.split('#').first;
-
-//       // Split by comma to separate code from ThankYou/spaces
-//       final parts = codePart.split(',');
-//       if (parts.isEmpty) return '';
-
-//       final actualCode = parts[0];
-//       if (actualCode.length < 11) return '';
-
-//       return actualCode.substring(
-//         0,
-//         11,
-//       ); // Return first 11 chars (natural code)
-//     } catch (e) {
-//       return '';
-//     }
-//   }
-
-//   static String extractFullCode(String fullUrl) {
-//     try {
-//       String codePart;
-//       if (fullUrl.contains('https://web.sandbox.gzb.app/t/')) {
-//         codePart = fullUrl.split('https://web.sandbox.gzb.app/t/').last;
-//       } else if (fullUrl.contains('https://web.sandbox.gzb.app/t=')) {
-//         codePart = fullUrl.split('https://web.sandbox.gzb.app/t=').last;
-//       } else {
-//         codePart = fullUrl;
-//       }
-//       codePart = codePart.split('?').first;
-//       codePart = codePart.split('#').first;
-//       final parts = codePart.split(',');
-//       if (parts.isEmpty) return '';
-//       final actualCode = parts[0];
-//       return actualCode.trim(); // This returns code+signature
-//     } catch (e) {
-//       return '';
-//     }
-//   }
-
-//   // Extract signature from URL format
-//   static String extractSignature(String fullUrl) {
-//     try {
-//       String codePart;
-
-//       if (fullUrl.contains('https://web.sandbox.gzb.app/t/')) {
-//         codePart = fullUrl.split('https://web.sandbox.gzb.app/t/').last;
-//       } else if (fullUrl.contains('https://web.sandbox.gzb.app/t=')) {
-//         codePart = fullUrl.split('https://web.sandbox.gzb.app/t=').last;
-//       } else {
-//         codePart = fullUrl;
-//       }
-
-//       // Remove any query parameters or fragments
-//       codePart = codePart.split('?').first;
-//       codePart = codePart.split('#').first;
-
-//       // Split by comma to separate code from ThankYou/spaces
-//       final parts = codePart.split(',');
-//       if (parts.isEmpty) return '';
-
-//       final actualCode = parts[0];
-//       if (actualCode.length < 18) return '';
-
-//       return actualCode.substring(11, 18); // Return chars 11-17 (signature)
-//     } catch (e) {
-//       return '';
-//     }
-//   }
-
-//   // Check if the scanned code is in the new URL format
-//   static bool isUrlFormat(String code) {
-//     return code.contains('https://web.sandbox.gzb.app/t/') ||
-//         code.contains('https://web.sandbox.gzb.app/t=');
-//   }
-// }
-
-//Correct with 142 line code changes
+// Correct with 157 line code changes

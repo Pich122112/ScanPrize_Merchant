@@ -6,8 +6,8 @@ class SecureStorageService {
   static const String _phoneNumberKey = 'phone_number';
   static const String _refreshTokenKey = 'refresh_token';
   static const String _qrPayloadKey = 'qr_payload';
-  static const String _userNameKey = 'user_name'; 
-
+  static const String _userNameKey = 'user_name';
+  static const String _secretKeyKey = 'secret_key';
 
   final FlutterSecureStorage _storage = const FlutterSecureStorage(
     aOptions: AndroidOptions(
@@ -50,7 +50,7 @@ class SecureStorageService {
     return await _storage.read(key: _phoneNumberKey);
   }
 
-    // Store user name
+  // Store user name
   Future<void> setUserName(String userName) async {
     await _storage.write(key: _userNameKey, value: userName);
   }
@@ -59,7 +59,6 @@ class SecureStorageService {
   Future<String?> getUserName() async {
     return await _storage.read(key: _userNameKey);
   }
-
 
   // Store refresh token
   Future<void> setRefreshToken(String refreshToken) async {
@@ -71,13 +70,24 @@ class SecureStorageService {
     return await _storage.read(key: _refreshTokenKey);
   }
 
+  // Store secret key
+  Future<void> setSecretKey(String secretKey) async {
+    await _storage.write(key: _secretKeyKey, value: secretKey);
+  }
+
+  // Get secret key
+  Future<String?> getSecretKey() async {
+    return await _storage.read(key: _secretKeyKey);
+  }
+
   // Clear all secure storage (logout)
   Future<void> clearAll() async {
     await _storage.delete(key: _tokenKey);
     await _storage.delete(key: _userIdKey);
     await _storage.delete(key: _phoneNumberKey);
     await _storage.delete(key: _refreshTokenKey);
-        await _storage.delete(key: _userNameKey); 
+    await _storage.delete(key: _userNameKey);
+    await _storage.delete(key: _secretKeyKey);
   }
 
   // Check if user is logged in
@@ -106,4 +116,10 @@ class SecureStorageService {
   Future<String?> getQrPayload() async {
     return await _storage.read(key: _qrPayloadKey);
   }
+
+  Future<void> deleteSecretKey() async {
+    await _storage.delete(key: _secretKeyKey);
+  }
 }
+
+// Correct with 125 line code changes
