@@ -1,4 +1,3 @@
-
 import 'dart:async';
 
 import 'package:cached_network_image/cached_network_image.dart';
@@ -148,7 +147,7 @@ class AllExchangePrizeListState extends State<AllExchangePrizeList> {
                       child: Center(
                         child: Image.network(
                           imageUrls[index],
-                          fit: BoxFit.contain, 
+                          fit: BoxFit.contain,
                           loadingBuilder: (context, child, loadingProgress) {
                             if (loadingProgress == null) return child;
                             return SizedBox(
@@ -169,11 +168,12 @@ class AllExchangePrizeListState extends State<AllExchangePrizeList> {
                             );
                           },
                           errorBuilder: (context, error, stackTrace) {
-                            return const Center(
-                              child: Icon(
-                                Icons.broken_image,
-                                color: Colors.white,
-                                size: 60,
+                            return Center(
+                              child: Image.asset(
+                                'assets/images/ganzberg_placeholder.png',
+                                width: MediaQuery.of(context).size.width * 5,
+                                height: MediaQuery.of(context).size.width * 5,
+                                fit: BoxFit.contain,
                               ),
                             );
                           },
@@ -248,7 +248,7 @@ class AllExchangePrizeListState extends State<AllExchangePrizeList> {
     final isDarkMode = Theme.of(context).brightness == Brightness.dark;
     final size = MediaQuery.of(context).size;
     final width = size.width;
-    final double titleSize = width * 0.045; 
+    final double titleSize = width * 0.045;
 
     int crossAxisCount = 2;
     if (isTablet) crossAxisCount = 3;
@@ -442,10 +442,11 @@ class AllExchangePrizeListState extends State<AllExchangePrizeList> {
                                       color: Colors.grey[200],
                                       borderRadius: BorderRadius.circular(8),
                                     ),
-                                    child: Icon(
-                                      Icons.image_not_supported,
-                                      size: 50,
-                                      color: Colors.grey[400],
+                                    child: Image.asset(
+                                      'assets/images/ganzberg_placeholder.png',
+                                      width: 50,
+                                      height: 50,
+                                      fit: BoxFit.scaleDown,
                                     ),
                                   ),
                                 );

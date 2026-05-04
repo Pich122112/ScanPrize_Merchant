@@ -363,10 +363,11 @@ class _ExchangePrizeDialogState extends State<ExchangePrizeDialog> {
                                   color: Colors.grey[200],
                                   borderRadius: BorderRadius.circular(8),
                                 ),
-                                child: Icon(
-                                  Icons.image_not_supported,
-                                  size: 50,
-                                  color: Colors.grey[400],
+                                child: Image.asset(
+                                  'assets/images/ganzberg_placeholder.png',
+                                  width: 50,
+                                  height: 50,
+                                  fit: BoxFit.contain,
                                 ),
                               ),
                             );

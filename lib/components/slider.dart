@@ -429,10 +429,11 @@ class ImageSliderState extends State<ImageSlider>
                               height: cardImageSize,
                               width: cardImageSize,
                               color: Colors.grey[300],
-                              child: Icon(
-                                Icons.image_not_supported,
-                                size: cardImageSize * 0.4,
-                                color: Colors.grey[500],
+                              child: Image.asset(
+                                'assets/images/ganzberg_placeholder.png',
+                                width: cardImageSize * 0.2,
+                                height: cardImageSize * 0.2,
+                                fit: BoxFit.contain,
                               ),
                             );
                           },

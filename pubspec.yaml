@@ -94,6 +94,7 @@ flutter:
     - assets/images/user.png
     - assets/images/newbslogo.png
     - assets/images/default.png
+    - assets/images/ganzberg_placeholder.png
     - assets/location/
 
 

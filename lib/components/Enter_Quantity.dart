@@ -865,10 +865,13 @@ class _EnterQuantityDialogState extends State<EnterQuantityDialog>
                                                     width: 55,
                                                     height: 60,
                                                     color: Colors.grey[200],
-                                                    child: Icon(
-                                                      Icons.image_not_supported,
-                                                      size: 30,
-                                                      color: Colors.grey[400],
+                                                    child: Center(
+                                                      child: Image.asset(
+                                                        'assets/images/ganzberg_placeholder.png',
+                                                        width: 50,
+                                                        height: 60,
+                                                        fit: BoxFit.contain,
+                                                      ),
                                                     ),
                                                   );
                                                 },
