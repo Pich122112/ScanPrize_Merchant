@@ -398,7 +398,7 @@ class _UserInformationState extends State<UserInformation> {
                 autofocus: true,
                 decoration: InputDecoration(
                   labelText: "បញ្ចូលព័ត៌មានថ្មី",
-                  labelStyle: const TextStyle(
+                  labelStyle:  TextStyle(
                     fontFamily: 'KhmerFont',
                     color: AppColors.primaryColor,
                   ),
@@ -408,7 +408,7 @@ class _UserInformationState extends State<UserInformation> {
                   ),
                   focusedBorder: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(8),
-                    borderSide: const BorderSide(
+                    borderSide: BorderSide(
                       color: AppColors.primaryColor,
                       width: 1,
                     ),

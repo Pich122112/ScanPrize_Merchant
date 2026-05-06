@@ -47,7 +47,7 @@ class WelcomeScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       body: Container(
-        decoration: const BoxDecoration(
+        decoration: BoxDecoration(
           gradient: LinearGradient(
             colors: [AppColors.primaryColor, AppColors.secondaryColor],
             begin: Alignment.topCenter,
@@ -75,7 +75,7 @@ class WelcomeScreen extends StatelessWidget {
                     ],
                   ),
                   padding: const EdgeInsets.all(12),
-                  child: const Icon(
+                  child: Icon(
                     Icons.check_rounded,
                     color: AppColors.primaryColor,
                     size: 80,

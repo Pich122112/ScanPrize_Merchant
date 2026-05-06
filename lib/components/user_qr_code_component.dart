@@ -246,7 +246,8 @@ class UserQrCodeComponent extends StatelessWidget {
         backgroundColor: Colors.transparent,
         elevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios, color: Colors.white),
+          padding: const EdgeInsets.only(left: 16, right: 14),
+          icon: const Icon(Icons.arrow_back_ios, color: Colors.white, size: 30),
           onPressed: () => Navigator.pop(context),
         ),
         actions: [
@@ -315,7 +316,7 @@ class UserQrCodeComponent extends StatelessWidget {
                                 ),
                               ],
                             ),
-                            duration: const Duration(seconds: 2),
+                            duration: Duration(seconds: 2),
                           ),
                         );
 

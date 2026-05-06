@@ -10,20 +10,20 @@ class CustomPasscodeDialog extends StatefulWidget {
   final Future<bool> Function(String code)? onValidate;
 
   const CustomPasscodeDialog({
-    Key? key,
+    super.key,
     this.subtitle = 'បញ្ចូលលេខសម្ងាត់ របស់អ្នកដើម្បីបន្ត',
     this.digits = 4,
     this.maxAttempts = 3,
     this.remainingAttempts = 3,
     this.onValidate,
-  }) : super(key: key);
+  });
 
   @override
   State<CustomPasscodeDialog> createState() => _CustomPasscodeDialogState();
 }
 
 class _CustomPasscodeDialogState extends State<CustomPasscodeDialog> {
-  List<String> _input = [];
+  final List<String> _input = [];
   String? _errorMessage;
   // ignore: unused_field
   bool _isVerifying = false;
@@ -187,7 +187,7 @@ class _CustomPasscodeDialogState extends State<CustomPasscodeDialog> {
                             Text(
                               _errorMessage!,
                               textAlign: TextAlign.center,
-                              style: const TextStyle(
+                              style: TextStyle(
                                 color: AppColors.primaryColor,
                                 fontSize: 18,
                                 fontWeight: FontWeight.w500,

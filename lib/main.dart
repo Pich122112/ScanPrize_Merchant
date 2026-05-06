@@ -10,6 +10,8 @@ import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:gb_merchant/main/TransactionPage.dart';
 import 'package:gb_merchant/services/firebase_service.dart';
+import 'package:provider/provider.dart';
+import 'providers/theme_provider.dart';
 
 final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
 
@@ -17,6 +19,9 @@ Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await EasyLocalization.ensureInitialized();
   await Firebase.initializeApp();
+  // Initialize theme provider
+  final themeProvider = ThemeProvider();
+  await themeProvider.loadPreferences(); // Now using public method
 
   FirebaseService.clearProcessedNotifications();
 
@@ -56,12 +61,15 @@ Future<void> main() async {
   }
 
   runApp(
-    EasyLocalization(
-      supportedLocales: const [Locale('en'), Locale('km')],
-      path: 'assets/translations',
-      fallbackLocale: const Locale('km'),
-      startLocale: const Locale('km'), // force Khmer when app starts
-      child: const MyApp(),
+    MultiProvider(
+      providers: [ChangeNotifierProvider(create: (_) => themeProvider)],
+      child: EasyLocalization(
+        supportedLocales: const [Locale('en'), Locale('km')],
+        path: 'assets/translations',
+        fallbackLocale: const Locale('km'),
+        startLocale: const Locale('km'),
+        child: MyApp(initialMessage: initialMessage),
+      ),
     ),
   );
 }
@@ -131,34 +139,30 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
 
   @override
   Widget build(BuildContext context) {
+    final themeProvider = Provider.of<ThemeProvider>(context);
+
     return MaterialApp(
       navigatorKey: navigatorKey,
-
       debugShowCheckedModeBanner: false,
       localizationsDelegates: context.localizationDelegates,
       supportedLocales: context.supportedLocales,
       locale: context.locale,
-      // home:
-      //     _showStartScreen
-      //         ? StartScreen(
-      //           onContinue: () {
-      //             setState(() => _showStartScreen = false);
-      //           },
-      //         )
-      //         : FutureBuilder<Map<String, dynamic>>(
-      //           future: _getLoginState(),
-      //           builder: (context, snapshot) {
-      //             if (!snapshot.hasData) {
-      //               return const Scaffold(
-      //                 body: Center(child: CircularProgressIndicator()),
-      //               );
-      //             }
-      //             final isLoggedIn = snapshot.data!['isLoggedIn'] as bool;
-
-      //             // Use Firstscreen directly - it already has its own Scaffold
-      //             return isLoggedIn ? RomlousApp() : Firstscreen();
-      //           },
-      //         ),
+      theme:
+          themeProvider.isDarkMode
+              ? ThemeData.dark().copyWith(
+                scaffoldBackgroundColor: const Color.fromARGB(255, 19, 19, 19),
+                cardColor: Colors.black,
+                primaryColor: themeProvider.primaryColor,
+                colorScheme: ColorScheme.dark(
+                  primary: themeProvider.primaryColor,
+                ),
+              )
+              : ThemeData.light().copyWith(
+                primaryColor: themeProvider.primaryColor,
+                colorScheme: ColorScheme.light(
+                  primary: themeProvider.primaryColor,
+                ),
+              ),
       home: FutureBuilder<Map<String, dynamic>>(
         future: _getLoginState(),
         builder: (context, snapshot) {

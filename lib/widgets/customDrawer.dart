@@ -2,6 +2,7 @@ import 'dart:convert';
 
 import 'package:flutter/material.dart';
 import 'package:gb_merchant/components/ExchangePrizeList.dart';
+import 'package:gb_merchant/providers/theme_provider.dart';
 import 'package:gb_merchant/stores/merchant_dashboard.dart';
 import 'package:gb_merchant/stores/user_information.dart';
 import 'package:image_picker/image_picker.dart';
@@ -12,6 +13,7 @@ import 'package:gb_merchant/utils/constants.dart';
 import 'dart:io';
 import 'package:url_launcher/url_launcher.dart';
 import '../services/secure_storage_service.dart';
+import 'package:provider/provider.dart';
 
 class ProfileDrawer extends StatefulWidget {
   final String phoneNumber;
@@ -145,6 +147,162 @@ class _ProfileDrawerState extends State<ProfileDrawer> {
           child: child,
         );
       },
+    );
+  }
+
+  // Add the color theme selection method:
+  void _showColorThemeDialog(BuildContext context) async {
+    final themeProvider = Provider.of<ThemeProvider>(context, listen: false);
+    final currentColor = themeProvider.primaryColor;
+
+    await showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.white,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (context) {
+        return Padding(
+          padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 16),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              // Small drag handle
+              Container(
+                width: 40,
+                height: 5,
+                decoration: BoxDecoration(
+                  color: Colors.grey.shade300,
+                  borderRadius: BorderRadius.circular(10),
+                ),
+              ),
+              const SizedBox(height: 20),
+
+              // Title
+              Text(
+                'color_theme'.tr(),
+                style: const TextStyle(
+                  fontSize: 20,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.black,
+                ),
+              ),
+              const SizedBox(height: 20),
+
+              // Blue color option with snow image
+              _buildColorOption(
+                color: AppColors.blueColor,
+                colorName: 'Ganzberg Snow',
+                isSelected: currentColor == AppColors.blueColor,
+                onTap: () {
+                  themeProvider.setPrimaryColor(AppColors.blueColor, 'blue');
+                  Navigator.pop(context);
+                  setState(() {});
+                },
+                imagePath:
+                    'assets/images/GanzbergSnowColor.png', // Snow image for blue
+              ),
+
+              const SizedBox(height: 16),
+
+              // Orange color option with gold image
+              _buildColorOption(
+                color: AppColors.orangeColor,
+                colorName: 'Ganzberg Gold',
+                isSelected: currentColor == AppColors.orangeColor,
+                onTap: () {
+                  themeProvider.setPrimaryColor(
+                    AppColors.orangeColor,
+                    'orange',
+                  );
+                  Navigator.pop(context);
+                  setState(() {});
+                },
+                imagePath:
+                    'assets/images/GanzbergGoldColor.jpeg', // Gold image for orange
+              ),
+
+              const SizedBox(height: 30),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildColorOption({
+    required Color color,
+    required String colorName,
+    required bool isSelected,
+    required VoidCallback onTap,
+    required String imagePath,
+  }) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(12),
+      child: Container(
+        padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 20),
+        decoration: BoxDecoration(
+          color: Colors.grey.shade50,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(
+            color: isSelected ? color : Colors.grey.shade300,
+            width: isSelected ? 2 : 1,
+          ),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.05),
+              blurRadius: 4,
+              offset: const Offset(0, 2),
+            ),
+          ],
+        ),
+        child: Row(
+          children: [
+            // Color preview with image
+            Container(
+              width: 45,
+              height: 45,
+              decoration: BoxDecoration(
+                color: color,
+                shape: BoxShape.circle,
+                border: Border.all(color: Colors.white, width: 2),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.1),
+                    blurRadius: 4,
+                    offset: const Offset(0, 2),
+                  ),
+                ],
+              ),
+              child: ClipOval(
+                child: Image.asset(
+                  imagePath,
+                  width: 36,
+                  height: 36,
+                  fit: BoxFit.cover,
+                ),
+              ),
+            ),
+            const SizedBox(width: 16),
+
+            // Color name
+            Expanded(
+              child: Text(
+                colorName,
+                style: const TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w600,
+                  color: Colors.black87,
+                ),
+              ),
+            ),
+
+            // ✅ Default checkmark icon (no images)
+            if (isSelected) Icon(Icons.check_circle, color: color, size: 28),
+          ],
+        ),
+      ),
     );
   }
 
@@ -593,6 +751,9 @@ class _ProfileDrawerState extends State<ProfileDrawer> {
                 ),
                 _buildMenuCard(Icons.language, 'language'.tr(), () {
                   _showLanguageDialog(context);
+                }),
+                _buildMenuCard(Icons.color_lens, 'colortheme'.tr(), () {
+                  _showColorThemeDialog(context);
                 }),
                 const SizedBox(height: 40),
                 // Logout button

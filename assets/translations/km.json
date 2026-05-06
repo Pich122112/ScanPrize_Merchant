@@ -141,5 +141,7 @@
   "all_notifications_marked_read": "ការជូនដំណឹងទាំងអស់ត្រូវបានសម្គាល់ថាបានអាន",
   "read_all": "អានទាំងអស់",
   "preparing_share": "ការចែករំលែកកំពុងដំណើរការ...",
-  "no_announcement_available": "មិនមានដំណឹង​ & ព័ត៍មានទេ"
+  "no_announcement_available": "មិនមានដំណឹង​ & ព័ត៍មានទេ",
+  "colortheme": "ប្តូរពណ៍របស់កម្មវិធី",
+  "color_theme":"ជ្រើសរើសពណ៍កម្មវិធី"
 }

@@ -1078,7 +1078,7 @@ class _SignUpPageState extends State<SignUpPage> {
                                                     vertical: 16,
                                                   ),
                                               errorText: _nameErrorText,
-                                              errorStyle: const TextStyle(
+                                              errorStyle: TextStyle(
                                                 fontFamily: 'KhmerFont',
                                                 fontSize: 14,
                                                 fontWeight:
@@ -1124,7 +1124,7 @@ class _SignUpPageState extends State<SignUpPage> {
                                                     vertical: 16,
                                                   ),
                                               errorText: _phoneErrorText,
-                                              errorStyle: const TextStyle(
+                                              errorStyle: TextStyle(
                                                 fontFamily: 'KhmerFont',
                                                 fontSize: 14,
                                                 fontWeight:
@@ -1199,7 +1199,7 @@ class _SignUpPageState extends State<SignUpPage> {
                                                 color: Colors.grey[600],
                                               ),
                                               errorText: _provinceErrorText,
-                                              errorStyle: const TextStyle(
+                                              errorStyle: TextStyle(
                                                 fontFamily: 'KhmerFont',
                                                 fontSize: 16,
                                                 fontWeight:
@@ -1265,7 +1265,7 @@ class _SignUpPageState extends State<SignUpPage> {
                                             dropdownColor: Colors.white,
                                             decoration: InputDecoration(
                                               errorText: _districtErrorText,
-                                              errorStyle: const TextStyle(
+                                              errorStyle: TextStyle(
                                                 fontFamily: 'KhmerFont',
                                                 fontSize: 16,
                                                 fontWeight:
@@ -1333,7 +1333,7 @@ class _SignUpPageState extends State<SignUpPage> {
                                             dropdownColor: Colors.white,
                                             decoration: InputDecoration(
                                               errorText: _communeErrorText,
-                                              errorStyle: const TextStyle(
+                                              errorStyle: TextStyle(
                                                 fontFamily: 'KhmerFont',
                                                 fontSize: 16,
                                                 fontWeight:
@@ -1420,7 +1420,7 @@ class _SignUpPageState extends State<SignUpPage> {
                                                     horizontal: 10,
                                                   ),
                                               errorText: _villageErrorText,
-                                              errorStyle: const TextStyle(
+                                              errorStyle: TextStyle(
                                                 fontFamily: 'KhmerFont',
                                                 fontSize: 16,
                                                 fontWeight: FontWeight.w500,
@@ -1461,7 +1461,7 @@ class _SignUpPageState extends State<SignUpPage> {
                                                     decoration: InputDecoration(
                                                       errorText:
                                                           _nationalIdFrontErrorText,
-                                                      errorStyle: const TextStyle(
+                                                      errorStyle: TextStyle(
                                                         fontFamily: 'KhmerFont',
                                                         fontSize: 16,
                                                         fontWeight:
@@ -1578,7 +1578,7 @@ class _SignUpPageState extends State<SignUpPage> {
                                                     decoration: InputDecoration(
                                                       errorText:
                                                           _nationalIdBackErrorText,
-                                                      errorStyle: const TextStyle(
+                                                      errorStyle: TextStyle(
                                                         fontFamily: 'KhmerFont',
                                                         fontSize: 16,
                                                         fontWeight:
@@ -1714,7 +1714,7 @@ class _SignUpPageState extends State<SignUpPage> {
                                                   Icons.sms,
                                                   color: Colors.grey[600],
                                                 ),
-                                                errorStyle: const TextStyle(
+                                                errorStyle: TextStyle(
                                                   fontFamily: 'KhmerFont',
                                                   fontSize: 14,
                                                   fontWeight: FontWeight.bold,
@@ -1730,7 +1730,7 @@ class _SignUpPageState extends State<SignUpPage> {
                                                               ),
                                                           child: Text(
                                                             '$_secondsRemaining វិនាទី',
-                                                            style: const TextStyle(
+                                                            style: TextStyle(
                                                               color:
                                                                   AppColors
                                                                       .primaryColor,
@@ -1776,7 +1776,7 @@ class _SignUpPageState extends State<SignUpPage> {
                                               child: Row(
                                                 mainAxisAlignment:
                                                     MainAxisAlignment.center,
-                                                children: const [
+                                                children: [
                                                   Text(
                                                     'មិនទទួលបានកូដមែន​ទេ ?​ សូមចុចម្តងទៀត',
                                                     style: TextStyle(

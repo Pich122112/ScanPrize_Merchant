@@ -1,7 +1,8 @@
 import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
-import 'package:gb_merchant/utils/constants.dart';
+import 'package:gb_merchant/providers/theme_provider.dart';
 import 'package:gb_merchant/widgets/call_animation.dart';
+import 'package:provider/provider.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 class ContactUsPage extends StatelessWidget {
@@ -33,9 +34,10 @@ class ContactUsPage extends StatelessWidget {
     final screenWidth = MediaQuery.of(context).size.width;
     final isTablet = screenWidth > 600;
     final localeCode = context.locale.languageCode;
+    final themeProvider = Provider.of<ThemeProvider>(context);
 
     return Scaffold(
-      backgroundColor: AppColors.primaryColor,
+      backgroundColor: themeProvider.primaryColor,
       body: Center(
         child: Padding(
           padding: EdgeInsets.symmetric(horizontal: screenWidth * 0.1),

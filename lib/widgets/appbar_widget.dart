@@ -255,7 +255,7 @@ class _CustomAppBarState extends State<CustomAppBar> {
               children: [
                 GestureDetector(
                   onTap: widget.onMenuPressed,
-                  child: const CircleAvatar(
+                  child: CircleAvatar(
                     backgroundColor: AppColors.primaryColor,
                     radius: 33,
                     backgroundImage: AssetImage('assets/images/logo.png'),

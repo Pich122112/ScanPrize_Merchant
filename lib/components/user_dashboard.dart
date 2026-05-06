@@ -818,7 +818,7 @@ class ThreeBoxSectionState extends State<ThreeBoxSection> {
                   _buildInfoBox(
                     imagePath: 'assets/images/ganzberg.png',
                     value: _showAmount ? '$ganzbergPoints' : null,
-                    label: 'score',
+                    label: 'score'.tr(),
                     onTap: () async {
                       await _handleWalletTap(() async {
                         try {
@@ -912,7 +912,7 @@ class ThreeBoxSectionState extends State<ThreeBoxSection> {
                   _buildInfoBox(
                     imagePath: 'assets/images/idollogo.png',
                     value: _showAmount ? '$idolPoints' : null,
-                    label: 'score',
+                    label: 'score'.tr(),
                     onTap: () async {
                       await _handleWalletTap(() async {
                         try {
@@ -1006,7 +1006,7 @@ class ThreeBoxSectionState extends State<ThreeBoxSection> {
                   _buildInfoBox(
                     imagePath: 'assets/images/newbslogo.png',
                     value: _showAmount ? '$boostrongPoints' : null,
-                    label: 'score',
+                    label: 'score'.tr(),
                     onTap: () async {
                       await _handleWalletTap(() async {
                         try {

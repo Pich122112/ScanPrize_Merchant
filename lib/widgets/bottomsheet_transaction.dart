@@ -285,6 +285,7 @@ class _TransactionDetailModalState extends State<TransactionDetailModal> {
       await TransactionShareService.shareTransaction(
         _receiptKey,
         widget.transaction,
+        context, 
       );
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(

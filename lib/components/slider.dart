@@ -2,6 +2,8 @@ import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
 import 'dart:async';
 import 'package:gb_merchant/contents/Blog_Detail_Page.dart';
+import 'package:gb_merchant/providers/theme_provider.dart';
+import 'package:provider/provider.dart';
 import '../services/slider_service.dart';
 import 'package:gb_merchant/models/slider_model.dart';
 
@@ -19,6 +21,35 @@ class ImageSliderState extends State<ImageSlider>
   List<SliderModel> slides = [];
   bool isLoading = true;
   String? errorMessage;
+
+  // Helper method to darken a color (for the starting color)
+  Color _darkenColor(Color color, double factor) {
+    return Color.fromARGB(
+      color.alpha,
+      (color.red * (1 - factor)).round(),
+      (color.green * (1 - factor)).round(),
+      (color.blue * (1 - factor)).round(),
+    );
+  }
+
+  // Helper method to lighten a color (for the ending color)
+  Color _lightenColor(Color color, double factor) {
+    return Color.fromARGB(
+      color.alpha,
+      (color.red + (255 - color.red) * factor).round(),
+      (color.green + (255 - color.green) * factor).round(),
+      (color.blue + (255 - color.blue) * factor).round(),
+    );
+  }
+
+  // Helper method to get the full gradient colors
+  List<Color> _getGradientColors(Color primaryColor) {
+    return [
+      _darkenColor(primaryColor, 0.2), // 20% darker (like #083A75)
+      primaryColor, // main color (like #0D55A8)
+      _lightenColor(primaryColor, 0.20), // 20% lighter (like #4A8DFF)
+    ];
+  }
 
   @override
   void initState() {
@@ -38,6 +69,16 @@ class ImageSliderState extends State<ImageSlider>
   bool get wantKeepAlive => true;
 
   Future<void> refreshSlider() async {
+    // Immediately show cached data if available
+    if (slides.isNotEmpty) {
+      if (mounted) {
+        setState(() {
+          isLoading = false;
+          errorMessage = null;
+        });
+      }
+      _startAutoPlay();
+    }
     await fetchSliders(forceRefresh: true);
   }
 
@@ -55,6 +96,9 @@ class ImageSliderState extends State<ImageSlider>
         });
       }
       _startAutoPlay();
+      // Fetch new data in background but don't wait for it
+      _fetchSlidersInBackground();
+
       return;
     }
 
@@ -88,6 +132,25 @@ class ImageSliderState extends State<ImageSlider>
           errorMessage = e.toString();
         });
       }
+    }
+  }
+
+  // Add this new method for background fetching
+  Future<void> _fetchSlidersInBackground() async {
+    try {
+      final fetchedSlides = await ApiService().getSliders(
+        forceRefresh: true, // Force refresh to get latest data
+      );
+
+      // Only update if we got new data and widget is still mounted
+      if (mounted && fetchedSlides.isNotEmpty) {
+        setState(() {
+          slides = fetchedSlides;
+        });
+      }
+    } catch (e) {
+      // Silently fail for background refresh - we already have cached data
+      print('Background slider refresh failed: $e');
     }
   }
 
@@ -180,6 +243,9 @@ class ImageSliderState extends State<ImageSlider>
 
     // Show empty state
     if (!isLoading && slides.isEmpty) {
+      final themeProvider = Provider.of<ThemeProvider>(context);
+      final primaryColor = themeProvider.primaryColor;
+
       return Container(
         margin: EdgeInsets.only(left: 14, right: 12, top: 18),
         decoration: BoxDecoration(
@@ -188,11 +254,7 @@ class ImageSliderState extends State<ImageSlider>
           gradient: LinearGradient(
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
-            colors: [
-              Color(0xFF083A75), // darker shade
-              Color(0xFF0D55A8), // main color
-              Color(0xFF4A8DFF), // lighter highlight
-            ],
+            colors: _getGradientColors(primaryColor),
             stops: [0.0, 0.4, 1.0],
           ),
         ),
@@ -219,7 +281,7 @@ class ImageSliderState extends State<ImageSlider>
       );
     }
 
-    return Container(
+    return SizedBox(
       width: double.infinity,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -316,6 +378,9 @@ class ImageSliderState extends State<ImageSlider>
     double cardImageSize,
     String localeCode,
   ) {
+    final themeProvider = Provider.of<ThemeProvider>(context);
+    final primaryColor = themeProvider.primaryColor;
+
     return Center(
       child: GestureDetector(
         onTap: () {
@@ -343,11 +408,7 @@ class ImageSliderState extends State<ImageSlider>
             gradient: LinearGradient(
               begin: Alignment.topLeft,
               end: Alignment.bottomRight,
-              colors: [
-                Color(0xFF083A75), // darker shade
-                Color(0xFF0D55A8), // main color
-                Color(0xFF4A8DFF), // lighter highlight
-              ],
+              colors: _getGradientColors(primaryColor),
               stops: [0.0, 0.4, 1.0],
             ),
           ),
@@ -450,4 +511,4 @@ class ImageSliderState extends State<ImageSlider>
   }
 }
 
-//Correct with 467 line code changes
+//Correct with 514 line code changes

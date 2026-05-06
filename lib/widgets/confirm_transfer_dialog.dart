@@ -70,7 +70,7 @@ class ConfirmTransferDialog extends StatelessWidget {
       actionsPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 20),
       title: Column(
         children: [
-          const Icon(
+           Icon(
             Icons.help_outline_rounded,
             size: 50,
             color: AppColors.primaryColor,
@@ -91,7 +91,7 @@ class ConfirmTransferDialog extends StatelessWidget {
           const SizedBox(height: 10),
           Text(
             '$points $pointsText',
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 24,
               fontWeight: FontWeight.bold,
               color: AppColors.primaryColor,

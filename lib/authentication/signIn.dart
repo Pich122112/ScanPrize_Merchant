@@ -781,7 +781,7 @@ class _SignUpPageState extends State<SignInPage> {
                                                     vertical: 16,
                                                   ),
                                               errorText: _phoneErrorText,
-                                              errorStyle: const TextStyle(
+                                              errorStyle: TextStyle(
                                                 fontFamily: 'KhmerFont',
                                                 fontSize: 14,
                                                 fontWeight:
@@ -878,7 +878,7 @@ class _SignUpPageState extends State<SignInPage> {
                                                   Icons.sms,
                                                   color: Colors.grey[600],
                                                 ),
-                                                errorStyle: const TextStyle(
+                                                errorStyle: TextStyle(
                                                   fontFamily: 'KhmerFont',
                                                   fontSize: 14,
                                                   fontWeight: FontWeight.bold,
@@ -894,7 +894,7 @@ class _SignUpPageState extends State<SignInPage> {
                                                               ),
                                                           child: Text(
                                                             '$_secondsRemaining វិនាទី',
-                                                            style: const TextStyle(
+                                                            style: TextStyle(
                                                               color:
                                                                   AppColors
                                                                       .primaryColor,
@@ -941,7 +941,7 @@ class _SignUpPageState extends State<SignInPage> {
                                               child: Row(
                                                 mainAxisAlignment:
                                                     MainAxisAlignment.center,
-                                                children: const [
+                                                children: [
                                                   Text(
                                                     'មិនទទួលបានកូដមែន​ទេ ?​ សូមចុចម្តងទៀត',
                                                     style: TextStyle(

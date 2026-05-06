@@ -2,8 +2,10 @@ import 'dart:async';
 import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:flutter_fortune_wheel/flutter_fortune_wheel.dart';
+import 'package:gb_merchant/providers/theme_provider.dart';
 import 'package:gb_merchant/utils/constants.dart';
 import 'package:confetti/confetti.dart';
+import 'package:provider/provider.dart';
 
 class Spinwheelpage extends StatefulWidget {
   const Spinwheelpage({super.key});
@@ -49,6 +51,8 @@ class _SpinwheelpageState extends State<Spinwheelpage> {
     // Show congratulation modal when win
     if (isWin) {
       _confettiController.play(); // Start confetti
+
+      final themeProvider = Provider.of<ThemeProvider>(context, listen: false);
 
       showDialog(
         context: context,
@@ -132,7 +136,7 @@ class _SpinwheelpageState extends State<Spinwheelpage> {
                           width: double.infinity,
                           child: ElevatedButton(
                             style: ElevatedButton.styleFrom(
-                              backgroundColor: AppColors.primaryColor,
+                              backgroundColor: themeProvider.primaryColor,
                               foregroundColor: Colors.white,
                               shape: RoundedRectangleBorder(
                                 borderRadius: BorderRadius.circular(12),
@@ -194,6 +198,8 @@ class _SpinwheelpageState extends State<Spinwheelpage> {
 
   @override
   Widget build(BuildContext context) {
+    final themeProvider = Provider.of<ThemeProvider>(context);
+
     return Scaffold(
       backgroundColor: Colors.white,
       body: Center(
@@ -256,8 +262,7 @@ class _SpinwheelpageState extends State<Spinwheelpage> {
                               style: FortuneItemStyle(
                                 color:
                                     i.isEven
-                                        ? AppColors
-                                            .primaryColor // Pink
+                                        ? themeProvider.primaryColor
                                         : Colors.black,
                                 borderColor: Colors.transparent,
                                 borderWidth: 0,

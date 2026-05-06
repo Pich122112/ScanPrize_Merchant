@@ -3,7 +3,9 @@ import 'dart:io';
 
 import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
+import 'package:gb_merchant/providers/theme_provider.dart';
 import 'package:path_provider/path_provider.dart';
+import 'package:provider/provider.dart';
 import 'package:qr_code_scanner_plus/qr_code_scanner_plus.dart';
 import 'package:gb_merchant/components/transfer_prize_qr.dart';
 import 'package:gb_merchant/utils/balance_refresh_notifier.dart';
@@ -1053,6 +1055,7 @@ class _OpenScanState extends State<OpenScan>
   Widget build(BuildContext context) {
     final double lineThickness = 1.5;
     final localeCode = context.locale.languageCode; // 'km' or 'en'
+    final themeProvider = Provider.of<ThemeProvider>(context);
 
     return WillPopScope(
       onWillPop: _onWillPop,
@@ -1074,7 +1077,7 @@ class _OpenScanState extends State<OpenScan>
               fontFamily: localeCode == 'km' ? 'KhmerFont' : null,
             ),
           ),
-          backgroundColor: AppColors.primaryColor,
+          backgroundColor: themeProvider.primaryColor,
           iconTheme: const IconThemeData(color: Colors.white),
           centerTitle: true,
           elevation: 0,
@@ -1098,22 +1101,11 @@ class _OpenScanState extends State<OpenScan>
                   child: Stack(
                     alignment: Alignment.center,
                     children: [
-                      // QRView(
-                      //   key: qrKey,
-                      //   onQRViewCreated: _onQRViewCreated,
-                      //   overlay: QrScannerOverlayShape(
-                      //     borderColor: Colors.white,
-                      //     borderRadius: 12,
-                      //     borderLength: 40,
-                      //     borderWidth: 12,
-                      //     cutOutSize: cutOutSize,
-                      //   ),
-                      // ),
                       QrScannerView(
-                        controller: _scannerController, // ← required argument
+                        controller: _scannerController,
 
                         onDetect: (code) async {
-                          await handleScanResult(code); // your existing method
+                          await handleScanResult(code);
                         },
                       ),
                       Center(

@@ -26,7 +26,7 @@ class _StartScreenState extends State<StartScreen> {
       body: Container(
         width: double.infinity,
         height: double.infinity,
-        decoration: const BoxDecoration(
+        decoration: BoxDecoration(
           gradient: LinearGradient(
             colors: [
               Color(0xFF1B263B), // deep blue

@@ -43,7 +43,7 @@ class _AgreementState extends State<Agreement> {
 
     return Scaffold(
       body: Container(
-        decoration: const BoxDecoration(
+        decoration: BoxDecoration(
           gradient: LinearGradient(
             begin: Alignment.topCenter,
             end: Alignment.bottomCenter,
@@ -183,7 +183,7 @@ class _AgreementState extends State<Agreement> {
                             onPressed: () {
                               Navigator.pop(context);
                             },
-                            label: const Text(
+                            label: Text(
                               "ថយក្រោយ",
                               style: TextStyle(
                                 fontSize: 16,

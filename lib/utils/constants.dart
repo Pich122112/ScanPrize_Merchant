@@ -1,18 +1,25 @@
 import 'package:flutter/material.dart';
 
 class AppColors {
-  // Primary color used throughout the app
-  // static const Color primaryColor = Color.fromARGB(255, 251, 96, 0);
+  // Primary color - now dynamic
+  static Color primaryColor = const Color(0xFF0D55A8); // Default blue
 
-  static const Color primaryColor = Color(0xFF0D55A8);
+  // Define your color options
+  static const Color blueColor = Color(0xFF0D55A8);
+  static const Color orangeColor = Color.fromARGB(255, 235, 79, 7); //this one
+  // static const Color orangeColor = Color.fromARGB(255, 251, 96, 0);
 
-  // Additional colors can be added here
+  // Additional colors
   static const Color secondaryColor = Colors.blue;
   static const Color backgroundColor = Colors.white;
   static const Color textColor = Colors.black;
   static const Color greyColor = Colors.grey;
-  static const Color successCOlor = Color.fromARGB(255, 2, 194, 9);
-  static const Color errorColor = Colors.redAccent;
+  static const Color successColor = Color.fromARGB(255, 2, 194, 9);
+
+  // Method to update primary color
+  static void setPrimaryColor(Color color) {
+    primaryColor = color;
+  }
 }
 
 class AppStyles {
@@ -27,8 +34,6 @@ class AppStyles {
     fontSize: 16,
     color: Colors.black,
   );
-
-  // Add more styles as needed
 }
 
 class AppDimensions {

@@ -41,6 +41,7 @@ dependencies:
   mobile_scanner: ^7.0.1
   package_info_plus: ^9.0.1
   firebase_remote_config: ^6.4.0
+  provider: ^6.1.5+1
 
 
 dev_dependencies:
@@ -95,6 +96,8 @@ flutter:
     - assets/images/newbslogo.png
     - assets/images/default.png
     - assets/images/ganzberg_placeholder.png
+    - assets/images/GanzbergSnowColor.png
+    - assets/images/GanzbergGoldColor.jpeg
     - assets/location/
 
 

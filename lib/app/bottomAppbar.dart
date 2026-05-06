@@ -2,10 +2,12 @@ import 'dart:convert';
 
 import 'package:flutter/material.dart';
 import 'package:gb_merchant/main/ProfilePage.dart';
+import 'package:gb_merchant/providers/theme_provider.dart';
 import 'package:gb_merchant/screens/firstScreen.dart';
 import 'package:gb_merchant/services/firebase_service.dart';
 import 'package:gb_merchant/utils/constants.dart';
 import 'package:gb_merchant/widgets/customDrawer.dart';
+import 'package:provider/provider.dart';
 import '../main/HomePage.dart';
 import '../services/user_server.dart';
 import '../widgets/appbar_widget.dart';
@@ -43,7 +45,7 @@ class _RomlousAppState extends State<RomlousApp>
   late final List<Widget> _widgetOptions;
   late VersionService _versionService;
   // ignore: unused_field
-  bool _hasCheckedUpdate = false;
+  final bool _hasCheckedUpdate = false;
   late SecureStorageService _secureStorage;
 
   @override
@@ -142,7 +144,7 @@ class _RomlousAppState extends State<RomlousApp>
       print('❌ Error checking update: $e');
     }
   }
-  
+
   Future<int?> _getUserStatus() async {
     // ✅ Use secure storage for token
     final token = await _secureStorage.getToken();
@@ -323,6 +325,8 @@ class _RomlousAppState extends State<RomlousApp>
 
   @override
   Widget build(BuildContext context) {
+    final themeProvider = Provider.of<ThemeProvider>(context);
+
     if (!_isLoggedIn) {
       return Firstscreen();
     }
@@ -333,7 +337,7 @@ class _RomlousAppState extends State<RomlousApp>
     final isTablet = screenWidth > 600;
 
     return Scaffold(
-      backgroundColor: AppColors.primaryColor,
+      backgroundColor: themeProvider.primaryColor,
       key: _scaffoldKey,
       appBar: CustomAppBar(
         onMenuPressed: () {
@@ -574,4 +578,4 @@ class _RomlousAppState extends State<RomlousApp>
   }
 }
 
-//Correct with 557 line code changes
+//Correct with 581 line code changes

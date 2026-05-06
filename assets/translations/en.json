@@ -3,7 +3,7 @@
     "change_language": "Change Language",
     "khmer": "Khmer",
     "english": "English",
-    "score": "Score",
+    "score": "Points",
     "no_internet": "No Internet Connection",
     "check_connection": "Please check your internet connection and try again.",
     "close": "Close",
@@ -140,5 +140,7 @@
     "all_notifications_marked_read": "All notifications marked as read",
     "read_all": "Read All",
     "preparing_share": "Prepare for sharing...",
-    "no_announcement_available": "No announcements available"
+    "no_announcement_available": "No announcements available",
+    "colortheme":"Switch Color mode",
+    "color_theme":"Color Theme Mode"
 }
